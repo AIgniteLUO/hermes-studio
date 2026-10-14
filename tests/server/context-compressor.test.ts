@@ -90,6 +90,8 @@ describe('ChatContextCompressor', () => {
       timeout: 12,
       model: 'summary-model',
       provider: 'openrouter',
+      // A summarizer session must never detach background work.
+      background_delegation_enabled: false,
     })
     // The summarizer prompt is the whole session: no tool or skill surface is handed to it.
     expect(payload).not.toHaveProperty('tools')

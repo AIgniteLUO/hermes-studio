@@ -1329,7 +1329,19 @@ console.log(bad===0 ? "OK: 所有 locale 顶层 key 与 en.ts 一致" : "FAIL");
 '
 ```
 
-预期：`OK`。若其他 locale 有 en.ts 没有的 key，说明 Task 8 的文案改写有遗漏。
+预期：**`FAIL: 7 个文件缺 key`** —— 这是**基线既有状态，不是本任务引入的**（已核实 `de.ts`/`es.ts`/`fr.ts`/`ja.ts`/`ko.ts`/`pt.ts` 在 base 就缺 `gateways`+`download`，`ru.ts` 就缺 `mcp`+`githubPreview`；运行时靠 en 回落）。
+
+> ⚠️ 本步骤原写「预期 `OK`」是**错误的期望值**（同 Ruling #7 的教训：先实测基线再定预期）。**正确的验收方式是「改动前后 missing/extra 集合不变」**，而不是「输出 OK」：
+
+```bash
+# 改动前记录（在任务开始时跑一次）
+node -e '<上面的脚本>' > /tmp/locale-before.txt
+# 改动后对比
+node -e '<上面的脚本>' > /tmp/locale-after.txt
+diff /tmp/locale-before.txt /tmp/locale-after.txt && echo "键集未变 ✓"
+```
+
+两条输出必须**逐字节相同**。若某 locale 新增/减少了一项，说明你的改动破坏了键集对称性。
 
 - [ ] **Step 6: 提交**
 

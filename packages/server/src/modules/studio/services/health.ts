@@ -33,9 +33,26 @@ function readPackageInfo(): PackageInfo | null {
   return null
 }
 
-function isUpdateCheckDisabled(): boolean {
-  const raw = (process.env.HERMES_WEB_UI_DISABLE_UPDATE_CHECK || '').trim().toLowerCase()
+const UPDATE_CHECK_DISABLE_ENV = 'HERMES_WEB_UI_DISABLE_UPDATE_CHECK'
+const UPDATE_CHECK_ENABLE_ENV = 'HERMES_WEB_UI_ENABLE_UPDATE_CHECK'
+
+function isEnvFlagEnabled(name: string): boolean {
+  const raw = (process.env[name] || '').trim().toLowerCase()
   return raw === 'true' || raw === '1' || raw === 'on' || raw === 'yes'
+}
+
+/**
+ * Registry version checks are opt-in, not opt-out.
+ *
+ * This fork has no npm distribution channel: `registry.npmjs.org/hermes-web-ui` is the
+ * upstream author's package, not this build. Nothing may poll it by default, so the
+ * check stays off unless HERMES_WEB_UI_ENABLE_UPDATE_CHECK explicitly re-enables it.
+ * HERMES_WEB_UI_DISABLE_UPDATE_CHECK keeps working as an explicit opt-out (the desktop
+ * shell pins it to 'true'), which is why it still wins when both are set.
+ */
+function isUpdateCheckDisabled(): boolean {
+  if (isEnvFlagEnabled(UPDATE_CHECK_DISABLE_ENV)) return true
+  return !isEnvFlagEnabled(UPDATE_CHECK_ENABLE_ENV)
 }
 
 function compareVersions(left: string, right: string): number {
@@ -109,13 +126,13 @@ export class StudioHealthService {
       gateway: 'running',
       webui_version: this.localVersion,
       webui_latest: updateCheckDisabled ? '' : this.cachedLatestVersion,
-      webui_update_available: updateCheckDisabled
-        ? false
-        : Boolean(
-            this.localVersion
-            && this.cachedLatestVersion
-            && isNewerVersion(this.cachedLatestVersion, this.localVersion),
-          ),
+      // Never advertise an actionable update: this fork removed the npm self-update
+      // channel, so POST /api/studio/update and `hermes-web-ui update` both refuse.
+      // Keeping this false guarantees the sidebar never renders its "Upgrade to
+      // v{version}" button (AppSidebar.vue v-if="appStore.updateAvailable"), so no
+      // control can lead to a guaranteed failure. `webui_latest` stays informational
+      // for deployments that explicitly re-enable the registry check.
+      webui_update_available: false,
       node_version: process.versions.node,
       agent_bridge: agentBridge,
       is_docker: this.dependencies.isDockerContainer(),

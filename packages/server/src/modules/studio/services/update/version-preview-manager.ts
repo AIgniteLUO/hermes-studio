@@ -24,7 +24,6 @@ function isDockerContainer(): boolean {
   return runtimeDependencies.isDockerContainer()
 }
 
-let updateInProgress = false
 const NODE_ENVIRONMENT_MISSING_CODE = 'node_environment_missing'
 const DOCKER_ENVIRONMENT_CODE = 'docker_environment'
 
@@ -380,38 +379,12 @@ function getPreviewViteHostArg() {
   return isTermuxRuntime() ? '127.0.0.1' : ''
 }
 
-function getGlobalPackageBin(root: string) {
-  return join(root, 'hermes-web-ui', 'bin', 'hermes-web-ui.mjs')
-}
-
 function getCurrentNodeEnv() {
   return {
     ...process.env,
     PATH: [getNodeBinDir(), process.env.PATH].filter(Boolean).join(delimiter),
     npm_node_execpath: process.execPath,
   }
-}
-
-function getUpdateCommandCwd() {
-  const cwd = getWebUiHome()
-  mkdirSync(cwd, { recursive: true })
-  return cwd
-}
-
-function runNpmSync(args: string[], options: { timeout?: number; env?: NodeJS.ProcessEnv } = {}) {
-  const env = {
-    ...getCurrentNodeEnv(),
-    ...options.env,
-  }
-  const execution = npmExecution(args, env)
-  return execFileSync(execution.command, execution.args, {
-    cwd: getUpdateCommandCwd(),
-    encoding: 'utf-8',
-    timeout: options.timeout,
-    stdio: ['pipe', 'pipe', 'pipe'],
-    env,
-    windowsHide: true,
-  }).trim()
 }
 
 async function runNpmAsync(args: string[], options: { timeout?: number; cwd?: string; logLabel?: string; env?: NodeJS.ProcessEnv } = {}) {
@@ -1043,49 +1016,29 @@ async function checkoutPreview(ref: string) {
   appendPreviewActionLog(`preview tag ready: ${ref}`)
 }
 
-function getGlobalRoot() {
-  return runNpmSync(['root', '-g'])
-}
+const NPM_SELF_UPDATE_UNAVAILABLE_CODE = 'npm_self_update_unavailable'
 
-function getGlobalCliScript() {
-  const cli = getGlobalPackageBin(getGlobalRoot())
-  if (!existsSync(cli)) {
-    throw new Error(`Updated hermes-web-ui CLI not found: ${cli}`)
+/**
+ * This fork has no npm distribution channel: the `hermes-web-ui` package on the public
+ * registry belongs to the upstream project, so `npm install -g hermes-web-ui@latest`
+ * would install that project (with its removed agent family and cloud endpoints) over
+ * this build. Refuse loudly instead of silently doing nothing, so the caller learns why
+ * the one-click upgrade is gone and where to update from instead.
+ */
+function refuseNpmSelfUpdate(ctx: any): void {
+  ctx.status = 501
+  ctx.body = {
+    success: false,
+    code: NPM_SELF_UPDATE_UNAVAILABLE_CODE,
+    message: 'hermes-web-ui is not published to npm by this fork, so the self-update channel is not available. '
+      + 'Nothing was installed and nothing was changed: `npm install -g hermes-web-ui@latest` would fetch a '
+      + 'different project from the public npm registry. Update from source instead — fetch the newer revision '
+      + 'of this repository, rebuild, and restart the server (the super-admin Version Preview panel can also '
+      + 'prepare and run another revision locally).',
   }
-  return cli
-}
-
-function runUpdateInstall() {
-  try {
-    runNpmSync(['cache', 'clean', '--force'], { timeout: 2 * 60 * 1000 })
-  } catch (err) {
-    console.warn('[update] failed to clean npm cache, continuing update:', err)
-  }
-
-  return runNpmSync(['install', '-g', 'hermes-web-ui@latest'], { timeout: 10 * 60 * 1000 })
-}
-
-function spawnRestart(port: string) {
-  const cli = getGlobalCliScript()
-
-  return spawn(process.execPath, [cli, 'restart', '--port', port], {
-    detached: true,
-    stdio: 'ignore',
-    windowsHide: true,
-    env: getCurrentNodeEnv(),
-  })
 }
 
 export async function handleUpdate(ctx: any) {
-  if (updateInProgress) {
-    ctx.status = 409
-    ctx.body = {
-      success: false,
-      message: 'hermes-web-ui update is already in progress',
-    }
-    return
-  }
-
   // Docker 环境中 npm 全局安装方式不可用，引导用户使用 docker pull 升级
   if (isDockerContainer()) {
     ctx.status = 400
@@ -1100,52 +1053,7 @@ export async function handleUpdate(ctx: any) {
     return
   }
 
-  updateInProgress = true
-  let keepUpdateLockForRestart = false
-
-  try {
-    const output = runUpdateInstall()
-
-    ctx.body = {
-      success: true,
-      message: output.trim() || 'hermes-web-ui updated successfully',
-    }
-
-    keepUpdateLockForRestart = true
-    setTimeout(() => {
-      let restart
-      try {
-        restart = spawnRestart(process.env.PORT || '8648')
-      } catch (err) {
-        updateInProgress = false
-        console.error('[update] failed to spawn restart:', err)
-        return
-      }
-
-      restart.on('error', (err) => {
-        updateInProgress = false
-        console.error('[update] restart process failed:', err)
-      })
-      restart.on('exit', (code, signal) => {
-        updateInProgress = false
-        const failed = (typeof code === 'number' && code !== 0) || Boolean(signal)
-        if (failed) {
-          console.error(`[update] restart process exited before replacing server: code=${code} signal=${signal}`)
-        }
-      })
-      restart.unref()
-    }, 3000)
-  } catch (err: any) {
-    ctx.status = 500
-    ctx.body = {
-      success: false,
-      message: err.stderr?.toString() || err.message || String(err),
-    }
-  } finally {
-    if (!keepUpdateLockForRestart) {
-      updateInProgress = false
-    }
-  }
+  refuseNpmSelfUpdate(ctx)
 }
 
 export async function previewStatus(ctx: any) {

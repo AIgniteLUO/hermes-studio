@@ -14,7 +14,7 @@
   ·
   <a href="https://github.com/AIgniteLUO/hermes-studio#readme">Documentation</a>
   ·
-  <code>npm install -g hermes-web-ui && hermes-web-ui start</code>
+  <a href="#quick-start">Build from source</a>
 </p>
 
 <p align="center">
@@ -22,7 +22,6 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/hermes-web-ui"><img src="https://img.shields.io/npm/v/hermes-web-ui?style=flat-square&color=blue" alt="npm version"/></a>
   <a href="https://github.com/AIgniteLUO/hermes-studio/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/hermes-web-ui?style=flat-square" alt="license"/></a>
   <a href="https://github.com/AIgniteLUO/hermes-studio/stargazers"><img src="https://img.shields.io/github/stars/AIgniteLUO/hermes-studio?style=flat-square" alt="stars"/></a>
 </p>
@@ -36,7 +35,7 @@
 | Agent control planes | Keeps Hermes profiles, providers, models, memory, skills, plugins, jobs, Kanban, channels, and runtime management in their owning agent module. |
 | Automation | Builds executable visual workflows and connects the four runtimes through schedules, approval gates, group-chat rooms, platform channels, and MCP servers. |
 | Workspace tools | Provides a file browser, web terminal, Desktop Agent Browser, voice input/output, coding-agent runners, device discovery, Journey graph, and performance views. |
-| Distribution | Ships as a desktop app for Windows/macOS/Linux, an npm CLI package, and a Docker image. |
+| Distribution | Ships as a desktop app for Windows/macOS/Linux, a CLI built from this repository, and a Docker image. |
 
 ## Agent and Platform Boundaries
 
@@ -307,11 +306,16 @@ Desktop auto-updates read metadata and packages from the GitHub Releases
 `latest` assets at
 `https://github.com/AIgniteLUO/hermes-studio/releases/latest/download`.
 
-### npm
+### From source (CLI + server)
+
+This fork is not published to npm; build the CLI and server from this repository:
 
 ```bash
-npm install -g hermes-web-ui
-hermes-web-ui start
+git clone https://github.com/AIgniteLUO/hermes-studio.git
+cd hermes-studio
+npm install
+npm run build
+node bin/hermes-web-ui.mjs start
 ```
 
 Open **http://localhost:8648**
@@ -423,7 +427,7 @@ These variables configure Hermes Studio, its local Hermes runtime integration, a
 | `hermes-web-ui status` | Check if running |
 | `hermes-web-ui clear-login-locks [--restart]` | Clear persisted login locks, optionally restart |
 | `hermes-web-ui reset-default-login` | Create or reset the default administrator login |
-| `hermes-web-ui update` / `upgrade` | Update to the latest version and restart |
+| `hermes-web-ui update` / `upgrade` | Refused: this fork has no npm self-update channel (explains why and exits non-zero) |
 | `hermes-web-ui version` / `-v` | Show the version |
 | `hermes-web-ui -h` | Show help |
 | `hermes-web-ui-mcp [api\|browser\|devices\|use]` | Run one managed Studio MCP toolset (same as `hermes-studio-mcp`) |
@@ -432,7 +436,7 @@ Add `--no-open` to `start` or `client` when no browser should open.
 
 `restart`, `update`, and `upgrade` stop the Agent Bridge broker by default so restarted or updated servers do not reuse stale Python bridge processes. Set `HERMES_AGENT_BRIDGE_STOP_ON_SHUTDOWN=0` before restarting only when you explicitly want to keep the bridge broker and running bridge sessions alive.
 
-`update` / `upgrade` first attempt `npm cache clean --force`, then run `npm install -g hermes-web-ui@latest` and restart. Cache cleanup is best-effort; if it fails, the updater continues with the install.
+`update` / `upgrade` are intentionally disabled in this fork: `hermes-web-ui` is not published to npm here, so `npm install -g hermes-web-ui@latest` would install a different project from the public registry. The command prints that explanation and exits non-zero without touching npm. Update from source instead — fetch the newer revision of this repository, rebuild with `npm run build`, then run `hermes-web-ui restart` — or, for a Docker deployment, pull a newer image and recreate the container. The sidebar never advertises an upgrade for the same reason.
 
 ### Auto Configuration
 

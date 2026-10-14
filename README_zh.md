@@ -14,7 +14,7 @@
   ·
   <a href="https://github.com/AIgniteLUO/hermes-studio#readme">使用文档</a>
   ·
-  <code>npm install -g hermes-web-ui && hermes-web-ui start</code>
+  <a href="#快速开始">从源码构建</a>
 </p>
 
 <p align="center">
@@ -30,7 +30,6 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/hermes-web-ui"><img src="https://img.shields.io/npm/v/hermes-web-ui?style=flat-square&color=blue" alt="npm 版本"/></a>
   <a href="https://github.com/AIgniteLUO/hermes-studio/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/hermes-web-ui?style=flat-square" alt="许可证"/></a>
   <a href="https://github.com/AIgniteLUO/hermes-studio/stargazers"><img src="https://img.shields.io/github/stars/AIgniteLUO/hermes-studio?style=flat-square" alt="Star"/></a>
 </p>
@@ -44,7 +43,7 @@
 | Agent 控制面 | 将 Hermes 的 Profile、Provider、模型、记忆、技能、插件、任务、Kanban、渠道和运行时管理保留在对应的 Agent 模块内。 |
 | 自动化 | 构建可执行的可视化工作流，通过定时任务、审批节点、群聊房间、平台渠道和 MCP Server 连接四种运行时。 |
 | 工作区工具 | 提供文件浏览器、Web 终端、桌面 Agent 浏览器、语音输入输出、Coding Agent、设备发现、学习轨迹和性能视图。 |
-| 分发形态 | 支持 Windows/macOS/Linux 桌面应用、npm CLI 包和 Docker 镜像。 |
+| 分发形态 | 支持 Windows/macOS/Linux 桌面应用、从本仓库源码构建的 CLI 和 Docker 镜像。 |
 
 ## Agent 与平台边界
 
@@ -310,11 +309,16 @@ hermes-web-ui reset-default-login
 桌面自动更新从 GitHub Releases `latest` 资源读取更新元数据和安装包：
 `https://github.com/AIgniteLUO/hermes-studio/releases/latest/download`。
 
-### npm 安装
+### 从源码构建（CLI + 服务端）
+
+本 fork 不发布到 npm，请从本仓库构建 CLI 与服务端：
 
 ```bash
-npm install -g hermes-web-ui
-hermes-web-ui start
+git clone https://github.com/AIgniteLUO/hermes-studio.git
+cd hermes-studio
+npm install
+npm run build
+node bin/hermes-web-ui.mjs start
 ```
 
 打开 **http://localhost:8648**
@@ -423,7 +427,7 @@ Studio 启动后端聊天能力时，会优先使用包含 `run_agent.py` 的源
 | `hermes-web-ui status` | 查看运行状态 |
 | `hermes-web-ui clear-login-locks [--restart]` | 清理持久登录锁，可选择重启 |
 | `hermes-web-ui reset-default-login` | 创建或重置默认管理员登录 |
-| `hermes-web-ui update` / `upgrade` | 更新到最新版本并重启 |
+| `hermes-web-ui update` / `upgrade` | 已禁用：本 fork 没有 npm 自更新通道（会说明原因并以非零状态退出） |
 | `hermes-web-ui version` / `-v` | 显示版本号 |
 | `hermes-web-ui -h` | 显示帮助信息 |
 | `hermes-web-ui-mcp [api\|browser\|devices\|use]` | 运行一个受管 Studio MCP 工具集（等同于 `hermes-studio-mcp`） |
@@ -432,7 +436,7 @@ Studio 启动后端聊天能力时，会优先使用包含 `run_agent.py` 的源
 
 `restart`、`update` 和 `upgrade` 默认会停止 Agent Bridge broker，避免重启或更新后的服务复用旧 Python bridge 进程。只有明确希望保留 broker 和正在运行的 bridge session 时，才在重启前设置 `HERMES_AGENT_BRIDGE_STOP_ON_SHUTDOWN=0`。
 
-`update` / `upgrade` 会先尝试执行 `npm cache clean --force`，再执行 `npm install -g hermes-web-ui@latest` 并重启。缓存清理是 best-effort；如果清理失败，只提示 warning，升级安装会继续执行。
+本 fork 已刻意禁用 `update` / `upgrade`：这里没有把 `hermes-web-ui` 发布到 npm，执行 `npm install -g hermes-web-ui@latest` 只会从公共 registry 装回另一个项目。该命令会打印这段说明并以非零状态退出，全程不调用 npm。请改为从源码更新——拉取本仓库的新版本，执行 `npm run build` 重新构建，再运行 `hermes-web-ui restart`；Docker 部署则拉取新镜像并重建容器。侧边栏同样不会提示可升级。
 
 ### 自动配置
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawn, execSync, execFileSync } from 'child_process'
-import { resolve, dirname, join, delimiter } from 'path'
+import { resolve, dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 import { readFileSync, writeFileSync, unlinkSync, mkdirSync, openSync, chmodSync, statSync, existsSync, realpathSync } from 'fs'
 import { randomBytes, scryptSync } from 'crypto'
@@ -84,37 +84,6 @@ function ensureToken() {
   return token
 }
 
-function getNodeBinDir() {
-  return dirname(process.execPath)
-}
-
-function getNpmBin() {
-  return join(getNodeBinDir(), process.platform === 'win32' ? 'npm.cmd' : 'npm')
-}
-
-function getCurrentNodeEnv() {
-  return {
-    ...process.env,
-    PATH: [getNodeBinDir(), process.env.PATH].filter(Boolean).join(delimiter),
-    npm_node_execpath: process.execPath,
-  }
-}
-
-function getGlobalPrefix() {
-  return execFileSync(getNpmBin(), ['prefix', '-g'], {
-    encoding: 'utf-8',
-    stdio: ['pipe', 'pipe', 'pipe'],
-    env: getCurrentNodeEnv(),
-  }).trim()
-}
-
-function getGlobalCliBin() {
-  const prefix = getGlobalPrefix()
-  return process.platform === 'win32'
-    ? join(prefix, 'hermes-web-ui.cmd')
-    : join(prefix, 'bin', 'hermes-web-ui')
-}
-
 function getWindowsShell() {
   const systemRoot = process.env.SystemRoot || 'C:\\Windows'
   const candidates = [
@@ -127,24 +96,6 @@ function getWindowsShell() {
   }
 
   return 'cmd.exe'
-}
-
-function quoteForWindowsCommand(value) {
-  return `"${value.replace(/"/g, '""')}"`
-}
-
-function spawnCli(command, args, options) {
-  if (process.platform === 'win32') {
-    const lowerCommand = String(command).toLowerCase()
-    if (!lowerCommand.endsWith('.cmd') && !lowerCommand.endsWith('.bat')) {
-      return spawn(command, args, options)
-    }
-
-    const commandLine = `${quoteForWindowsCommand(command)} ${args.map(arg => String(arg)).join(' ')}`
-    return spawn(getWindowsShell(), ['/d', '/s', '/c', commandLine], options)
-  }
-
-  return spawn(command, args, options)
 }
 
 function getPortFromArgs() {
@@ -177,17 +128,6 @@ function getRunningPort() {
   return null
 }
 
-function getUpdatePort() {
-  const argPort = getPortFromArgs()
-  if (argPort !== null) return argPort
-
-  const runningPort = getRunningPort()
-  if (runningPort !== null) return runningPort
-
-  if (process.env.PORT && !isNaN(process.env.PORT)) return parseInt(process.env.PORT)
-  return DEFAULT_PORT
-}
-
 function getPort() {
   const argPort = getPortFromArgs()
   return argPort ?? DEFAULT_PORT
@@ -195,12 +135,6 @@ function getPort() {
 
 function shouldOpenBrowser(argv = process.argv) {
   return !argv.includes('--no-open')
-}
-
-function getRestartArgs(port, argv = process.argv) {
-  const args = ['restart', '--port', String(port)]
-  if (!shouldOpenBrowser(argv)) args.push('--no-open')
-  return args
 }
 
 function enableClientMode() {
@@ -672,7 +606,7 @@ Commands:
   status             Show server status
   clear-login-locks  Delete the login IP lock file
   reset-default-login Create or reset the default login (${DEFAULT_USERNAME} / ${DEFAULT_PASSWORD})
-  update             Update to latest version and restart
+  update             Refused: no npm self-update channel in this fork (exit 1)
   upgrade            Alias for update
   version            Show version number
 
@@ -719,7 +653,7 @@ Options:
       break
     case 'update':
     case 'upgrade':
-      doUpdate()
+      refuseUpdate()
       break
     default:
       ensureNativeModules()
@@ -746,59 +680,17 @@ Options:
   }
 }
 
-function doUpdate() {
-  console.log('  ⬆ Updating hermes-web-ui...')
-
-  const npm = getNpmBin()
-  try {
-    console.log('  🧹 Cleaning npm cache...')
-    execFileSync(npm, ['cache', 'clean', '--force'], {
-      stdio: 'inherit',
-      env: getCurrentNodeEnv(),
-    })
-  } catch (err) {
-    console.log(`  ⚠ Failed to clean npm cache, continuing update: ${err?.message || err}`)
-  }
-
-  runUpdateInstall(npm)
-}
-
-function runUpdateInstall(npm) {
-  const child = spawnCli(npm, ['install', '-g', 'hermes-web-ui@latest'], {
-    stdio: 'inherit',
-    windowsHide: true,
-    env: getCurrentNodeEnv(),
-  })
-
-  child.on('error', (err) => {
-    console.log(`  ✗ Update failed: ${err.message}`)
-    process.exit(1)
-  })
-
-  child.on('exit', (code) => {
-    if (code === 0) {
-      console.log('  ✓ Update complete, restarting...')
-      const cli = getGlobalCliBin()
-      if (!existsSync(cli)) {
-        console.log(`  ✗ Updated CLI not found: ${cli}`)
-        process.exit(1)
-      }
-
-      const restart = spawnCli(cli, getRestartArgs(getUpdatePort()), {
-        stdio: 'inherit',
-        windowsHide: true,
-        env: getCurrentNodeEnv(),
-      })
-      restart.on('error', (err) => {
-        console.log(`  ✗ Restart failed: ${err.message}`)
-        process.exit(1)
-      })
-      restart.on('exit', (restartCode) => process.exit(restartCode ?? 1))
-    } else {
-      console.log('  ✗ Update failed')
-      process.exit(code ?? 1)
-    }
-  })
+// This fork has no npm distribution channel: the `hermes-web-ui` package on the public
+// registry belongs to the upstream project, so `npm install -g hermes-web-ui@latest`
+// would install that project (and its removed agent family plus cloud endpoints) instead
+// of this build. Refuse loudly and exit non-zero — never silently no-op.
+function refuseUpdate() {
+  console.error('  ✗ hermes-web-ui update is not available in this build.')
+  console.error('    This fork is not published to npm, so `npm install -g hermes-web-ui@latest` would install a')
+  console.error('    different project from the public registry. Nothing was installed and nothing was changed.')
+  console.error('    Update from source instead: fetch the newer revision of this repository, rebuild')
+  console.error('    (npm run build), then run `hermes-web-ui restart`.')
+  process.exit(1)
 }
 
 if (process.argv[1] && realpathSync(resolve(process.argv[1])) === __filename) {
@@ -813,8 +705,8 @@ export {
   commandExists,
   getDaemonStopGraceMs,
   getListeningPids,
-  getRestartArgs,
   parseUnixNetstatListeningPids,
+  refuseUpdate,
   resetDefaultLogin,
   shouldOpenBrowser,
   stopDaemon,

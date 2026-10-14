@@ -171,20 +171,26 @@ describe('CLI port detection', () => {
     expect(shouldOpenBrowser(['node', 'bin/hermes-web-ui.mjs', 'restart', '--port', '9000', '--no-open'])).toBe(false)
   })
 
-  it('preserves --no-open when update respawns restart', async () => {
-    const { getRestartArgs } = await loadCli()
+  it('refuses the removed npm self-update command with a non-zero exit code', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never)
+    const { refuseUpdate, mocks } = await loadCli()
 
-    expect(getRestartArgs(9000, ['node', 'bin/hermes-web-ui.mjs', 'update', '--port', '9000'])).toEqual([
-      'restart',
-      '--port',
-      '9000',
-    ])
-    expect(getRestartArgs(9000, ['node', 'bin/hermes-web-ui.mjs', 'update', '--port', '9000', '--no-open'])).toEqual([
-      'restart',
-      '--port',
-      '9000',
-      '--no-open',
-    ])
+    refuseUpdate()
+
+    expect(exitSpy).toHaveBeenCalledWith(1)
+    const output = errorSpy.mock.calls.map(call => String(call[0])).join('\n')
+    expect(output).toContain('not available in this build')
+    expect(output).toContain('not published to npm')
+    expect(output).toContain('npm install -g hermes-web-ui@latest')
+    expect(output).toContain('hermes-web-ui restart')
+    // The refusal is terminal: no npm child process is spawned and nothing is installed.
+    expect(mocks.spawn).not.toHaveBeenCalled()
+    expect(mocks.execFileSync).not.toHaveBeenCalled()
+    expect(mocks.execSync).not.toHaveBeenCalled()
+
+    errorSpy.mockRestore()
+    exitSpy.mockRestore()
   })
 
   it('resets an existing admin user to the default password', async () => {

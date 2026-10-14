@@ -13,6 +13,7 @@ type LoadHealthControllerOptions = {
   injectedVersion?: string
   isDocker?: boolean
   disableUpdateCheck?: boolean
+  enableUpdateCheck?: boolean
   bridgeReadiness?: any
   bridgeReadinessError?: Error
   managerError?: Error
@@ -37,6 +38,7 @@ const defaultBridgeReadiness = {
 async function loadHealthController(options: LoadHealthControllerOptions = {}) {
   vi.resetModules()
   vi.stubEnv('HERMES_WEB_UI_DISABLE_UPDATE_CHECK', options.disableUpdateCheck ? 'true' : '')
+  vi.stubEnv('HERMES_WEB_UI_ENABLE_UPDATE_CHECK', options.enableUpdateCheck ? 'true' : '')
 
   if (typeof options.injectedVersion === 'string') {
     ;(globalThis as any).__APP_VERSION__ = options.injectedVersion
@@ -146,7 +148,7 @@ describe('health controller version metadata', () => {
     expect(ctx.body.webui_version).toBe('9.9.9-test')
   })
 
-  it('checks npm latest using the root package name', async () => {
+  it('checks npm latest using the root package name only when explicitly enabled', async () => {
     vi.spyOn(console, 'log').mockImplementation(() => {})
     const pkg = readRootPackage()
     const fetchMock = vi.fn().mockResolvedValue({
@@ -155,7 +157,7 @@ describe('health controller version metadata', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    const { checkLatestVersion, healthCheck } = await loadHealthControllerWithoutInjectedVersion()
+    const { checkLatestVersion, healthCheck } = await loadHealthControllerWithoutInjectedVersion({ enableUpdateCheck: true })
 
     await checkLatestVersion()
 
@@ -168,7 +170,26 @@ describe('health controller version metadata', () => {
     await healthCheck(ctx)
 
     expect(ctx.body.webui_latest).toBe('99.99.99')
-    expect(ctx.body.webui_update_available).toBe(true)
+    // This fork has no npm self-update channel, so a registry result is never an
+    // actionable update: the sidebar must not offer a button that always fails.
+    expect(ctx.body.webui_update_available).toBe(false)
+  })
+
+  it('does not poll the npm registry by default', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { checkLatestVersion, startVersionCheck, healthCheck } = await loadHealthControllerWithoutInjectedVersion()
+
+    await checkLatestVersion()
+    startVersionCheck()
+
+    const ctx = createMockCtx()
+    await healthCheck(ctx)
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(ctx.body.webui_latest).toBe('')
+    expect(ctx.body.webui_update_available).toBe(false)
   })
 
   it('does not report a registry version lower than the local build as an update', async () => {
@@ -178,7 +199,10 @@ describe('health controller version metadata', () => {
       json: vi.fn().mockResolvedValue({ version: '0.6.17' }),
     }))
 
-    const { checkLatestVersion, healthCheck } = await loadHealthControllerWithInjectedVersion('0.6.18')
+    const { checkLatestVersion, healthCheck } = await loadHealthController({
+      injectedVersion: '0.6.18',
+      enableUpdateCheck: true,
+    })
 
     await checkLatestVersion()
 
@@ -193,7 +217,7 @@ describe('health controller version metadata', () => {
   it('does not throw when latest-version lookup fails', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')))
 
-    const { checkLatestVersion } = await loadHealthControllerWithoutInjectedVersion()
+    const { checkLatestVersion } = await loadHealthControllerWithoutInjectedVersion({ enableUpdateCheck: true })
 
     await expect(checkLatestVersion()).resolves.toBeUndefined()
   })
@@ -213,7 +237,25 @@ describe('health controller version metadata', () => {
     expect(ctx.body.webui_update_available).toBe(false)
   })
 
-  it('reports Docker while retaining version checks for upgrade guidance', async () => {
+  it('keeps the explicit disable flag winning over the explicit enable flag', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { checkLatestVersion, healthCheck } = await loadHealthController({
+      disableUpdateCheck: true,
+      enableUpdateCheck: true,
+    })
+
+    await checkLatestVersion()
+    const ctx = createMockCtx()
+    await healthCheck(ctx)
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(ctx.body.webui_latest).toBe('')
+    expect(ctx.body.webui_update_available).toBe(false)
+  })
+
+  it('reports Docker while an explicitly enabled version check stays informational', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({ version: '0.6.29' }),
@@ -222,6 +264,7 @@ describe('health controller version metadata', () => {
     const { checkLatestVersion, healthCheck } = await loadHealthController({
       injectedVersion: '0.6.28',
       isDocker: true,
+      enableUpdateCheck: true,
     })
 
     await checkLatestVersion()
@@ -232,7 +275,7 @@ describe('health controller version metadata', () => {
     expect(ctx.body).toEqual(expect.objectContaining({
       is_docker: true,
       webui_latest: '0.6.29',
-      webui_update_available: true,
+      webui_update_available: false,
     }))
   })
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { delimiter, dirname, join } from 'path'
+import { dirname, join } from 'path'
 
 type UpdateControllerMocks = {
   execFile: ReturnType<typeof vi.fn>
@@ -58,12 +58,8 @@ function createMockCtx() {
   }
 }
 
-function getNodeBinDir() {
-  return dirname(process.execPath)
-}
-
 function getNodePrefix() {
-  return process.platform === 'win32' ? getNodeBinDir() : dirname(getNodeBinDir())
+  return process.platform === 'win32' ? dirname(process.execPath) : dirname(dirname(process.execPath))
 }
 
 function getNpmCliPath() {
@@ -71,12 +67,6 @@ function getNpmCliPath() {
   return process.platform === 'win32'
     ? join(prefix, 'node_modules', 'npm', 'bin', 'npm-cli.js')
     : join(prefix, 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js')
-}
-
-function getGlobalCliScript(prefix: string) {
-  return process.platform === 'win32'
-    ? join(prefix, 'node_modules', 'hermes-web-ui', 'bin', 'hermes-web-ui.mjs')
-    : join(prefix, 'lib', 'node_modules', 'hermes-web-ui', 'bin', 'hermes-web-ui.mjs')
 }
 
 describe('update controller', () => {
@@ -102,124 +92,42 @@ describe('update controller', () => {
     delete process.env.HERMES_WEB_UI_PREVIEW_REPO
   })
 
-  it('updates and restarts through the running Node executable, not PATH shims', async () => {
+  it('refuses the npm self-update channel without invoking npm or restarting', async () => {
     process.env.PORT = '9129'
-    const nodeBinDir = getNodeBinDir()
-    const npmCli = getNpmCliPath()
-    const globalPrefix = getNodePrefix()
-    const cliScript = getGlobalCliScript(globalPrefix)
-    const execFileSync = vi.fn((_command: string, args: string[]) => {
-      if (args[1] === 'root') {
-        return process.platform === 'win32'
-          ? join(globalPrefix, 'node_modules')
-          : join(globalPrefix, 'lib', 'node_modules')
-      }
-      return 'updated'
-    })
-    const { handleUpdate, mocks } = await loadUpdateController({ execFileSync })
-    const ctx = createMockCtx()
-
-    await handleUpdate(ctx)
-
-    expect(mocks.execFileSync).toHaveBeenCalledWith(
-      process.execPath,
-      [npmCli, 'install', '-g', 'hermes-web-ui@latest'],
-      expect.objectContaining({
-        encoding: 'utf-8',
-        timeout: 10 * 60 * 1000,
-        stdio: ['pipe', 'pipe', 'pipe'],
-        windowsHide: true,
-        cwd: expect.any(String),
-        env: expect.objectContaining({
-          npm_node_execpath: process.execPath,
-          PATH: expect.stringContaining(`${nodeBinDir}${delimiter}`),
-        }),
-      }),
-    )
-    expect(ctx.body).toEqual({ success: true, message: 'updated' })
-
-    await vi.runAllTimersAsync()
-
-    expect(mocks.execFileSync).toHaveBeenCalledWith(
-      process.execPath,
-      [npmCli, 'root', '-g'],
-      expect.objectContaining({
-        encoding: 'utf-8',
-        stdio: ['pipe', 'pipe', 'pipe'],
-        windowsHide: true,
-        cwd: expect.any(String),
-        env: expect.objectContaining({ npm_node_execpath: process.execPath }),
-      }),
-    )
-    expect(mocks.spawn).toHaveBeenCalledWith(
-      process.execPath,
-      [cliScript, 'restart', '--port', '9129'],
-      expect.objectContaining({
-        detached: true,
-        stdio: 'ignore',
-        windowsHide: true,
-        env: expect.objectContaining({ npm_node_execpath: process.execPath }),
-      }),
-    )
-    expect(mocks.unref).toHaveBeenCalledOnce()
-  })
-
-  it('falls back to the default port when PORT is not set', async () => {
-    delete process.env.PORT
     const { handleUpdate, mocks } = await loadUpdateController()
     const ctx = createMockCtx()
 
     await handleUpdate(ctx)
     await vi.runAllTimersAsync()
 
-    expect(mocks.spawn).toHaveBeenCalledWith(
-      process.execPath,
-      [expect.any(String), 'restart', '--port', '8648'],
-      expect.objectContaining({ detached: true, stdio: 'ignore', windowsHide: true }),
-    )
-  })
-
-  it('does not log a restart error when the restart helper exits successfully', async () => {
-    const handlers = new Map<string, (...args: any[]) => void>()
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const unref = vi.fn()
-    const restart = {
-      unref,
-      on: vi.fn((event: string, handler: (...args: any[]) => void) => {
-        handlers.set(event, handler)
-        return restart
-      }),
-    }
-    const spawn = vi.fn(() => restart)
-    const { handleUpdate } = await loadUpdateController({ spawn, unref })
-    const ctx = createMockCtx()
-
-    await handleUpdate(ctx)
-    await vi.runAllTimersAsync()
-    handlers.get('exit')?.(0, null)
-
-    expect(errorSpy).not.toHaveBeenCalled()
-    errorSpy.mockRestore()
-  })
-
-  it('returns a 500 with stderr when installation fails', async () => {
-    const execFileSync = vi.fn((_command: string, args: string[]) => {
-      if (args.includes('install') && args.includes('hermes-web-ui@latest')) {
-        const error = new Error('install failed') as Error & { stderr?: string }
-        error.stderr = 'engine mismatch'
-        throw error
-      }
-      return ''
+    expect(ctx.status).toBe(501)
+    expect(ctx.body).toEqual({
+      success: false,
+      code: 'npm_self_update_unavailable',
+      message: expect.stringContaining('not published to npm'),
     })
-    const { handleUpdate, mocks } = await loadUpdateController({ execFileSync })
-    const ctx = createMockCtx()
-
-    await handleUpdate(ctx)
-
-    expect(ctx.status).toBe(500)
-    expect(ctx.body).toEqual({ success: false, message: 'engine mismatch' })
+    const message = (ctx.body as { message: string }).message
+    expect(message).toContain('npm install -g hermes-web-ui@latest')
+    expect(message).toContain('Nothing was installed')
+    expect(mocks.execFileSync).not.toHaveBeenCalled()
+    expect(mocks.execFile).not.toHaveBeenCalled()
     expect(mocks.spawn).not.toHaveBeenCalled()
     expect(exitSpy).not.toHaveBeenCalled()
+  })
+
+  it('keeps refusing repeated update requests instead of leaving an in-progress lock behind', async () => {
+    delete process.env.PORT
+    const { handleUpdate, mocks } = await loadUpdateController()
+    const first = createMockCtx()
+    const second = createMockCtx()
+
+    await handleUpdate(first)
+    await handleUpdate(second)
+
+    expect(first.status).toBe(501)
+    expect(second.status).toBe(501)
+    expect(second.body).toEqual(first.body)
+    expect(mocks.spawn).not.toHaveBeenCalled()
   })
 
   it('rejects in-container npm updates with Docker recreation guidance', async () => {

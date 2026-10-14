@@ -5,8 +5,6 @@ import {
 
 const AGENT_ALIASES: Record<string, AgentStatusId> = {
   hermes: 'hermes',
-  ekko: 'ekko-agent',
-  'ekko-agent': 'ekko-agent',
   claude: 'claude-code',
   'claude-code': 'claude-code',
   codex: 'codex',
@@ -15,7 +13,6 @@ const AGENT_ALIASES: Record<string, AgentStatusId> = {
 
 const AGENT_NAMES: Record<AgentStatusId, string> = {
   hermes: 'Hermes',
-  'ekko-agent': 'Ekko',
   'claude-code': 'Claude',
   codex: 'Codex',
   pi: 'Pi',

@@ -1,4 +1,4 @@
-export type AgentStatusId = 'hermes' | 'ekko-agent' | 'claude-code' | 'codex' | 'pi'
+export type AgentStatusId = 'hermes' | 'claude-code' | 'codex' | 'pi'
 
 export type AgentStatusSource =
   | 'managed-runtime'
@@ -46,7 +46,7 @@ export interface AgentAvailabilitySnapshot {
   agents: AgentAvailabilityRecord[]
 }
 
-const AGENT_ORDER: AgentStatusId[] = ['hermes', 'ekko-agent', 'claude-code', 'codex', 'pi']
+const AGENT_ORDER: AgentStatusId[] = ['hermes', 'claude-code', 'codex', 'pi']
 
 const DEFAULTS: Record<AgentStatusId, Omit<AgentStatusRecord, 'updatedAt'>> = {
   hermes: {
@@ -57,18 +57,6 @@ const DEFAULTS: Record<AgentStatusId, Omit<AgentStatusRecord, 'updatedAt'>> = {
     installed: false,
     version: '',
     source: 'not-installed',
-    path: '',
-    error: '',
-    installations: [],
-  },
-  'ekko-agent': {
-    id: 'ekko-agent',
-    name: 'Ekko',
-    provider: 'Hermes Studio',
-    kind: 'built-in',
-    installed: true,
-    version: '',
-    source: 'built-in',
     path: '',
     error: '',
     installations: [],

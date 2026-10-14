@@ -1,6 +1,4 @@
-import type { AgentRuntime } from '../contracts/agents/runtime'
-
-export type McuAgentRuntime = Extract<AgentRuntime, 'ekko' | 'hermes'>
+export type McuAgentRuntime = 'hermes'
 
 export interface McuVoiceChatTurnInput {
   userToken: string

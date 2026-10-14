@@ -1,4 +1,4 @@
-export const AGENT_FAMILIES = ['hermes', 'ekko', 'coding'] as const
+export const AGENT_FAMILIES = ['hermes', 'coding'] as const
 
 export type AgentFamily = typeof AGENT_FAMILIES[number]
 

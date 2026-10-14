@@ -26,22 +26,6 @@ export interface ChatAgentRuntimeDependencies {
   startCodingAgentRun(...args: any[]): any
   handleCodingAgentSessionCommand(...args: any[]): Promise<any>
   parseCodingAgentSessionCommand(...args: any[]): any
-  getEkkoAgent(profile: string): any
-  abortEkkoBackgroundTasks(...args: any[]): Promise<any>
-  hasEkkoBackgroundTasks(...args: any[]): boolean
-  createEkkoModelClient(...args: any[]): any
-  resolveEkkoModelProviderConfigs(...args: any[]): any
-  ekkoModelRequestTimeoutMs: number
-  ekkoAgentReasoningText(...args: any[]): string
-  normalizeEkkoAgentReasoning(...args: any[]): any
-  serializeEkkoAgentReasoningDetails(...args: any[]): any
-  waitForEkkoToolApproval(...args: any[]): Promise<any>
-  waitForEkkoClarification(...args: any[]): Promise<any>
-  resolveEkkoMcpServers(...args: any[]): any
-  resolveEkkoProviderRuntimeConfig(...args: any[]): Promise<any>
-  createEkkoAuthorizedProviderFetch(...args: any[]): any
-  respondToEkkoToolApproval(...args: any[]): any
-  respondToEkkoClarification(...args: any[]): any
 }
 
 let dependencies: ChatAgentRuntimeDependencies | null = null
@@ -80,20 +64,3 @@ export const sendChatCodingAgentRunInput = (...args: any[]) => configured().send
 export const startChatCodingAgentRun = (...args: any[]) => configured().startCodingAgentRun(...args)
 export const handleChatCodingAgentSessionCommand = (...args: any[]) => configured().handleCodingAgentSessionCommand(...args)
 export const parseChatCodingAgentSessionCommand = (...args: any[]) => configured().parseCodingAgentSessionCommand(...args)
-
-export const getChatEkkoAgent = (profile: string) => configured().getEkkoAgent(profile)
-export const abortChatEkkoBackgroundTasks = (...args: any[]) => configured().abortEkkoBackgroundTasks(...args)
-export const hasChatEkkoBackgroundTasks = (...args: any[]) => configured().hasEkkoBackgroundTasks(...args)
-export const createChatEkkoModelClient = (...args: any[]) => configured().createEkkoModelClient(...args)
-export const resolveChatEkkoModelProviderConfigs = (...args: any[]) => configured().resolveEkkoModelProviderConfigs(...args)
-export const getChatEkkoModelRequestTimeoutMs = () => configured().ekkoModelRequestTimeoutMs
-export const chatEkkoAgentReasoningText = (...args: any[]) => configured().ekkoAgentReasoningText(...args)
-export const normalizeChatEkkoAgentReasoning = (...args: any[]) => configured().normalizeEkkoAgentReasoning(...args)
-export const serializeChatEkkoAgentReasoningDetails = (...args: any[]) => configured().serializeEkkoAgentReasoningDetails(...args)
-export const waitForChatEkkoToolApproval = (...args: any[]) => configured().waitForEkkoToolApproval(...args)
-export const waitForChatEkkoClarification = (...args: any[]) => configured().waitForEkkoClarification(...args)
-export const resolveChatEkkoMcpServers = (...args: any[]) => configured().resolveEkkoMcpServers(...args)
-export const resolveChatEkkoProviderRuntimeConfig = (...args: any[]) => configured().resolveEkkoProviderRuntimeConfig(...args)
-export const createChatEkkoAuthorizedProviderFetch = (...args: any[]) => configured().createEkkoAuthorizedProviderFetch(...args)
-export const respondToChatEkkoToolApproval = (...args: any[]) => configured().respondToEkkoToolApproval(...args)
-export const respondToChatEkkoClarification = (...args: any[]) => configured().respondToEkkoClarification(...args)

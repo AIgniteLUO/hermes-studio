@@ -247,7 +247,7 @@ export default {
     settings: '설정',
     connected: '연결됨',
     disconnected: '연결 끊김',
-    updateTip: '터미널에서 "hermes-web-ui update"를 실행하여 업데이트하세요',
+    updateTip: '이 빌드에는 npm 자체 업데이트 채널이 없습니다. 소스에서 업데이트하세요',
     updateVersion: 'v{version}(으)로 업그레이드',
     reloadClientVersion: 'v{version}(으)로 새로고침',
     updating: '업데이트 중...',
@@ -302,8 +302,8 @@ export default {
     aiHelpDialogQuestion: '{name} {operation}에 실패했습니다. Hermes에게 진단을 요청할까요?',
     aiHelpDialogPositive: 'AI에게 질문',
     aiHelpDrawerTitle: 'Hermes · Agent 문제 해결',
-    aiHelpGeneralPrompt: '`hermes-studio-installation` Skill의 라우팅 지침을 따라 Agent와 문제에 맞는 reference를 선택하세요. 이 기기의 Agent 설치, 업데이트 또는 삭제 문제를 진단하거나 관리하도록 도와주세요. 실제 설치 출처, 확인되는 모든 실행 파일 경로, Node/npm 환경 및 관련 패키지 관리자 prefix를 검사하세요. 컨텍스트가 부족하면 먼저 처리할 Agent와 증상을 질문하세요. 사용자 설정, 인증 정보 및 대화 데이터는 보존하고 파괴적인 변경 전에는 다시 확인을 요청하세요.',
-    aiHelpPrompt: '`hermes-studio-installation` Skill의 라우팅 지침을 따라 이 Agent와 문제에 맞는 reference를 선택하여 Agents 페이지의 이 실패를 진단하세요.\n\nAgent: {name}\nAgent ID: {id}\n작업: {operation}\n실행 명령: {command}\nnpm 패키지: {package}\n원본 오류:\n{error}\n\n설치 출처, 확인되는 모든 실행 파일 경로, Node/npm 환경 및 관련 패키지 관리자 prefix를 검사하세요. 사용자 설정, 인증 정보 및 대화 데이터는 보존하세요. 먼저 근본 원인을 설명하고 파괴적인 변경 전에는 다시 확인을 요청하세요.',
+    aiHelpGeneralPrompt: '제가 제공하는 정보만으로 이 기기의 Agent 설치, 업데이트 또는 삭제 문제를 진단하거나 관리하도록 도와주세요. 실제 설치 출처, 확인되는 모든 실행 파일 경로, Node/npm 환경 및 관련 패키지 관리자 prefix를 검사하세요. 컨텍스트가 부족하면 먼저 처리할 Agent와 증상을 질문하세요. 사용자 설정, 인증 정보 및 대화 데이터는 보존하고 파괴적인 변경 전에는 반드시 확인을 요청하세요.',
+    aiHelpPrompt: '아래 정보만으로 Agents 페이지의 이 실패를 진단하세요.\n\nAgent: {name}\nAgent ID: {id}\n작업: {operation}\n실행 명령: {command}\nnpm 패키지: {package}\n원본 오류:\n{error}\n\n설치 출처, 확인되는 모든 실행 파일 경로, Node/npm 환경 및 관련 패키지 관리자 prefix를 검사하세요. 사용자 설정, 인증 정보 및 대화 데이터는 보존하세요. 먼저 근본 원인을 설명하고 파괴적인 변경 전에는 반드시 확인을 요청하세요.',
   },
 
   runtimeVersions: {

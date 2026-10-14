@@ -13,6 +13,24 @@ import zh from '../../packages/client/src/i18n/locales/zh'
 
 const locales = { ar, de, en, es, fr, ja, ko, pt, ru, zh, 'zh-TW': zhTW }
 
+// Each prompt keeps a localized "confirm before destructive changes" clause. The
+// `hermes-studio-installation` Skill those prompts used to delegate routing to was
+// removed with the Ekko package, so the prompts must now diagnose from the context
+// they already carry while still asking for confirmation before destructive changes.
+const DESTRUCTIVE_CHANGE_ANCHORS: Record<keyof typeof locales, string> = {
+  ar: 'تغييرات مدمرة',
+  de: 'destruktiven Änderungen',
+  en: 'destructive changes',
+  es: 'cambios destructivos',
+  fr: 'modification destructive',
+  ja: '破壊的な変更',
+  ko: '파괴적인 변경',
+  pt: 'alterações destrutivas',
+  ru: 'разрушительными изменениями',
+  zh: '破坏性修改',
+  'zh-TW': '破壞性修改',
+}
+
 function leafPaths(value: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(value).flatMap(([key, child]) => {
     const path = prefix ? `${prefix}.${key}` : key
@@ -42,8 +60,15 @@ describe('Agent Manager locale coverage', () => {
 
       for (const key of ['aiHelpGeneralPrompt', 'aiHelpPrompt'] as const) {
         const prompt = String(messages.agentManager[key])
-        expect(prompt, `${locale} agentManager.${key} Skill routing`).toContain('hermes-studio-installation')
+        expect(prompt, `${locale} agentManager.${key} removed Skill routing`).not.toContain('hermes-studio-installation')
         expect(prompt, `${locale} agentManager.${key} reference routing`).not.toContain('references/coding-agents.md')
+        // The diagnostic instructions must survive the rewrite: the prompt still names
+        // the Agent subject, the Node/npm environment inspection, and the constraint to
+        // confirm before destructive changes.
+        expect(prompt, `${locale} agentManager.${key} Agent subject`).toContain('Agent')
+        expect(prompt, `${locale} agentManager.${key} Node/npm environment`).toContain('Node/npm')
+        expect(prompt, `${locale} agentManager.${key} destructive-change confirmation`)
+          .toContain(DESTRUCTIVE_CHANGE_ANCHORS[locale as keyof typeof locales])
       }
     }
   })

@@ -247,7 +247,7 @@ export default {
     settings: 'Parametres',
     connected: 'Connecte',
     disconnected: 'Deconnecte',
-    updateTip: 'Executez "hermes-web-ui update" dans le terminal pour mettre a jour',
+    updateTip: 'Cette compilation n’a pas de canal d’auto-mise à jour npm ; mettez à jour depuis les sources',
     updateVersion: 'Mettre a jour vers v{version}',
     reloadClientVersion: 'Recharger pour v{version}',
     updating: 'Mise a jour...',
@@ -302,8 +302,8 @@ export default {
     aiHelpDialogQuestion: 'L’opération de {operation} de {name} a échoué. Voulez-vous demander à Hermes de diagnostiquer le problème ?',
     aiHelpDialogPositive: 'Demander à AI',
     aiHelpDrawerTitle: 'Hermes · Dépannage Agent',
-    aiHelpGeneralPrompt: 'Utilisez le Skill `hermes-studio-installation` et suivez ses instructions de routage pour choisir la référence adaptée à l’Agent et au problème. Aidez-moi à diagnostiquer ou gérer l’installation, la mise à jour ou la suppression d’Agents sur cet appareil. Vérifiez la source d’installation réelle, tous les chemins d’exécutables résolus, l’environnement Node/npm et les préfixes de gestionnaire de paquets applicables. Si le contexte manque, demandez d’abord quel Agent et quel symptôme traiter. Préservez la configuration, l’authentification et les conversations de l’utilisateur et demandez confirmation avant toute modification destructive.',
-    aiHelpPrompt: 'Utilisez le Skill `hermes-studio-installation` et suivez ses instructions de routage pour choisir la référence adaptée à cet Agent et à ce problème. Diagnostiquez cet échec de la page Agents.\n\nAgent : {name}\nID Agent : {id}\nOpération : {operation}\nExécutable : {command}\nPaquet npm : {package}\nErreur d’origine :\n{error}\n\nVérifiez la source d’installation, tous les chemins d’exécutables résolus, l’environnement Node/npm et les préfixes de gestionnaire de paquets applicables. Préservez la configuration, l’authentification et les conversations de l’utilisateur. Expliquez d’abord la cause et demandez confirmation avant toute modification destructive.',
+    aiHelpGeneralPrompt: 'Aidez-moi à diagnostiquer ou gérer l’installation, la mise à jour ou la suppression d’Agents sur cet appareil à partir des informations que je vous fournis. Vérifiez la source d’installation réelle, tous les chemins d’exécutables résolus, l’environnement Node/npm et les préfixes de gestionnaire de paquets applicables. Si le contexte manque, demandez d’abord quel Agent et quel symptôme traiter. Préservez la configuration, l’authentification et les conversations de l’utilisateur et demandez confirmation avant toute modification destructive.',
+    aiHelpPrompt: 'Diagnostiquez cet échec de la page Agents à partir des informations ci-dessous.\n\nAgent : {name}\nID Agent : {id}\nOpération : {operation}\nExécutable : {command}\nPaquet npm : {package}\nErreur d’origine :\n{error}\n\nVérifiez la source d’installation, tous les chemins d’exécutables résolus, l’environnement Node/npm et les préfixes de gestionnaire de paquets applicables. Préservez la configuration, l’authentification et les conversations de l’utilisateur. Expliquez d’abord la cause et demandez confirmation avant toute modification destructive.',
   },
 
   runtimeVersions: {

@@ -247,7 +247,7 @@ export default {
     settings: 'Configurações',
     connected: 'Conectado',
     disconnected: 'Desconectado',
-    updateTip: 'Execute "hermes-web-ui update" no terminal para atualizar',
+    updateTip: 'Esta compilação não tem canal de autoatualização via npm; atualize a partir do código-fonte',
     updateVersion: 'Atualizar para v{version}',
     reloadClientVersion: 'Recarregar para v{version}',
     updating: 'Atualizando...',
@@ -302,8 +302,8 @@ export default {
     aiHelpDialogQuestion: 'A {operation} de {name} falhou. Deseja que o Hermes diagnostique o problema?',
     aiHelpDialogPositive: 'Perguntar à AI',
     aiHelpDrawerTitle: 'Hermes · Diagnóstico de Agent',
-    aiHelpGeneralPrompt: 'Use o Skill `hermes-studio-installation` e siga suas instruções de roteamento para escolher a referência adequada ao Agent e ao problema. Ajude-me a diagnosticar ou gerenciar a instalação, atualização ou remoção de Agents neste dispositivo. Verifique a origem real da instalação, todos os caminhos de executáveis resolvidos, o ambiente Node/npm e os prefixos aplicáveis do gerenciador de pacotes. Se faltar contexto, pergunte primeiro qual Agent e sintoma devo resolver. Preserve configurações, autenticação e conversas do usuário e peça confirmação antes de alterações destrutivas.',
-    aiHelpPrompt: 'Use o Skill `hermes-studio-installation` e siga suas instruções de roteamento para escolher a referência adequada a este Agent e problema. Diagnostique esta falha da página Agents.\n\nAgent: {name}\nID do Agent: {id}\nOperação: {operation}\nExecutável: {command}\nPacote npm: {package}\nErro original:\n{error}\n\nVerifique a origem da instalação, todos os caminhos de executáveis resolvidos, o ambiente Node/npm e os prefixos aplicáveis do gerenciador de pacotes. Preserve configurações, autenticação e conversas do usuário. Explique primeiro a causa e peça confirmação antes de alterações destrutivas.',
+    aiHelpGeneralPrompt: 'Ajude-me a diagnosticar ou gerenciar a instalação, atualização ou remoção de Agents neste dispositivo a partir das informações que eu fornecer. Verifique a origem real da instalação, todos os caminhos de executáveis resolvidos, o ambiente Node/npm e os prefixos aplicáveis do gerenciador de pacotes. Se faltar contexto, pergunte primeiro qual Agent e sintoma devo resolver. Preserve configurações, autenticação e conversas do usuário e peça confirmação antes de fazer alterações destrutivas.',
+    aiHelpPrompt: 'Diagnostique esta falha da página Agents a partir das informações abaixo.\n\nAgent: {name}\nID do Agent: {id}\nOperação: {operation}\nExecutável: {command}\nPacote npm: {package}\nErro original:\n{error}\n\nVerifique a origem da instalação, todos os caminhos de executáveis resolvidos, o ambiente Node/npm e os prefixos aplicáveis do gerenciador de pacotes. Preserve configurações, autenticação e conversas do usuário. Explique primeiro a causa e peça confirmação antes de fazer alterações destrutivas.',
   },
 
   runtimeVersions: {

@@ -247,7 +247,7 @@ export default {
     settings: '設定',
     connected: '接続済み',
     disconnected: '未接続',
-    updateTip: 'ターミナルで "hermes-web-ui update" を実行して更新してください',
+    updateTip: 'このビルドには npm 自己更新チャンネルがありません。ソースから更新してください',
     updateVersion: 'v{version} にアップグレード',
     reloadClientVersion: 'v{version} に再読み込み',
     updating: '更新中...',
@@ -302,8 +302,8 @@ export default {
     aiHelpDialogQuestion: '{name} の{operation}に失敗しました。Hermes に診断を依頼しますか？',
     aiHelpDialogPositive: 'AI に質問',
     aiHelpDrawerTitle: 'Hermes · Agent トラブルシューティング',
-    aiHelpGeneralPrompt: '`hermes-studio-installation` Skill のルーティング指示に従い、Agent と問題に適した reference を選択してください。このデバイスでの Agent のインストール、更新、削除に関する診断や管理を支援してください。実際のインストール元、解決されたすべての実行ファイルパス、Node/npm 環境、該当するパッケージマネージャーのプレフィックスを確認してください。コンテキストが不足している場合は、対象の Agent と症状を先に質問してください。ユーザー設定、認証情報、会話データは保持し、破壊的な変更の前には再度確認を求めてください。',
-    aiHelpPrompt: '`hermes-studio-installation` Skill のルーティング指示に従い、この Agent と問題に適した reference を選択して、Agents ページでのこの失敗を診断してください。\n\nAgent: {name}\nAgent ID: {id}\n操作: {operation}\n実行コマンド: {command}\nnpm パッケージ: {package}\n元のエラー:\n{error}\n\nインストール元、解決されたすべての実行ファイルパス、Node/npm 環境、該当するパッケージマネージャーのプレフィックスを確認してください。ユーザー設定、認証情報、会話データは保持してください。最初に根本原因を説明し、破壊的な変更の前には再度確認を求めてください。',
+    aiHelpGeneralPrompt: '私が提示する情報だけを使って、このデバイスでの Agent のインストール、更新、削除の診断や管理を手伝ってください。実際のインストール元、解決されたすべての実行ファイルパス、Node/npm 環境、該当するパッケージマネージャーのプレフィックスを確認してください。コンテキストが不足している場合は、対象の Agent と症状を先に質問してください。ユーザー設定、認証情報、会話データは保持し、破壊的な変更の前には必ず確認を求めてください。',
+    aiHelpPrompt: '以下の情報だけを使って、Agents ページでのこの失敗を診断してください。\n\nAgent: {name}\nAgent ID: {id}\n操作: {operation}\n実行コマンド: {command}\nnpm パッケージ: {package}\n元のエラー:\n{error}\n\nインストール元、解決されたすべての実行ファイルパス、Node/npm 環境、該当するパッケージマネージャーのプレフィックスを確認してください。ユーザー設定、認証情報、会話データは保持してください。最初に根本原因を説明し、破壊的な変更の前には必ず確認を求めてください。',
   },
 
   runtimeVersions: {

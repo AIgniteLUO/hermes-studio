@@ -245,7 +245,7 @@ export default {
     disconnected: '未連線',
     collapse: '收起選單',
     expand: '展開選單',
-    updateTip: '在終端機執行 "hermes-web-ui update" 即可更新',
+    updateTip: '此版本沒有 npm 自更新通道，請從原始碼更新',
     updateVersion: '升級版本 v{version}',
     reloadClientVersion: '重新整理到 v{version}',
     updating: '正在更新...',
@@ -290,8 +290,8 @@ export default {
     aiHelpDialogQuestion: '{name} {operation}失敗，是否讓 Hermes 協助排查？',
     aiHelpDialogPositive: '詢問 AI',
     aiHelpDrawerTitle: 'Hermes · Agent 管理排障',
-    aiHelpGeneralPrompt: '請使用 `hermes-studio-installation` Skill，並遵循 Skill 自己的路由說明，依 Agent 和問題類型選擇合適的 reference。協助我排查或管理這台裝置上的 Agent 安裝、更新或刪除問題。請檢查實際安裝來源、所有實際命中的可執行檔路徑、Node/npm 環境及對應的套件管理器前綴。如果上下文不足，請先詢問我要處理的 Agent 和具體症狀。不要刪除使用者設定、認證資訊或對話資料，任何破壞性修改都必須再次取得使用者確認。',
-    aiHelpPrompt: '請使用 `hermes-studio-installation` Skill，並遵循 Skill 自己的路由說明，依這次 Agent 和問題類型選擇合適的 reference，排查這次 Agents 頁面操作失敗。\n\nAgent：{name}\nAgent ID：{id}\n操作類型：{operation}\n可執行命令：{command}\nnpm 套件：{package}\n原始錯誤：\n{error}\n\n請檢查安裝來源、所有實際命中的可執行檔路徑、Node/npm 環境及對應的套件管理器前綴。不要刪除使用者設定、認證資訊或對話資料。先說明根因，任何破壞性修改都必須再次取得使用者確認。',
+    aiHelpGeneralPrompt: '請直接根據我提供的資訊，協助我排查或管理這台裝置上的 Agent 安裝、更新或刪除問題。請檢查實際安裝來源、所有實際命中的可執行檔路徑、Node/npm 環境及對應的套件管理器前綴。如果上下文不足，請先詢問我要處理的 Agent 和具體症狀。不要刪除使用者設定、認證資訊或對話資料，任何破壞性修改都必須再次取得使用者確認。',
+    aiHelpPrompt: '請根據以下資訊直接排查這次 Agents 頁面操作失敗。\n\nAgent：{name}\nAgent ID：{id}\n操作類型：{operation}\n可執行命令：{command}\nnpm 套件：{package}\n原始錯誤：\n{error}\n\n請檢查安裝來源、所有實際命中的可執行檔路徑、Node/npm 環境及對應的套件管理器前綴。不要刪除使用者設定、認證資訊或對話資料。先說明根因，任何破壞性修改都必須再次取得使用者確認。',
   },
 
   runtimeVersions: {

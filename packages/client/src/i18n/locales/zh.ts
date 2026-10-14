@@ -245,7 +245,7 @@ export default {
     disconnected: '未连接',
     collapse: '收起菜单',
     expand: '展开菜单',
-    updateTip: '在终端运行 "hermes-web-ui update" 即可更新',
+    updateTip: '此版本没有 npm 自更新通道，请从源码更新',
     updateVersion: '升级版本 v{version}',
     reloadClientVersion: '刷新到 v{version}',
     updating: '正在更新...',
@@ -290,8 +290,8 @@ export default {
     aiHelpDialogQuestion: '{name} {operation}失败，是否让 Hermes 帮你排查？',
     aiHelpDialogPositive: '询问 AI',
     aiHelpDrawerTitle: 'Hermes · Agent 管理排障',
-    aiHelpGeneralPrompt: '请使用 `hermes-studio-installation` Skill，并遵循 Skill 自己的路由说明，根据 Agent 和问题类型选择合适的 reference。帮我排查或管理这台设备上的 Agent 安装、更新或删除问题。请检查实际安装来源、所有实际命中的可执行文件路径、Node/npm 环境和对应的包管理器前缀。如果上下文不足，请先询问我要处理的 Agent 和具体症状。不要删除用户配置、认证信息或会话数据，任何破坏性修改都必须再次征得用户确认。',
-    aiHelpPrompt: '请使用 `hermes-studio-installation` Skill，并遵循 Skill 自己的路由说明，根据这次 Agent 和问题类型选择合适的 reference，排查这次 Agents 页面操作失败。\n\nAgent：{name}\nAgent ID：{id}\n操作类型：{operation}\n可执行命令：{command}\nnpm 包：{package}\n原始错误：\n{error}\n\n请检查安装来源、所有实际命中的可执行文件路径、Node/npm 环境和对应的包管理器前缀。不要删除用户配置、认证信息或会话数据。先说明根因，任何破坏性修改都必须再次征得用户确认。',
+    aiHelpGeneralPrompt: '请直接根据我提供的信息，帮我排查或管理这台设备上的 Agent 安装、更新或删除问题。请检查实际安装来源、所有实际命中的可执行文件路径、Node/npm 环境和对应的包管理器前缀。如果上下文不足，请先询问我要处理的 Agent 和具体症状。不要删除用户配置、认证信息或会话数据，任何破坏性修改都必须再次征得用户确认。',
+    aiHelpPrompt: '请根据下面的信息直接排查这次 Agents 页面操作失败。\n\nAgent：{name}\nAgent ID：{id}\n操作类型：{operation}\n可执行命令：{command}\nnpm 包：{package}\n原始错误：\n{error}\n\n请检查安装来源、所有实际命中的可执行文件路径、Node/npm 环境和对应的包管理器前缀。不要删除用户配置、认证信息或会话数据。先说明根因，任何破坏性修改都必须再次征得用户确认。',
   },
 
   runtimeVersions: {

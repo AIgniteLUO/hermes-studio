@@ -247,7 +247,7 @@ export default {
     settings: 'Einstellungen',
     connected: 'Verbunden',
     disconnected: 'Getrennt',
-    updateTip: 'Fuhren Sie "hermes-web-ui update" im Terminal aus, um zu aktualisieren',
+    updateTip: 'Dieser Build hat keinen npm-Selbstupdate-Kanal – bitte aus dem Quellcode aktualisieren',
     updateVersion: 'Aktualisieren auf v{version}',
     reloadClientVersion: 'Für v{version} neu laden',
     updating: 'Aktualisierung...',
@@ -302,8 +302,8 @@ export default {
     aiHelpDialogQuestion: 'Die {operation} von {name} ist fehlgeschlagen. Soll Hermes das Problem untersuchen?',
     aiHelpDialogPositive: 'AI fragen',
     aiHelpDrawerTitle: 'Hermes · Agent-Fehlerbehebung',
-    aiHelpGeneralPrompt: 'Verwende den Skill `hermes-studio-installation` und folge seinen Routing-Anweisungen, um die passende Referenz für Agent und Problem auszuwählen. Hilf mir bei Installation, Updates oder Entfernung von Agents auf diesem Gerät. Prüfe die tatsächliche Installationsquelle, alle aufgelösten Programmpfade, die Node/npm-Umgebung und passende Paketmanager-Präfixe. Frage bei fehlendem Kontext zuerst nach Agent und Symptom. Erhalte Benutzerkonfiguration, Authentifizierung und Unterhaltungsdaten und frage vor destruktiven Änderungen erneut nach Bestätigung.',
-    aiHelpPrompt: 'Verwende den Skill `hermes-studio-installation` und folge seinen Routing-Anweisungen, um die passende Referenz für diesen Agent und dieses Problem auszuwählen. Untersuche diesen Fehler auf der Agents-Seite.\n\nAgent: {name}\nAgent-ID: {id}\nVorgang: {operation}\nBefehl: {command}\nnpm-Paket: {package}\nUrsprünglicher Fehler:\n{error}\n\nPrüfe Installationsquelle, alle aufgelösten Programmpfade, die Node/npm-Umgebung und passende Paketmanager-Präfixe. Erhalte Benutzerkonfiguration, Authentifizierung und Unterhaltungsdaten. Erkläre zuerst die Ursache und frage vor destruktiven Änderungen erneut nach Bestätigung.',
+    aiHelpGeneralPrompt: 'Hilf mir anhand der von mir gelieferten Angaben, Installation, Updates oder Entfernung von Agents auf diesem Gerät zu diagnostizieren oder zu verwalten. Prüfe die tatsächliche Installationsquelle, alle aufgelösten Programmpfade, die Node/npm-Umgebung und passende Paketmanager-Präfixe. Frage bei fehlendem Kontext zuerst nach Agent und Symptom. Erhalte Benutzerkonfiguration, Authentifizierung und Unterhaltungsdaten und frage vor destruktiven Änderungen erneut nach Bestätigung.',
+    aiHelpPrompt: 'Diagnostiziere diesen Fehler auf der Agents-Seite anhand der folgenden Angaben.\n\nAgent: {name}\nAgent-ID: {id}\nVorgang: {operation}\nBefehl: {command}\nnpm-Paket: {package}\nUrsprünglicher Fehler:\n{error}\n\nPrüfe Installationsquelle, alle aufgelösten Programmpfade, die Node/npm-Umgebung und passende Paketmanager-Präfixe. Erhalte Benutzerkonfiguration, Authentifizierung und Unterhaltungsdaten. Erkläre zuerst die Ursache und frage vor destruktiven Änderungen erneut nach Bestätigung.',
   },
 
   runtimeVersions: {

@@ -245,7 +245,7 @@ export default {
     disconnected: 'Disconnected',
     collapse: 'Collapse menu',
     expand: 'Expand menu',
-    updateTip: 'Run "hermes-web-ui update" in terminal to update',
+    updateTip: 'This build has no npm self-update channel — update from source',
     updateVersion: 'Upgrade to v{version}',
     reloadClientVersion: 'Reload for v{version}',
     updating: 'Updating...',
@@ -290,8 +290,8 @@ export default {
     aiHelpDialogQuestion: '{operation} for {name} failed. Would you like Hermes to diagnose the problem?',
     aiHelpDialogPositive: 'Ask AI',
     aiHelpDrawerTitle: 'Hermes · Agent troubleshooting',
-    aiHelpGeneralPrompt: 'Use the `hermes-studio-installation` Skill and follow its routing instructions to select the reference appropriate to the Agent and problem. Help me diagnose or manage Agent installation, updates, or removal on this device. Inspect the actual installation source, every resolved executable path, the Node/npm environment, and the applicable package-manager prefix. Ask which Agent and symptom I need help with if context is missing. Preserve user configuration, authentication, and conversation data, and ask for confirmation before making destructive changes.',
-    aiHelpPrompt: 'Use the `hermes-studio-installation` Skill and follow its routing instructions to select the reference appropriate to this Agent and problem. Diagnose this Agents page failure.\n\nAgent: {name}\nAgent ID: {id}\nOperation: {operation}\nExecutable: {command}\nnpm package: {package}\nOriginal error:\n{error}\n\nInspect the installation source, every resolved executable path, Node/npm environment, and applicable package-manager prefix. Preserve user configuration, authentication, and conversation data. Explain the root cause and ask for confirmation before making destructive changes.',
+    aiHelpGeneralPrompt: 'Help me diagnose or manage Agent installation, updates, or removal on this device, working directly from the details I provide. Inspect the actual installation source, every resolved executable path, the Node/npm environment, and the applicable package-manager prefix. Ask which Agent and symptom I need help with if context is missing. Preserve user configuration, authentication, and conversation data, and ask for confirmation before making destructive changes.',
+    aiHelpPrompt: 'Diagnose this Agents page failure directly from the details below.\n\nAgent: {name}\nAgent ID: {id}\nOperation: {operation}\nExecutable: {command}\nnpm package: {package}\nOriginal error:\n{error}\n\nInspect the installation source, every resolved executable path, Node/npm environment, and applicable package-manager prefix. Preserve user configuration, authentication, and conversation data. Explain the root cause and ask for confirmation before making destructive changes.',
   },
 
   runtimeVersions: {

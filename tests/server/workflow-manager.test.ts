@@ -141,12 +141,7 @@ describe('workflow manager', () => {
       source: 'workflow',
       agent: 'hermes',
     })
-    expect(resolveWorkflowNodeRunTarget('ekko-agent')).toEqual({
-      type: 'workflow',
-      source: 'workflow',
-      agent: 'ekko-agent',
-      codingAgentId: 'ekko-agent',
-    })
+    expect(() => resolveWorkflowNodeRunTarget('ekko-agent')).toThrow('unsupported workflow Agent runtime: ekko-agent')
     expect(resolveWorkflowNodeRunTarget('claude-code')).toEqual({
       type: 'workflow',
       source: 'workflow',
@@ -182,7 +177,7 @@ describe('workflow manager', () => {
     expect(() => normalizeWorkflowNode({ id: 'shell', type: 'shell', data: { agent: 'hermes' } })).toThrow('workflow node shell must be an Agent node')
     expect(() => normalizeWorkflowNode({ id: 'unknown', type: 'agent', data: { agent: 'python' } })).toThrow('workflow node unknown has unsupported agent runtime')
     expect(normalizeWorkflowNode({ id: 'hermes', type: 'agent', data: { agent: 'hermes' } })?.data.agent).toBe('hermes')
-    expect(normalizeWorkflowNode({ id: 'ekko', type: 'agent', data: { agent: 'ekko-agent' } })?.data.agent).toBe('ekko-agent')
+    expect(() => normalizeWorkflowNode({ id: 'ekko', type: 'agent', data: { agent: 'ekko-agent' } })).toThrow('workflow node ekko has unsupported agent runtime')
     expect(normalizeWorkflowNode({ id: 'claude', type: 'agent', data: { agent: 'claude-code' } })?.data.agent).toBe('claude-code')
     expect(normalizeWorkflowNode({ id: 'codex', type: 'agent', data: { agent: 'codex' } })?.data.agent).toBe('codex')
     expect(normalizeWorkflowNode({ id: 'pi', type: 'agent', data: { agent: 'pi' } })?.data.agent).toBe('pi')
@@ -363,7 +358,7 @@ describe('workflow manager', () => {
     } finally { await manager.delete(workflow.id) }
   })
 
-  it('runs Ekko workflow nodes as scoped one-shot executions without background delegation', async () => {
+  it('runs claude-code workflow nodes as scoped one-shot executions', async () => {
     const { initAllStores } = await import('../../packages/server/src/modules/studio/infrastructure/database/init')
     const { getDb } = await import('../../packages/server/src/modules/studio/infrastructure/database/index')
     const { WorkflowManager } = await import('../../packages/server/src/modules/studio/services/workflow/manager')
@@ -371,11 +366,11 @@ describe('workflow manager', () => {
     chatRunMock.runAndWait.mockReset().mockResolvedValue({ ok: true, output: 'done' })
     const manager = new WorkflowManager()
     const workflow = manager.create({
-      name: `Ekko execution ${Date.now()}`,
+      name: `Scoped execution ${Date.now()}`,
       profile: 'default',
       nodes: [{ id: 'agent', type: 'agent', data: {
-        title: 'Ekko', agent: 'ekko-agent', provider: 'openai-codex', model: 'gpt-test',
-        apiMode: 'codex_responses', reasoningEffort: 'high', input: 'work',
+        title: 'Claude', agent: 'claude-code', provider: 'custom:test', model: 'model-a',
+        apiMode: 'anthropic_messages', reasoningEffort: 'high', input: 'work',
       } }],
       edges: [],
     })
@@ -383,29 +378,29 @@ describe('workflow manager', () => {
       const result = await manager.runNow(workflow.id)
       expect(result.run.status).toBe('completed')
       expect(chatRunMock.runAndWait).toHaveBeenCalledWith(expect.objectContaining({
-        coding_agent_id: 'ekko-agent',
-        agent_id: 'ekko-agent',
+        coding_agent_id: 'claude-code',
+        agent_id: 'claude-code',
         mode: 'scoped',
-        provider: 'openai-codex',
-        model: 'gpt-test',
-        apiMode: 'codex_responses',
+        provider: 'custom:test',
+        model: 'model-a',
+        apiMode: 'anthropic_messages',
         reasoning_effort: 'high',
         one_shot_model: true,
-        background_delegation_enabled: false,
       }), expect.any(Object))
+      expect(chatRunMock.runAndWait.mock.calls[0]?.[0]).not.toHaveProperty('background_delegation_enabled')
       expect(result.nodeSessions[0]).toMatchObject({
-        agent: 'ekko-agent',
+        agent: 'claude',
         agent_mode: 'scoped',
         status: 'completed',
       })
       expect(getDb()!.prepare(`SELECT source, agent, agent_mode, provider, model, api_mode FROM sessions WHERE id = ?`)
         .get(result.nodeSessions[0]!.session_id)).toEqual({
           source: 'workflow',
-          agent: 'ekko-agent',
+          agent: 'claude',
           agent_mode: 'scoped',
-          provider: 'openai-codex',
-          model: 'gpt-test',
-          api_mode: 'codex_responses',
+          provider: 'custom:test',
+          model: 'model-a',
+          api_mode: 'anthropic_messages',
         })
     } finally { await manager.delete(workflow.id) }
   })

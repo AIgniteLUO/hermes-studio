@@ -22,7 +22,7 @@ const ALLOWED_FIELDS = new Set([
   'agent', 'profile', 'provider', 'model', 'apiMode', 'reasoningEffort',
   'name', 'description', 'avatar',
 ])
-const AGENTS = new Set<GroupAgentPresetAgent>(['hermes', 'ekko', 'codex', 'claude', 'pi'])
+const AGENTS = new Set<GroupAgentPresetAgent>(['hermes', 'codex', 'claude', 'pi'])
 const API_MODES = new Set(['chat_completions', 'codex_responses', 'anthropic_messages'])
 const REASONING_EFFORTS = new Set(['', 'none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'])
 const AVATAR_MAX_LENGTH = 1_500_000

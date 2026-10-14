@@ -13,6 +13,23 @@
 - 物理移除 Ekko Agent 一族能力（`packages/ekko-agent`、`modules/ekko`、`client/*/ekko` 等）
 - 断开上游云服务（App Relay 中继、App Entitlement、版本清单、桌面更新 feed）
 - 替换 Ekko 品牌标识与域名
+- server 服务层与 sockets 收敛：清除 bootstrap / sockets / services / controllers / repositories 中的
+  Ekko 分支，`npx tsc --noEmit -p packages/server/tsconfig.json` 由 53 个报错收敛到 exit 0
+- 删除 Ekko 授权 provider 装配层（Task 4 Step 2 的决策点）：同时删除
+  `packages/server/src/bootstrap/authorized-provider-adapter.ts` 与
+  `packages/server/src/modules/studio/public/authorized-provider-runtime.ts`。
+  **判据**：`configureAuthorizedProviderRuntime` / `authorized-provider-runtime` 在全仓库的引用只剩
+  adapter 自身与桥接模块自身——adapter 此前仅由已删除的 `bootstrap/ekko.ts` 以副作用方式 import
+  （`import './authorized-provider-adapter'`），无其他消费者；Hermes 侧
+  （`modules/hermes/controllers/{anthropic,codex,minimax,nous,xai}-auth.ts`、
+  `modules/hermes/services/providers/model-catalog-cache.ts`）与 Coding Agents 直接引用
+  `modules/hermes/services/providers/authorized-provider-credentials`，不经该桥接层。故按
+  「无 Hermes / Coding Agents 依赖 → 连同桥接模块一起删除」分支处理，未保留 adapter。
+- 历史数据读侧容错：`gc_room_agents` / `gc_agent_presets` 的 `agent` 列为自由 TEXT 且无 migration，
+  历史行可能仍是已删除的取值（如 `ekko`）。读侧统一经
+  `modules/studio/services/group-chat/agent-clients.ts` 的 `normalizeStoredGroupAgent()` 归一到
+  `hermes`，**不写回数据库**；客户端入参校验路径（`controllers/group-chat.ts` 的
+  `GROUP_AGENT_TYPES`、`agent-availability.ts` 的 `resolveAgentStatusId`）仍然拒绝该取值。
 
 ## 基线状态（2026-10-14）
 

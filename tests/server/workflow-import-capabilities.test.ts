@@ -31,13 +31,13 @@ describe('workflow import capabilities', () => {
     ], groups)).not.toThrow()
   })
 
-  it('accepts Ekko protocol overrides and server-managed auth providers', () => {
+  it('rejects an imported node whose Agent runtime is no longer shipped instead of silently falling back to Hermes', () => {
     expect(() => assertWorkflowImportCapabilities([
       node({ agent: 'ekko-agent', provider: 'openai-codex', model: 'model-a', apiMode: 'chat_completions' }),
-    ], [{ provider: 'openai-codex', models: ['model-a'], api_mode: 'codex_responses' }])).not.toThrow()
+    ], [{ provider: 'openai-codex', models: ['model-a'], api_mode: 'codex_responses' }])).toThrow('unavailable')
   })
 
-  it('keeps Ekko targets fail closed for missing models and unsupported protocols', () => {
+  it('keeps nodes with a removed Agent runtime fail closed for missing models and unsupported protocols', () => {
     const groups = [{ provider: 'openai-codex', models: ['model-a'], api_mode: 'codex_responses' }]
 
     expect(() => assertWorkflowImportCapabilities([

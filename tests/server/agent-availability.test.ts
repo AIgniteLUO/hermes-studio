@@ -13,9 +13,11 @@ describe('Agent availability validation', () => {
   beforeEach(resetAgentStatusRegistryForTests)
 
   it('normalizes group-chat and workflow Agent aliases', () => {
-    expect(resolveAgentStatusId('ekko')).toBe('ekko-agent')
+    expect(resolveAgentStatusId('hermes')).toBe('hermes')
     expect(resolveAgentStatusId('claude')).toBe('claude-code')
     expect(resolveAgentStatusId('claude-code')).toBe('claude-code')
+    // A runtime that is no longer shipped resolves to null so callers must reject it.
+    expect(resolveAgentStatusId('ekko')).toBeNull()
   })
 
   it('rejects unavailable Agents with a stable conflict code', () => {
@@ -33,7 +35,13 @@ describe('Agent availability validation', () => {
       path: '/usr/local/bin/codex',
     })
     expect(assertAgentAvailable('codex')).toBe('codex')
-    expect(assertAgentAvailable('ekko')).toBe('ekko-agent')
+
+    expect(() => assertAgentAvailable('ekko')).toThrow('Invalid agent')
+    try {
+      assertAgentAvailable('ekko')
+    } catch (error: any) {
+      expect(error).toMatchObject({ status: 400, code: 'INVALID_AGENT' })
+    }
   })
 
   it('validates every workflow node before execution', async () => {

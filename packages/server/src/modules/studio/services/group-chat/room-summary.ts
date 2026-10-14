@@ -1,11 +1,5 @@
 import { randomUUID } from 'crypto'
-import {
-  createGroupEkkoAuthorizedProviderFetch,
-  createGroupEkkoModelClient,
-  getGroupEkkoAgent,
-  resolveGroupEkkoModelProviderConfigs,
-  resolveGroupEkkoProviderRuntimeConfig,
-} from '../../public/group-chat-agent-runtime'
+import { createGroupPrimaryAgentBridge } from '../../public/group-chat-agent-runtime'
 import { logger } from '../../public/logging'
 import { countTokens } from '../context-compressor'
 import { sortGroupMessagesCanonical } from './group-message-ordering'
@@ -211,6 +205,7 @@ export class GroupRoomSummaryService {
   private roomMutationRevisions = new Map<string, number>()
   private static readonly SUMMARY_LEASE_MS = 120_000
   private static readonly SUMMARY_LEASE_RENEW_MS = 30_000
+  private static readonly SUMMARY_RUN_TIMEOUT_MS = 300_000
 
   constructor(
     private readonly storage: GroupRoomSummaryStorage,
@@ -491,7 +486,7 @@ export class GroupRoomSummaryService {
     const leaseTimer = setInterval(renewLease, GroupRoomSummaryService.SUMMARY_LEASE_RENEW_MS)
     leaseTimer.unref?.()
     try {
-      const nextText = await (this.summaryRunner || this.runBareEkkoSummary.bind(this))({
+      const nextText = await (this.summaryRunner || this.runBareHermesSummary.bind(this))({
         profile: input.profile,
         provider: input.provider,
         model: input.model,
@@ -562,7 +557,7 @@ export class GroupRoomSummaryService {
     this.onStatus?.(summary)
   }
 
-  private async runBareEkkoSummary(input: {
+  private async runBareHermesSummary(input: {
     profile: string
     provider: string
     model: string
@@ -571,60 +566,36 @@ export class GroupRoomSummaryService {
     messages: CleanGroupMessage[]
     roomId: string
   }): Promise<string> {
-    const runtimeConfig = await resolveGroupEkkoProviderRuntimeConfig({
-      profile: input.profile,
-      provider: input.provider,
-      model: input.model,
-      apiMode: input.apiMode || undefined,
-    })
-    const { providerConfig } = resolveGroupEkkoModelProviderConfigs({
-      provider: runtimeConfig.provider,
-      baseUrl: runtimeConfig.baseUrl,
-      apiKey: runtimeConfig.apiKey,
-      model: input.model,
-      apiMode: runtimeConfig.apiMode,
-      timeoutMs: 300_000,
-    })
-    const result = await getGroupEkkoAgent(input.profile).runIsolated(
-      {
-        modelClient: createGroupEkkoModelClient(providerConfig, {
-          fetch: createGroupEkkoAuthorizedProviderFetch({
-            profile: input.profile,
-            provider: input.provider,
-            model: input.model,
-            accessToken: runtimeConfig.apiKey,
-          }),
-        }),
-        toolsEnabled: false,
-        skillsEnabled: false,
-        systemPrompt: GROUP_SUMMARY_SYSTEM_PROMPT,
-        maxSteps: 1,
-        maxModelRetries: 3,
-        modelDefaults: { model: input.model },
-      },
-      {
-        messages: [{
-          role: 'user',
-          content: buildGroupSummaryUserPrompt(input.previousSummary, input.messages),
-        }],
-        memoryEnabled: false,
-        metadata: {
-          purpose: 'group-chat-summary',
-          room_id: input.roomId,
-          profile: input.profile,
-          session_id: `gc_summary_${randomUUID()}`,
-        },
-        logContext: {
-          profile: input.profile,
-          sessionId: `gc-summary:${input.roomId}`,
-        },
-      },
-    )
-    const output = String(result.output.content || '').trim()
-    if (!output) throw new Error('Summary model returned empty output')
-    if (result.output.toolCalls?.length || result.output.finishReason === 'max_steps') {
-      throw new Error('Summary model did not finish in one model step')
+    const timeoutMs = GroupRoomSummaryService.SUMMARY_RUN_TIMEOUT_MS
+    const bridge = createGroupPrimaryAgentBridge({ timeoutMs: timeoutMs + 15_000 })
+    const sessionId = `roomsum_${Date.now().toString(36)}_${randomUUID().replace(/-/g, '').slice(0, 12)}`
+    const workerKey = `${input.profile}:room-summary:${input.roomId}`
+
+    try {
+      const result = await bridge.request({
+        action: 'chat',
+        session_id: sessionId,
+        message: buildGroupSummaryUserPrompt(input.previousSummary, input.messages),
+        instructions: GROUP_SUMMARY_SYSTEM_PROMPT,
+        profile: input.profile,
+        worker_key: workerKey,
+        source: 'api_server',
+        wait: true,
+        timeout: Math.ceil(timeoutMs / 1000),
+        ...(input.model ? { model: input.model } : {}),
+        ...(input.provider ? { provider: input.provider } : {}),
+      }, { timeoutMs: timeoutMs + 15_000 })
+
+      if (result.status === 'error') {
+        throw new Error(result.error || 'Room summary bridge run failed')
+      }
+
+      const payload = result.result as { final_response?: unknown } | undefined
+      const output = String(payload?.final_response || result.output || '').trim()
+      if (!output) throw new Error('Summary model returned empty output')
+      return output
+    } finally {
+      await bridge.destroy(sessionId, input.profile, workerKey).catch(() => undefined)
     }
-    return output
   }
 }

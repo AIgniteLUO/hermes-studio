@@ -2,11 +2,8 @@ import { existsSync, statSync } from 'fs'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
 import {
-  getEkkoLogSource,
   listPrimaryAgentLogFiles,
   readPrimaryAgentLogs,
-  type AgentLogLevel,
-  type AgentLogRecord,
 } from '../public/agent-logs'
 import { config } from '../public/config'
 import { isHermesAgentAvailable } from '../public/agent-status-registry'
@@ -57,33 +54,6 @@ function parseLine(line: string): LogEntry {
   return { timestamp: '', level: '', logger: '', message: line, raw: line }
 }
 
-function requestedProfile(ctx: any): string {
-  return String(ctx.state?.profile?.name || ctx.query?.profile || 'default').trim() || 'default'
-}
-
-function displaySize(bytes: number): string {
-  return bytes > 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)}MB` : `${(bytes / 1024).toFixed(1)}KB`
-}
-
-function ekkoLogEntry(record: AgentLogRecord): LogEntry {
-  const timestamp = new Date(record.timestamp).toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-')
-  const level = record.level === 'warn' ? 'WARNING' : record.level.toUpperCase()
-  const context = [
-    record.sessionId ? `session=${record.sessionId}` : '',
-    record.runId ? `run=${record.runId}` : '',
-    record.turnId ? `turn=${record.turnId}` : '',
-  ].filter(Boolean)
-  const data = record.data === undefined ? '' : ` ${JSON.stringify(record.data)}`
-  const message = `${record.event}${context.length ? ` ${context.join(' ')}` : ''}${data}`
-  return {
-    timestamp,
-    level,
-    logger: `ekko-agent/${record.category}`,
-    message,
-    raw: JSON.stringify(record),
-  }
-}
-
 export async function list(ctx: any) {
   const files = isHermesAgentAvailable() ? await listPrimaryAgentLogFiles() : []
   if (existsSync(WEBUI_LOG_FILE)) {
@@ -102,13 +72,6 @@ export async function list(ctx: any) {
       files.push({ name: 'bridge', size, modified })
     } catch { }
   }
-  const ekkoReader = getEkkoLogSource(requestedProfile(ctx))
-  if (ekkoReader && existsSync(ekkoReader.filePath)) {
-    try {
-      const stat = statSync(ekkoReader.filePath)
-      files.push({ name: 'ekko-agent', size: displaySize(stat.size), modified: stat.mtime.toLocaleString() })
-    } catch { }
-  }
   ctx.body = { files }
 }
 
@@ -118,32 +81,6 @@ export async function read(ctx: any) {
   const level = (ctx.query.level as string) || undefined
   const session = (ctx.query.session as string) || undefined
   const since = (ctx.query.since as string) || undefined
-
-  if (logName === 'ekko-agent') {
-    try {
-      const ekkoReader = getEkkoLogSource(requestedProfile(ctx))
-      if (!ekkoReader) { ctx.body = { entries: [] }; return }
-      const normalizedLevel = String(level || '').toLowerCase()
-      const records = ekkoReader.query({
-        sessionId: session,
-        runId: (ctx.query.run as string) || undefined,
-        category: (ctx.query.category as any) || undefined,
-        level: (['debug', 'info', 'warn', 'error'].includes(normalizedLevel)
-          ? normalizedLevel
-          : normalizedLevel === 'warning'
-            ? 'warn'
-            : undefined) as AgentLogLevel | undefined,
-        event: (ctx.query.event as string) || undefined,
-        text: (ctx.query.text as string) || undefined,
-        after: since,
-        limit: Number.isFinite(lines) && lines > 0 ? lines : 100,
-      })
-      ctx.body = { entries: records.map(ekkoLogEntry).reverse() }
-    } catch (err: any) {
-      ctx.status = 500; ctx.body = { error: err.message }
-    }
-    return
-  }
 
   if (logName === 'webui') {
     try {

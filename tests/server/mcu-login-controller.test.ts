@@ -277,7 +277,8 @@ describe('MCU login controller', () => {
 
     expect(ctx.status).toBe(200)
     expect(DEFAULT_MCU_AGENT_RUNTIME).toBe('hermes')
-    const mcuSessionId = `mcu-${ctx.body.relay.id}-research-${DEFAULT_MCU_AGENT_RUNTIME}`
+    const { mcuDeviceSessionId } = await import('../../packages/server/src/modules/studio/sockets/global-agent')
+    const mcuSessionId = mcuDeviceSessionId(ctx.body.relay.id, 'research', DEFAULT_MCU_AGENT_RUNTIME)
     expect(mcuSessionId).toBe('mcu-mcu-1-research-hermes')
     expect(mcuSessionId).not.toContain('ekko')
   })

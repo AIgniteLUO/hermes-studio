@@ -10,6 +10,7 @@ import {
     AgentClients,
     GROUP_CHAT_AGENT_SOCKET_SECRET,
     groupBridgeSessionId,
+    normalizeStoredGroupAgent,
     type GroupChatRunService,
     type StructuredMention,
 } from '../services/group-chat/agent-clients'
@@ -17,8 +18,6 @@ import { countTokens } from '../services/context-compressor'
 import {
     createGroupPrimaryAgentBridge,
     drainGroupPrimaryAgentSessions,
-    respondToGroupEkkoClarification,
-    respondToGroupEkkoToolApproval,
 } from '../public/group-chat-agent-runtime'
 import { insertWorkspaceRunChange, deleteWorkspaceRunChangesForRoom, type SaveWorkspaceRunChangeInput, type WorkspaceRunChangeSummary } from '../repositories/workspace-run-changes-store'
 import { authenticateUserToken, isAuthEnabled, type AuthenticatedUser } from '../public/auth'
@@ -228,7 +227,7 @@ interface RoomAgent {
     id: string
     roomId: string
     agentId: string
-    agent: 'hermes' | 'ekko' | 'codex' | 'claude' | 'pi'
+    agent: 'hermes' | 'codex' | 'claude' | 'pi'
     profile: string
     provider: string
     model: string
@@ -256,7 +255,7 @@ interface GroupAgentActivity {
 }
 
 interface RoomAgentMetadata {
-    agent?: 'hermes' | 'ekko' | 'codex' | 'claude' | 'pi'
+    agent?: 'hermes' | 'codex' | 'claude' | 'pi'
     provider?: string
     model?: string
     apiMode?: string
@@ -3578,6 +3577,7 @@ export class GroupChatServer {
                 && displayOwnerMemberId === viewerMemberId
             return {
                 ...visible,
+                agent: normalizeStoredGroupAgent(agent.agent),
                 connectionStatus: executor?.connected ? 'online' : 'offline',
                 ...(displayOwnerMemberId ? { ownerMemberId: displayOwnerMemberId } : {}),
                 ...(canManageAgent ? { connectorId, remoteOrigin } : {}),
@@ -3702,7 +3702,7 @@ export class GroupChatServer {
             const room = this.storage.getRoom(roomId)
             for (const agent of this.storage.getRoomAgents(roomId) || []) {
                 ids.add(groupBridgeSessionId(roomId, agent.profile, agent.name, String(room?.sessionSeed || '0'), {
-                    agent: agent.agent,
+                    agent: normalizeStoredGroupAgent(agent.agent),
                     provider: agent.provider,
                     model: agent.model,
                     apiMode: agent.apiMode,
@@ -3812,7 +3812,7 @@ export class GroupChatServer {
                 try {
                     const client = await this.agentClients.createAgent({
                         agentId: agent.agentId,
-                        agent: agent.agent,
+                        agent: normalizeStoredGroupAgent(agent.agent),
                         profile: agent.profile,
                         provider: agent.provider,
                         model: agent.model,
@@ -4013,7 +4013,7 @@ export class GroupChatServer {
             agentId: roomAgent.id,
             runId,
             agentName: roomAgent.name,
-            agent: roomAgent.agent,
+            agent: normalizeStoredGroupAgent(roomAgent.agent),
             avatar: roomAgent.avatar,
             status,
             ...(agentSessionId ? { agentSessionId } : {}),
@@ -4165,7 +4165,7 @@ export class GroupChatServer {
         const roomAgent = this.storage?.getRoomAgentByAgentId?.(roomId, member.userId)
         if (!room || !roomAgent) return false
         const expected = groupBridgeSessionId(roomId, roomAgent.profile, roomAgent.name, String(room.sessionSeed || '0'), {
-            agent: roomAgent.agent,
+            agent: normalizeStoredGroupAgent(roomAgent.agent),
             provider: roomAgent.provider,
             model: roomAgent.model,
             apiMode: roomAgent.apiMode,
@@ -4876,18 +4876,9 @@ export class GroupChatServer {
             activeGeneration?.agentSessionId || '',
             activeGeneration?.runId || '',
         )
-        const interruptedClarifications = this.takePendingEkkoClarificationsForGeneration(
-            roomId,
-            agentName,
-            activeGeneration?.agentSessionId || '',
-            activeGeneration?.runId || '',
-        )
         try {
             await this.agentClients.interruptAgent(roomId, agentName)
-            await Promise.all([
-                this.settleInterruptedApprovals(interruptedApprovals),
-                this.settleInterruptedEkkoClarifications(interruptedClarifications),
-            ])
+            await this.settleInterruptedApprovals(interruptedApprovals)
             const roomStatuses = this.contextStatusState.get(roomId)
             roomStatuses?.delete(agentName)
             if (roomStatuses?.size === 0) this.contextStatusState.delete(roomId)
@@ -4898,10 +4889,7 @@ export class GroupChatServer {
             this.nsp.to(roomId).emit('context_status', { roomId, agentName, status: 'ready' })
             ack?.({ ok: true })
         } catch (err: any) {
-            await Promise.all([
-                this.settleInterruptedApprovals(interruptedApprovals),
-                this.settleInterruptedEkkoClarifications(interruptedClarifications),
-            ])
+            await this.settleInterruptedApprovals(interruptedApprovals)
             logger.warn(`[GroupChat] failed to interrupt agent ${agentName} in room ${roomId}: ${err.message}`)
             ack?.({ error: err.message || 'interrupt failed' })
         }
@@ -5165,22 +5153,6 @@ export class GroupChatServer {
                 return
             }
         }
-        const ekkoResult = pendingRoute.agentSessionId
-            ? respondToGroupEkkoToolApproval(
-                pendingRoute.agentSessionId,
-                data.approval_id,
-                data.choice,
-            )
-            : null
-        if (ekkoResult?.handled) {
-            if (!ekkoResult.resolved) {
-                ack?.({ error: 'Approval does not belong to the active Agent session' })
-                return
-            }
-            this.takePendingApprovalRoute(routeKey)
-            ack?.({ ok: true, resolved: true })
-            return
-        }
         try {
             const result = await createGroupPrimaryAgentBridge().approvalRespond(data.approval_id, data.choice || 'deny')
             const resolved = Boolean((result as any)?.resolved)
@@ -5200,62 +5172,6 @@ export class GroupChatServer {
                 return
             }
             ack?.({ error: err.message || 'approval response failed' })
-        }
-    }
-
-    private takePendingEkkoClarificationsForGeneration(
-        roomId: string,
-        agentName: string,
-        agentSessionId: string,
-        runId: string,
-    ): PendingGroupClarifyRoute[] {
-        if (!agentSessionId || !runId) return []
-        const ekkoExecutor = this.agentClients.getAgents(roomId).find(agent =>
-            agent.name === agentName && agent.agent === 'ekko' && typeof agent.cancelClarify === 'function'
-        )
-        if (!ekkoExecutor) return []
-
-        const routes: PendingGroupClarifyRoute[] = []
-        for (const [routeKey, route] of this.pendingClarifyRoutes) {
-            if (
-                route.roomId !== roomId
-                || route.agentName !== agentName
-                || route.agentSessionId !== agentSessionId
-                || route.runId !== runId
-                || !route.runtimeRunId
-            ) {
-                continue
-            }
-            const claimed = this.takePendingClarifyRoute(routeKey)
-            if (claimed) routes.push(claimed)
-        }
-        return routes
-    }
-
-    private async settleInterruptedEkkoClarifications(routes: PendingGroupClarifyRoute[]): Promise<void> {
-        for (const route of routes) {
-            const executor = this.agentClients.getAgents(route.roomId).find(agent =>
-                agent.name === route.agentName && agent.agent === 'ekko' && typeof agent.cancelClarify === 'function'
-            )
-            let runtimeResolved = false
-            try {
-                runtimeResolved = Boolean(await executor?.cancelClarify?.(
-                    route.clarifyId,
-                    route.agentSessionId,
-                    route.runtimeRunId,
-                ))
-            } catch (err: any) {
-                logger.warn(`[GroupChat] failed to cancel interrupted Ekko clarification ${route.clarifyId}: ${err?.message || err}`)
-            }
-            this.emitToRoomManagers(route.roomId, 'clarify.resolved', {
-                event: 'clarify.resolved',
-                roomId: route.roomId,
-                agentName: route.agentName,
-                clarify_id: route.clarifyId,
-                resolved: false,
-                reason: 'Agent run interrupted',
-                runtime_resolved: runtimeResolved,
-            })
         }
     }
 
@@ -5362,18 +5278,6 @@ export class GroupChatServer {
                 ack?.({ error: err.message || 'clarification response failed' })
                 return
             }
-        }
-        const ekkoResult = pendingRoute.agentSessionId
-            ? respondToGroupEkkoClarification(pendingRoute.agentSessionId, data.clarify_id, response)
-            : null
-        if (ekkoResult?.handled) {
-            if (!ekkoResult.resolved) {
-                ack?.({ error: 'Clarification does not belong to the active Agent session' })
-                return
-            }
-            this.takePendingClarifyRoute(routeKey)
-            ack?.({ ok: true, resolved: true })
-            return
         }
         try {
             const result = await createGroupPrimaryAgentBridge().clarifyRespond(data.clarify_id, response)

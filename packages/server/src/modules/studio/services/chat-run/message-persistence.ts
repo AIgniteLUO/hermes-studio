@@ -24,10 +24,10 @@ export interface PersistRunMessagesResult {
 /**
  * Normalize and persist messages produced by one agent run.
  *
- * Agent adapters own the timing of a write (for example, Ekko waits for a
+ * Agent adapters own the timing of a write (for example, Hermes waits for a
  * complete parallel tool group), while this function owns the durable and
  * in-memory representation. This keeps run attribution and reasoning/tool
- * fields identical across Bridge, Ekko, and Responses-based coding agents.
+ * fields identical across Bridge and Responses-based coding agents.
  */
 export function persistRunMessages(
   state: SessionState,

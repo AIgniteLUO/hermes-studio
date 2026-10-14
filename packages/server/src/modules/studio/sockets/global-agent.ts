@@ -28,6 +28,29 @@ import type {
 
 const GLOBAL_AGENT_NAMESPACE = '/global-agent'
 const DEFAULT_GLOBAL_AGENT_TIMEOUT_MS = 30_000
+
+/**
+ * MCU device session identity: `mcu-<clientId>-<profile>-<runtime>`.
+ * Exported so tests can exercise the real generator instead of rebuilding it.
+ */
+export function mcuDeviceSessionId(
+  clientId: string | undefined,
+  profile: string,
+  agentRuntime: McuAgentRuntime,
+): string {
+  const instance = (clientId || 'device')
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 64) || 'device'
+  const profileId = (profile || 'default')
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 64) || 'default'
+  return `mcu-${instance}-${profileId}-${agentRuntime}`
+}
+
 const MCU_TTS_OPTIONS = {
   mcuPlayback: true,
   sampleRate: MCU_TTS_SAMPLE_RATE,
@@ -1425,17 +1448,7 @@ export class GlobalAgentServer {
   }
 
   private mcuSessionId(clientId: string | undefined, profile: string, agentRuntime: McuAgentRuntime): string {
-    const instance = (clientId || 'device')
-      .toLowerCase()
-      .replace(/[^a-z0-9_-]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 64) || 'device'
-    const profileId = (profile || 'default')
-      .toLowerCase()
-      .replace(/[^a-z0-9_-]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 64) || 'default'
-    return `mcu-${instance}-${profileId}-${agentRuntime}`
+    return mcuDeviceSessionId(clientId, profile, agentRuntime)
   }
 
   private async synthesizeMcuSpeech(text: string, userToken: string, profile: string, signal?: AbortSignal): Promise<{ url: string; mimeType: string }> {
@@ -1638,10 +1651,7 @@ export class GlobalAgentServer {
   private interruptMcuSession(clientId: string, profile: string, agentRuntime: McuAgentRuntime, interactionId?: string): void {
     const active = interactionId ? this.activeMcuRuns.get(interactionId) : undefined
     const requestedSessionId = this.mcuSessionId(clientId, profile, agentRuntime)
-    const activeSessionBelongsToDevice = active && (
-      active.sessionId === this.mcuSessionId(clientId, profile, 'ekko')
-      || active.sessionId === this.mcuSessionId(clientId, profile, 'hermes')
-    )
+    const activeSessionBelongsToDevice = active && active.sessionId === requestedSessionId
     const sessionId = activeSessionBelongsToDevice ? active.sessionId : requestedSessionId
     const sessionRun = this.mcuSessionRuns.get(sessionId)
     const hasActiveTts = interactionId ? this.mcuTtsAbortControllers.has(interactionId) : false

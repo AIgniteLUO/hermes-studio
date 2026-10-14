@@ -4,7 +4,6 @@ import { getToken } from '../../public/auth'
 import { logger } from '../../public/logging'
 import { countTokens } from '../context-compressor'
 import {
-    cancelGroupEkkoClarification,
     createGroupPrimaryAgentBridge,
     type GroupPrimaryAgentBridge,
     type GroupPrimaryAgentBridgeContextEstimate,
@@ -31,11 +30,24 @@ import { buildAgentInstructions, buildNonOwnerRequestSecurityPrompt } from './ag
 
 export const GROUP_CHAT_AGENT_SOCKET_SECRET = randomBytes(32).toString('hex')
 
+export type StoredGroupAgentType = 'hermes' | 'codex' | 'claude' | 'pi'
+
+/**
+ * Historical databases may still hold Agent values that the product no longer
+ * ships: the `agent` columns are free-form TEXT with no migration, so a row
+ * written by an older build can carry an Agent name that has since been
+ * removed. Reads normalize every unknown value to a supported Agent instead of
+ * throwing, and stored rows are never rewritten.
+ */
+export function normalizeStoredGroupAgent(value: unknown): StoredGroupAgentType {
+    return value === 'codex' || value === 'claude' || value === 'pi' ? value : 'hermes'
+}
+
 // ─── Types ────────────────────────────────────────────────────
 
 export interface AgentConfig {
     agentId?: string
-    agent?: 'hermes' | 'ekko' | 'codex' | 'claude' | 'pi'
+    agent?: 'hermes' | 'codex' | 'claude' | 'pi'
     profile: string
     provider?: string
     model?: string
@@ -101,7 +113,7 @@ export function mentionMessageToStoredContextMessage(roomId: string, msg: Mentio
 type GroupEstimateMessage = { role: 'user' | 'assistant'; content: string }
 export type GroupModelContext = { model: string; provider: string }
 export type GroupAgentSessionConfig = {
-    agent?: 'hermes' | 'ekko' | 'codex' | 'claude' | 'pi'
+    agent?: 'hermes' | 'codex' | 'claude' | 'pi'
     provider?: string
     model?: string
     apiMode?: string
@@ -228,7 +240,7 @@ export interface GroupAgentEventSink {
 
 export interface GroupAgentExecutor {
     readonly agentId: string
-    readonly agent: 'hermes' | 'ekko' | 'codex' | 'claude' | 'pi'
+    readonly agent: 'hermes' | 'codex' | 'claude' | 'pi'
     readonly profile: string
     readonly provider: string
     readonly model: string
@@ -285,7 +297,7 @@ export interface GroupChatRunService {
             workspace?: string | null
             source?: string
             session_source?: 'group_chat'
-            coding_agent_id?: 'claude-code' | 'codex' | 'pi' | 'ekko-agent'
+            coding_agent_id?: 'claude-code' | 'codex' | 'pi'
             mode?: 'scoped'
             profile?: string
             reasoning_effort?: string
@@ -326,7 +338,7 @@ export interface GroupChatRunService {
 
 export class AgentClient implements GroupAgentExecutor {
     readonly agentId: string
-    readonly agent: 'hermes' | 'ekko' | 'codex' | 'claude' | 'pi'
+    readonly agent: 'hermes' | 'codex' | 'claude' | 'pi'
     readonly profile: string
     readonly provider: string
     readonly model: string
@@ -484,11 +496,6 @@ export class AgentClient implements GroupAgentExecutor {
             if (this.chatRunService.respondCodingAgentClarification(sessionId, clarifyId, response)) return Promise.resolve(true)
         }
         return Promise.resolve(false)
-    }
-
-    async cancelClarify(clarifyId: string, sessionId: string, runId: string): Promise<boolean> {
-        if (this.agent !== 'ekko') return false
-        return cancelGroupEkkoClarification(sessionId, clarifyId, runId).resolved
     }
 
     async joinRoom(roomId: string): Promise<JoinResult> {
@@ -981,54 +988,6 @@ export class AgentClient implements GroupAgentExecutor {
         return `${context}\n\nCurrent message: ${stripMentionRoutingTokens(msg.content, this.name) || msg.content}`
     }
 
-    private groupMemoryMessages(
-        roomId: string,
-        msg: MentionMessage,
-        runtimeContext: GroupRuntimeContext,
-    ): Array<{
-        id: string
-        role: 'user' | 'assistant'
-        content: string
-        metadata: Record<string, unknown>
-        createdAt: string
-    }> {
-        const sessionId = groupRuntimeSessionId(roomId, this.profile, this.name)
-        const evidenceId = (messageId: string) => createHash('sha256')
-            .update(sessionId)
-            .update('\0')
-            .update(messageId)
-            .digest('hex')
-        const messages: Array<{
-            id: string
-            role: 'user' | 'assistant'
-            content: string
-            metadata: Record<string, unknown>
-            createdAt: string
-        }> = runtimeContext.history.map(item => ({
-            id: evidenceId(item.id),
-            role: item.role,
-            content: `${item.senderName}：${item.content}`,
-            metadata: {
-                senderName: item.senderName,
-                groupMessageId: item.id,
-            },
-            createdAt: new Date(item.timestamp).toISOString(),
-        }))
-        const currentText = stripMentionRoutingTokens(msg.content, this.name) || msg.content
-        messages.push({
-            id: evidenceId(msg.messageId || `${msg.senderId}:${msg.timestamp}:${currentText}`),
-            role: msg.role === 'assistant' ? 'assistant' : 'user',
-            content: `${msg.senderName}：${currentText}`,
-            metadata: {
-                senderId: msg.senderId,
-                senderName: msg.senderName,
-                ...(msg.messageId ? { groupMessageId: msg.messageId } : {}),
-            },
-            createdAt: new Date(msg.timestamp).toISOString(),
-        })
-        return messages
-    }
-
     private groupSystemPrompt(roomId: string, msg?: MentionMessage): string {
         const room = this.storage?.getRoom?.(roomId)
         const rawMembers = this.storage?.getRoomMembers?.(roomId)
@@ -1167,13 +1126,11 @@ export class AgentClient implements GroupAgentExecutor {
                     workspace,
                 })
             }
-            const codingAgentId = this.agent === 'ekko'
-                ? 'ekko-agent'
-                : this.agent === 'claude'
-                    ? 'claude-code'
-                    : this.agent === 'pi'
-                        ? 'pi'
-                        : 'codex'
+            const codingAgentId = this.agent === 'claude'
+                ? 'claude-code'
+                : this.agent === 'pi'
+                    ? 'pi'
+                    : 'codex'
             const groupSystemPrompt = this.groupSystemPrompt(roomId, msg)
             const result = await this.chatRunService.runAndWait({
                 input: this.groupRuntimeInput(msg, runtimeContext),
@@ -1194,32 +1151,6 @@ export class AgentClient implements GroupAgentExecutor {
                 reasoning_effort: this.reasoningEffort || undefined,
                 background_delegation_enabled: false,
                 context_compression_enabled: false,
-                ...(codingAgentId === 'ekko-agent'
-                    ? {
-                        memory_messages: this.groupMemoryMessages(roomId, msg, runtimeContext),
-                        memory_write_policy: 'automatic' as const,
-                        memory_origin: {
-                            host: 'hermes-studio',
-                            namespace: 'group-chat',
-                            contextId: roomId,
-                        },
-                        memory_recall_scopes: [
-                            { type: 'profile' },
-                            { type: 'context', namespace: 'studio.group-chat', id: roomId },
-                            { type: 'session', id: sessionId },
-                        ],
-                        memory_write_scopes: [
-                            { type: 'profile' },
-                            { type: 'context', namespace: 'studio.group-chat', id: roomId },
-                            { type: 'session', id: sessionId },
-                        ],
-                        memory_default_write_scope: {
-                            type: 'context',
-                            namespace: 'studio.group-chat',
-                            id: roomId,
-                        },
-                    }
-                    : {}),
             }, {
                 profile: this.profile,
                 onEvent: (event, payload = {}) => {

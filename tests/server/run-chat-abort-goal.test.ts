@@ -10,10 +10,6 @@ const codingAgentRunManagerMock = vi.hoisted(() => ({
   hasSession: vi.fn(() => false),
   stop: vi.fn(() => false),
 }))
-const ekkoBackgroundMock = vi.hoisted(() => ({
-  has: vi.fn(() => false),
-  abort: vi.fn(async () => 0),
-}))
 
 vi.mock('../../packages/server/src/modules/studio/repositories/session-store', () => ({
   updateSession: updateSessionMock,
@@ -44,15 +40,8 @@ vi.mock('../../packages/server/src/modules/coding-agents/services/runtime/run-ma
   codingAgentRunManager: codingAgentRunManagerMock,
 }))
 
-vi.mock('../../packages/server/src/modules/ekko/services/manager', () => ({
-  hasGlobalEkkoBackgroundTasks: ekkoBackgroundMock.has,
-  abortGlobalEkkoBackgroundTasks: ekkoBackgroundMock.abort,
-}))
-
 vi.mock('../../packages/server/src/modules/studio/public/chat-agent-runtime', () => ({
   chatCodingAgentRunManager: codingAgentRunManagerMock,
-  hasChatEkkoBackgroundTasks: ekkoBackgroundMock.has,
-  abortChatEkkoBackgroundTasks: ekkoBackgroundMock.abort,
 }))
 
 function makeHarness() {
@@ -73,27 +62,23 @@ describe('run chat abort goal handling', () => {
     vi.clearAllMocks()
     codingAgentRunManagerMock.hasSession.mockReturnValue(false)
     codingAgentRunManagerMock.stop.mockReturnValue(false)
-    ekkoBackgroundMock.has.mockReturnValue(false)
-    ekkoBackgroundMock.abort.mockResolvedValue(0)
     calcAndUpdateUsageMock.mockResolvedValue({ inputTokens: 0, outputTokens: 0 })
   })
 
-  it('aborts detached Ekko background tasks after the parent run has finished', async () => {
-    ekkoBackgroundMock.has.mockReturnValue(true)
-    ekkoBackgroundMock.abort.mockResolvedValue(1)
+  it('stops an active coding-agent run while legacy background task records are still tracked', async () => {
     const { handleAbort } = await import('../../packages/server/src/modules/studio/services/chat-run/abort')
     const { emit, nsp, socket } = makeHarness()
     const state = {
       messages: [],
-      isWorking: false,
+      isWorking: true,
       isAborting: false,
       events: [],
       queue: [],
       source: 'coding_agent',
       backgroundTasks: {
-        'ekko-child': {
+        'legacy-child': {
           runtime: 'ekko',
-          subagent_id: 'ekko-child',
+          subagent_id: 'legacy-child',
           status: 'running',
           goal: 'Run validation',
         },
@@ -110,16 +95,7 @@ describe('run chat abort goal handling', () => {
       vi.fn(),
     )
 
-    expect(ekkoBackgroundMock.abort).toHaveBeenCalledWith('session-1')
-    expect(state.backgroundTasks['ekko-child']).toEqual(expect.objectContaining({
-      status: 'interrupted',
-      last_event: 'subagent.complete',
-    }))
-    expect(emit).toHaveBeenCalledWith('subagent.complete', expect.objectContaining({
-      session_id: 'session-1',
-      subagent_id: 'ekko-child',
-      status: 'interrupted',
-    }))
+    expect(codingAgentRunManagerMock.stop).toHaveBeenCalledWith('session-1', { reportClosed: false })
     expect(emit).toHaveBeenCalledWith('abort.completed', expect.objectContaining({
       session_id: 'session-1',
       synced: true,

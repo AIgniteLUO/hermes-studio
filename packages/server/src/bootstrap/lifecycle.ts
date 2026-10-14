@@ -5,7 +5,6 @@ import { logger } from '../modules/studio/public/logging'
 import { shutdownLocalSttRuntime } from '../modules/studio/services/voice/stt/local-model-manager'
 import { stopOutboundRelayClient } from '../modules/studio/public/global-agent'
 import { stopAppRelayClient } from '../modules/studio/services/app-relay/client'
-import { closeGlobalEkkoAgent } from '../modules/ekko/services/manager'
 import { stopChatWebhookDispatcher } from '../modules/studio/services/webhooks'
 import { shutdownSocialMessageRuntimes } from '../modules/studio/services/social-messages'
 import { stopPreviewRuntime } from './update'
@@ -183,7 +182,6 @@ export function createShutdownHandler(
           ))).then(() => undefined))
         }
       } finally {
-        await runShutdownStep('Global Ekko agent', () => closeGlobalEkkoAgent())
         await runShutdownStep('Database', () => closeDb())
         clearTimeout(forceExitTimer)
         logger.info({ durationMs: Date.now() - shutdownStartedAt }, 'Shutdown cleanup complete')

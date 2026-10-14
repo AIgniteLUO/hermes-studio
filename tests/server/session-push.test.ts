@@ -53,8 +53,10 @@ describe('session push notifications', () => {
     expect(formatSessionPushContent('bridge', 'run.completed', 'zh')).toBe(
       'Hermes 有一条已完成消息，请到 Hermes Studio 查看',
     )
+    // A session persisted by an older build may still carry a removed agent value;
+    // it falls back to the Hermes label instead of leaking an unknown runtime name.
     expect(formatSessionPushContent('ekko', 'approval.requested', 'zh')).toBe(
-      'Ekko 有一条待授权消息，请到 Hermes Studio 授权',
+      'Hermes 有一条待授权消息，请到 Hermes Studio 授权',
     )
     expect(formatSessionPushContent('claude-code', 'clarify.requested', 'zh')).toBe(
       'Claude 有一条待回答消息，请到 Hermes Studio 回答',

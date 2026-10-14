@@ -1,11 +1,8 @@
-import { mkdir, rm } from 'node:fs/promises'
-import { join } from 'node:path'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { EkkoFileLogReader, EkkoFileLogger } from '../../packages/ekko-agent/src'
 
 const mocks = vi.hoisted(() => ({
   appHome: `/tmp/hermes-web-ui-logs-controller-${process.pid}`,
-  listLogFiles: vi.fn(async () => []),
+  listLogFiles: vi.fn(async () => [] as Array<{ name: string; size: string; modified: string }>),
   readLogs: vi.fn(async () => ''),
   hermesAvailable: true,
 }))
@@ -17,50 +14,38 @@ vi.mock('../../packages/server/src/modules/studio/public/config', () => ({
 vi.mock('../../packages/server/src/modules/studio/public/agent-logs', () => ({
   listPrimaryAgentLogFiles: mocks.listLogFiles,
   readPrimaryAgentLogs: mocks.readLogs,
-  getEkkoLogSource: (profile: string) => {
-    const directory = join(mocks.appHome, '.ekko', 'logs', profile)
-    return new EkkoFileLogReader({ directory })
-  },
 }))
 
 vi.mock('../../packages/server/src/modules/studio/public/agent-status-registry', () => ({
   isHermesAgentAvailable: vi.fn(() => mocks.hermesAvailable),
 }))
 
-describe('Hermes logs controller Ekko source', () => {
+describe('Hermes logs controller source', () => {
   beforeAll(async () => {
-    await rm(mocks.appHome, { recursive: true, force: true })
+    const { mkdir } = await import('node:fs/promises')
     await mkdir(mocks.appHome, { recursive: true })
   })
 
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.hermesAvailable = true
+    mocks.listLogFiles.mockResolvedValue([])
+    mocks.readLogs.mockResolvedValue('')
   })
 
   afterAll(async () => {
+    const { rm } = await import('node:fs/promises')
     await rm(mocks.appHome, { recursive: true, force: true })
   })
 
-  it('lists and reads the current profile Ekko log through the existing logs API', async () => {
-    const directory = join(mocks.appHome, '.ekko', 'logs', 'work')
-    const logger = new EkkoFileLogger({ directory })
-    logger.write({
-      category: 'model',
-      event: 'model.started',
-      profile: 'work',
-      sessionId: 'session-other',
-      runId: 'run-other',
-    })
-    logger.write({
-      category: 'tool',
-      event: 'tool.failed',
-      level: 'warn',
-      profile: 'work',
-      sessionId: 'session-target',
-      runId: 'run-target',
-      data: { error: 'timed out' },
-    })
+  it('lists and reads the current profile Hermes logs through the existing logs API', async () => {
+    mocks.listLogFiles.mockResolvedValue([
+      { name: 'hermes', size: '2.0KB', modified: '2026-05-08 15:19:46' },
+    ])
+    mocks.readLogs.mockResolvedValue([
+      '2026-05-08 15:19:46,000 INFO hermes: model.started session=session-other run=run-other',
+      '2026-05-08 15:19:47,000 WARNING hermes: tool.failed session=session-target run=run-target data={"error":"timed out"}',
+    ].join('\n'))
 
     const controller = await import('../../packages/server/src/modules/studio/controllers/logs')
     const listContext: any = {
@@ -69,23 +54,22 @@ describe('Hermes logs controller Ekko source', () => {
       body: null,
     }
     await controller.list(listContext)
+    expect(mocks.listLogFiles).toHaveBeenCalled()
     expect(listContext.body.files).toEqual(expect.arrayContaining([
-      expect.objectContaining({ name: 'ekko-agent' }),
+      expect.objectContaining({ name: 'hermes' }),
     ]))
 
     const readContext: any = {
       state: { profile: { name: 'work' } },
-      params: { name: 'ekko-agent' },
+      params: { name: 'hermes' },
       query: { lines: '100', session: 'session-target', level: 'WARNING' },
       body: null,
     }
     await controller.read(readContext)
 
-    expect(readContext.body.entries).toHaveLength(1)
-    expect(readContext.body.entries[0]).toMatchObject({
-      level: 'WARNING',
-      logger: 'ekko-agent/tool',
-    })
+    expect(mocks.readLogs).toHaveBeenCalledWith('hermes', 100, 'WARNING', 'session-target', undefined)
+    expect(readContext.body.entries.map((entry: any) => entry.level)).toEqual(['WARNING', 'INFO'])
+    expect(readContext.body.entries[0]).toMatchObject({ logger: 'hermes' })
     expect(readContext.body.entries[0].message).toContain('tool.failed')
     expect(readContext.body.entries[0].message).toContain('session=session-target')
   })

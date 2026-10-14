@@ -18,17 +18,13 @@ import { getActiveProfileName, getProfileDir, listProfileNamesFromDisk } from '.
 import {
   chatCodingAgentRunManager as codingAgentRunManager,
   createPrimaryAgentBridge,
-  getChatEkkoAgent as getGlobalEkkoAgent,
   getPrimaryAgentBridgeManager as getAgentBridgeManager,
   handleChatCodingAgentSessionCommand as handleCodingAgentSessionCommand,
   parseChatCodingAgentSessionCommand as parseCodingAgentSessionCommand,
   redactPrimaryAgentBridgeError as redactAgentBridgeError,
-  respondToChatEkkoClarification as respondToEkkoClarification,
-  respondToChatEkkoToolApproval as respondToEkkoToolApproval,
 } from '../public/chat-agent-runtime'
 import { handleBridgeRun, resumeBridgeRun } from '../services/chat-run/handle-bridge-run'
 import { handleCodingAgentRun } from '../services/chat-run/handle-coding-agent-run'
-import { handleEkkoAgentRun, type EkkoAgentRunSocketData } from '../services/chat-run/handle-ekko-agent-run'
 import { handleAbort } from '../services/chat-run/abort'
 import { getOrCreateSession } from '../services/chat-run/compression'
 import { loadSessionStateFromDb, resolveRunSource } from '../services/chat-run/load-state'
@@ -81,7 +77,6 @@ function persistHermesBackgroundResult(
     ? event.results.filter(result => result && typeof result === 'object') as Array<Record<string, unknown>>
     : [event]
   const stateTasks = Object.values(state.backgroundTasks || {})
-    .filter(task => task.runtime !== 'ekko')
   const dispatchGoals = Array.isArray(dispatch.goals)
     ? dispatch.goals.map(value => String(value || '').trim())
     : []
@@ -151,11 +146,11 @@ function isHermesWorkerBackedSession(session?: { source?: string | null; agent?:
   if (!source || source === 'cli' || source === 'api_server') return true
   if (source === 'workflow' || source === 'group_chat') {
     const agent = String(session?.agent || '').trim()
-    return agent !== 'claude' && agent !== 'codex' && agent !== 'pi' && agent !== 'ekko-agent' && !session?.agent_session_id
+    return agent !== 'claude' && agent !== 'codex' && agent !== 'pi' && !session?.agent_session_id
   }
   if (source !== 'global_agent') return false
   const agent = String(session?.agent || '').trim()
-  return agent !== 'claude' && agent !== 'codex' && agent !== 'pi' && agent !== 'ekko-agent' && !session?.agent_session_id
+  return agent !== 'claude' && agent !== 'codex' && agent !== 'pi' && !session?.agent_session_id
 }
 
 function isBridgeRunSource(source?: string): boolean {
@@ -211,13 +206,8 @@ function resolveSessionCategoryId(value: unknown): number | null {
   return getSessionCategory(categoryId) ? categoryId : null
 }
 
-function isEkkoAgentExecution(data?: { coding_agent_id?: string; agent_id?: string }): boolean {
-  return data?.coding_agent_id === 'ekko-agent' || data?.agent_id === 'ekko-agent'
-}
-
 function webhookAgentForRun(data?: { coding_agent_id?: string; agent_id?: string }): ChatRunWebhookAgent {
   const agent = data?.coding_agent_id || data?.agent_id
-  if (agent === 'ekko-agent') return 'ekko'
   if (agent === 'codex') return 'codex'
   if (agent === 'pi') return 'pi'
   if (agent === 'claude-code') return 'claude-code'
@@ -383,12 +373,6 @@ export class ChatRunSocket {
       source?: string
       session_source?: 'global_agent' | 'workflow' | 'group_chat'
       memory_input?: string | ContentBlock[]
-      memory_messages?: EkkoAgentRunSocketData['memory_messages']
-      memory_write_policy?: 'automatic' | 'explicit-only'
-      memory_origin?: EkkoAgentRunSocketData['memory_origin']
-      memory_recall_scopes?: EkkoAgentRunSocketData['memory_recall_scopes']
-      memory_write_scopes?: EkkoAgentRunSocketData['memory_write_scopes']
-      memory_default_write_scope?: EkkoAgentRunSocketData['memory_default_write_scope']
       coding_agent_id?: ChatCodingAgentId
       agent_id?: ChatCodingAgentId
       mode?: 'scoped' | 'global'
@@ -675,23 +659,6 @@ export class ChatRunSocket {
         })
         return
       }
-      const ekkoResult = respondToEkkoToolApproval(
-        data.session_id,
-        data.approval_id,
-        data.choice,
-      )
-      if (ekkoResult.handled) {
-        if (!ekkoResult.resolved) {
-          this.emitToSession(socket, data.session_id, 'approval.resolved', {
-            event: 'approval.resolved',
-            approval_id: data.approval_id,
-            choice: ekkoResult.choice,
-            resolved: false,
-            error: 'Approval does not belong to this session.',
-          })
-        }
-        return
-      }
       const codingAgentResult = codingAgentRunManager.resolveApproval(
         data.session_id,
         data.approval_id,
@@ -743,24 +710,6 @@ export class ChatRunSocket {
           resolved: false,
           error: err instanceof Error ? err.message : String(err),
         })
-        return
-      }
-      const ekkoResult = respondToEkkoClarification(
-        data.session_id,
-        data.clarify_id,
-        data.response,
-      )
-      if (ekkoResult.handled) {
-        if (!ekkoResult.resolved) {
-          this.emitToSession(socket, data.session_id, 'clarify.resolved', {
-            event: 'clarify.resolved',
-            clarify_id: data.clarify_id,
-            resolved: false,
-            error: 'Clarification does not belong to this session.',
-          })
-        } else {
-          this.clearClarifyEventState(data.session_id, data.clarify_id)
-        }
         return
       }
       const codingAgentResult = codingAgentRunManager.resolveClarification(
@@ -838,12 +787,6 @@ export class ChatRunSocket {
       source?: string
       session_source?: 'global_agent' | 'workflow' | 'group_chat'
       memory_input?: string | ContentBlock[]
-      memory_messages?: EkkoAgentRunSocketData['memory_messages']
-      memory_write_policy?: 'automatic' | 'explicit-only'
-      memory_origin?: EkkoAgentRunSocketData['memory_origin']
-      memory_recall_scopes?: EkkoAgentRunSocketData['memory_recall_scopes']
-      memory_write_scopes?: EkkoAgentRunSocketData['memory_write_scopes']
-      memory_default_write_scope?: EkkoAgentRunSocketData['memory_default_write_scope']
       queue_id?: string
       peerExcludeSocketId?: string
       coding_agent_id?: ChatCodingAgentId
@@ -973,36 +916,6 @@ export class ChatRunSocket {
         skipUserMessage,
         loadSessionStateFromDb,
         this.dequeueNextQueuedRun.bind(this),
-        backgroundContinuationContext,
-      )
-      return
-    }
-
-    if (isEkkoAgentExecution(data)) {
-      const onEvent = (event: string, payload: any) => {
-        if (data.session_id) this.observeQueueInsertionRunEvent(data.session_id, event, payload)
-        observeChatRunWebhookEvent({
-          event,
-          sessionId: String(data.session_id || payload?.session_id || ''),
-          profile,
-          source,
-          agent: 'ekko',
-          payload,
-          roomId: data.group_room_id,
-          workflowId: data.workflow_id,
-          workflowNodeId: data.workflow_node_id,
-        })
-        data.onEvent?.(event, payload)
-        this.emitPendingInteraction(profile, event, payload)
-      }
-      await handleEkkoAgentRun(
-        this.nsp,
-        socket,
-        { ...data, onEvent },
-        profile,
-        this.sessionMap,
-        this.dequeueNextQueuedRun.bind(this),
-        skipUserMessage,
         backgroundContinuationContext,
       )
       return
@@ -1230,7 +1143,7 @@ export class ChatRunSocket {
       if (Object.values(state.backgroundDelegations || {})
         .some(item => item.status === 'running' || item.status === 'delivering')) return true
       if (Object.values(state.backgroundTasks || {})
-        .some(task => task.status === 'running' && task.runtime !== 'ekko')) return true
+        .some(task => task.status === 'running')) return true
     }
     return false
   }
@@ -1474,8 +1387,7 @@ export class ChatRunSocket {
   private queueInsertionRuntime(sessionId: string, state: SessionState): QueueInsertionRuntime | null {
     const storedAgent = String(getSession(sessionId)?.agent || '').trim()
     const activeAgent = state.webhookAgent
-      || (storedAgent === 'ekko-agent' ? 'ekko' : storedAgent === 'claude' ? 'claude-code' : storedAgent === 'codex' ? 'codex' : storedAgent === 'pi' ? 'pi' : 'bridge')
-    if (activeAgent === 'ekko') return 'ekko'
+      || (storedAgent === 'claude' ? 'claude-code' : storedAgent === 'codex' ? 'codex' : storedAgent === 'pi' ? 'pi' : 'bridge')
     if (activeAgent === 'claude-code' || activeAgent === 'codex' || activeAgent === 'pi') return activeAgent
     if (activeAgent !== 'bridge') return null
     if (state.source === 'coding_agent') return null
@@ -1544,7 +1456,7 @@ export class ChatRunSocket {
       runId: state.runId,
       runtime,
       phase: 'requesting',
-      guarantee: runtime === 'hermes' || runtime === 'ekko' ? 'strict' : 'immediate',
+      guarantee: runtime === 'hermes' ? 'strict' : 'immediate',
       requestedAt: Date.now(),
     }
     state.queueInsertion = control
@@ -1575,12 +1487,7 @@ export class ChatRunSocket {
         return
       }
 
-      const result = control.runtime === 'ekko'
-        ? getGlobalEkkoAgent(state.profile || 'default').requestBoundaryInterrupt({
-            sessionId,
-            expectedRunId: control.runId,
-          })
-        : await this.bridge.requestBoundaryInterrupt(sessionId, control.runId, state.profile)
+      const result = await this.bridge.requestBoundaryInterrupt(sessionId, control.runId, state.profile)
 
       const current = this.sessionMap.get(sessionId)?.queueInsertion
       if (!current || current.generation !== generation) return
@@ -1739,12 +1646,6 @@ export class ChatRunSocket {
       source?: string
       session_source?: 'global_agent' | 'workflow' | 'group_chat'
       memory_input?: string | ContentBlock[]
-      memory_messages?: EkkoAgentRunSocketData['memory_messages']
-      memory_write_policy?: 'automatic' | 'explicit-only'
-      memory_origin?: EkkoAgentRunSocketData['memory_origin']
-      memory_recall_scopes?: EkkoAgentRunSocketData['memory_recall_scopes']
-      memory_write_scopes?: EkkoAgentRunSocketData['memory_write_scopes']
-      memory_default_write_scope?: EkkoAgentRunSocketData['memory_default_write_scope']
       queue_id?: string
       coding_agent_id?: ChatCodingAgentId
       agent_id?: ChatCodingAgentId
@@ -1979,7 +1880,7 @@ export class ChatRunSocket {
       sessionId,
       profile,
       source: state?.source || session?.source || 'coding_agent',
-      agent: state?.webhookAgent || (storedAgent === 'codex' ? 'codex' : storedAgent === 'pi' ? 'pi' : storedAgent === 'ekko-agent' ? 'ekko' : 'claude-code'),
+      agent: state?.webhookAgent || (storedAgent === 'codex' ? 'codex' : storedAgent === 'pi' ? 'pi' : 'claude-code'),
       payload: tagged,
       roomId: state?.webhookRoomId,
       workflowId: state?.webhookWorkflowId,
@@ -2130,7 +2031,7 @@ export class ChatRunSocket {
       sessionId,
       profile,
       source: state?.source || session?.source || 'chat',
-      agent: state?.webhookAgent || (storedAgent === 'codex' ? 'codex' : storedAgent === 'pi' ? 'pi' : storedAgent === 'ekko-agent' ? 'ekko' : 'bridge'),
+      agent: state?.webhookAgent || (storedAgent === 'codex' ? 'codex' : storedAgent === 'pi' ? 'pi' : 'bridge'),
       payload: tagged,
       roomId: state?.webhookRoomId,
       workflowId: state?.webhookWorkflowId,

@@ -31,10 +31,9 @@ export function assertWorkflowImportCapabilities(nodes: unknown[], groups: Capab
     const exact = `${provider}\u0000${model}\u0000${apiMode}`
     const providerModel = `${provider}\u0000${model}`
     const hermesTargetAvailable = agent === 'hermes' && configuredProviderModels.has(providerModel)
-    const ekkoAgent = agent === 'ekko-agent'
     const scopedExternalCodingAgent = agent === 'codex' || agent === 'claude-code' || agent === 'pi'
     const scopedCodingAgentProviderBlocked = scopedExternalCodingAgent && isScopedCodingAgentAuthProvider(provider)
-    const codingAgentTargetAvailable = (ekkoAgent || scopedExternalCodingAgent)
+    const codingAgentTargetAvailable = scopedExternalCodingAgent
       && !scopedCodingAgentProviderBlocked
       && SCOPED_CODING_AGENT_API_MODES.has(apiMode)
       && configuredProviderModels.has(providerModel)

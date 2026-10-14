@@ -43,7 +43,7 @@ export interface CodingAgentRunSocketData {
   group_agent_id?: string
 }
 
-function codingAgentId(data: CodingAgentRunSocketData): Exclude<ChatCodingAgentId, 'ekko-agent'> {
+function codingAgentId(data: CodingAgentRunSocketData): ChatCodingAgentId {
   const value = data.coding_agent_id || data.agent_id || 'claude-code'
   if (value === 'codex' || value === 'pi') return value
   return 'claude-code'

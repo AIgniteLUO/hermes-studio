@@ -5,7 +5,6 @@ const resumeBridgeRunMock = vi.hoisted(() => vi.fn(async () => {}))
 const handleCodingAgentRunMock = vi.hoisted(() => vi.fn(async () => {}))
 const loadSessionStateFromDbMock = vi.hoisted(() => vi.fn())
 const ensureReadyMock = vi.hoisted(() => vi.fn())
-const ekkoBoundaryInterruptMock = vi.hoisted(() => vi.fn())
 const codingAgentRunManagerMock = vi.hoisted(() => ({
   interruptForQueueInsertion: vi.fn(),
   resolveApproval: vi.fn(() => ({ handled: false, resolved: false })),
@@ -55,12 +54,6 @@ vi.mock('../../packages/server/src/modules/hermes/services/bridge/manager', () =
   })),
 }))
 
-vi.mock('../../packages/server/src/modules/ekko/services/manager', () => ({
-  getGlobalEkkoAgent: vi.fn(() => ({ requestBoundaryInterrupt: ekkoBoundaryInterruptMock })),
-  hasGlobalEkkoBackgroundTasks: vi.fn(() => false),
-  abortGlobalEkkoBackgroundTasks: vi.fn(async () => 0),
-}))
-
 vi.mock('../../packages/server/src/modules/coding-agents/services/runtime/run-manager', () => ({
   codingAgentRunManager: codingAgentRunManagerMock,
 }))
@@ -72,9 +65,6 @@ vi.mock('../../packages/server/src/modules/studio/public/chat-agent-runtime', ()
   chatCodingAgentRunManager: codingAgentRunManagerMock,
   handleChatCodingAgentSessionCommand: sessionCommandMocks.handleSessionCommand,
   parseChatCodingAgentSessionCommand: sessionCommandMocks.parseSessionCommand,
-  getChatEkkoAgent: vi.fn(() => ({ requestBoundaryInterrupt: ekkoBoundaryInterruptMock })),
-  respondToChatEkkoToolApproval: vi.fn(() => ({ handled: false, resolved: false })),
-  respondToChatEkkoClarification: vi.fn(() => ({ handled: false, resolved: false })),
 }))
 
 vi.mock('../../packages/server/src/modules/studio/public/logging', () => ({
@@ -168,9 +158,6 @@ describe('ChatRunSocket queued bridge runs', () => {
       run_id: 'run-1',
       phase: 'tool_batch',
       guarantee: 'strict',
-    })
-    ekkoBoundaryInterruptMock.mockReturnValue({
-      status: 'accepted', runId: 'run-ekko', phase: 'model',
     })
     codingAgentRunManagerMock.interruptForQueueInsertion.mockReturnValue({
       status: 'interrupted', runId: 'run-codex', responseId: 'response-codex',
@@ -322,29 +309,27 @@ describe('ChatRunSocket queued bridge runs', () => {
     }))
   })
 
-  it('routes Ekko and Global Agent queue insertion through the Ekko-owned boundary', async () => {
+  it('routes Global Agent queue insertion through the Hermes bridge boundary', async () => {
     const { ChatRunSocket } = await import('../../packages/server/src/modules/studio/sockets/chat-run')
     const { handlers, io, socket } = makeServerHarness()
     const server = new ChatRunSocket(io as any)
     ;(server as any).onConnection(socket)
     ;(server as any).sessionMap.set('session-1', {
-      messages: [], isWorking: true, events: [], source: 'coding_agent', webhookAgent: 'ekko',
-      profile: 'default', runId: 'run-ekko',
+      messages: [], isWorking: true, events: [], source: 'global_agent',
+      profile: 'default', runId: 'run-1',
       queue: [{
-        queue_id: 'queue-global-ekko', input: 'follow up', profile: 'default',
-        source: 'coding_agent', sessionSource: 'global_agent', codingAgentId: 'ekko-agent',
+        queue_id: 'queue-global', input: 'follow up', profile: 'default',
+        source: 'global_agent', sessionSource: 'global_agent',
       }],
     })
 
-    handlers.get('insert_queued_run')?.({ session_id: 'session-1', queue_id: 'queue-global-ekko' })
+    handlers.get('insert_queued_run')?.({ session_id: 'session-1', queue_id: 'queue-global' })
 
-    await vi.waitFor(() => expect(ekkoBoundaryInterruptMock).toHaveBeenCalledOnce())
-    expect(ekkoBoundaryInterruptMock).toHaveBeenCalledWith({
-      sessionId: 'session-1', expectedRunId: 'run-ekko',
-    })
-    expect((server as any).sessionMap.get('session-1').queueInsertion).toEqual(expect.objectContaining({
-      runtime: 'ekko', phase: 'stopping_current_turn', queueId: 'queue-global-ekko',
-    }))
+    await vi.waitFor(() => expect(bridgeMock.requestBoundaryInterrupt).toHaveBeenCalledOnce())
+    expect(bridgeMock.requestBoundaryInterrupt).toHaveBeenCalledWith('session-1', 'run-1', 'default')
+    await vi.waitFor(() => expect((server as any).sessionMap.get('session-1').queueInsertion).toEqual(expect.objectContaining({
+      runtime: 'hermes', phase: 'waiting_for_tool_batch', queueId: 'queue-global',
+    })))
   })
 
   it('broadcasts insertion completion before dequeuing the selected message', async () => {

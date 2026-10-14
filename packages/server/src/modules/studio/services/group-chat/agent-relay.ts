@@ -6,11 +6,7 @@ import type { Server, Socket as ServerSocket } from 'socket.io'
 import { io, type Socket as ClientSocket } from 'socket.io-client'
 import { config } from '../../public/config'
 import { logger } from '../../public/logging'
-import {
-  createGroupPrimaryAgentBridge,
-  respondToGroupEkkoClarification,
-  respondToGroupEkkoToolApproval,
-} from '../../public/group-chat-agent-runtime'
+import { createGroupPrimaryAgentBridge } from '../../public/group-chat-agent-runtime'
 import {
   AgentClient,
   type AgentConfig,
@@ -353,7 +349,7 @@ function sameRemoteAgent(
 
 class RelayGroupAgentExecutor implements GroupAgentExecutor {
   readonly agentId: string
-  agent: 'hermes' | 'ekko' | 'codex' | 'claude' | 'pi'
+  agent: 'hermes' | 'codex' | 'claude' | 'pi'
   profile: string
   provider: string
   model: string
@@ -1735,13 +1731,8 @@ class OutboundRelayConnection {
           return
         }
         try {
-          if (this.link.agent.agent === 'ekko') {
-            const result = respondToGroupEkkoToolApproval(sessionId, data.approvalId, data.choice)
-            ack?.({ resolved: Boolean(result?.resolved) })
-          } else {
-            const result = await createGroupPrimaryAgentBridge().approvalRespond(data.approvalId, data.choice || 'deny')
-            ack?.({ resolved: Boolean((result as any)?.resolved) })
-          }
+          const result = await createGroupPrimaryAgentBridge().approvalRespond(data.approvalId, data.choice || 'deny')
+          ack?.({ resolved: Boolean(result?.resolved) })
         } catch (error) {
           ack?.({ error: error instanceof Error ? error.message : 'Approval response failed' })
         }
@@ -1756,13 +1747,8 @@ class OutboundRelayConnection {
           return
         }
         try {
-          if (this.link.agent.agent === 'ekko') {
-            const result = respondToGroupEkkoClarification(sessionId, data.clarifyId, data.response || '')
-            ack?.({ resolved: Boolean(result?.resolved) })
-          } else {
-            const result = await createGroupPrimaryAgentBridge().clarifyRespond(data.clarifyId, data.response || '')
-            ack?.({ resolved: Boolean((result as any)?.resolved) })
-          }
+          const result = await createGroupPrimaryAgentBridge().clarifyRespond(data.clarifyId, data.response || '')
+          ack?.({ resolved: Boolean(result?.resolved) })
         } catch (error) {
           ack?.({ error: error instanceof Error ? error.message : 'Clarification response failed' })
         }

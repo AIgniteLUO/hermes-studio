@@ -4,31 +4,23 @@ const bridgeMock = vi.hoisted(() => ({
   clarifyRespond: vi.fn(),
   statusIfLoaded: vi.fn(),
 }))
-const respondToEkkoClarificationMock = vi.hoisted(() => vi.fn())
+const codingAgentRunManagerMock = vi.hoisted(() => ({
+  resolveApproval: vi.fn(() => ({ handled: false, resolved: false })),
+  resolveClarification: vi.fn(() => ({ handled: false, resolved: false })),
+  stop: vi.fn(),
+}))
 
 vi.mock('../../packages/server/src/modules/hermes/services/bridge/index', () => ({
   AgentBridgeClient: vi.fn(() => bridgeMock),
-}))
-
-vi.mock('../../packages/server/src/modules/ekko/services/clarifications', () => ({
-  respondToEkkoClarification: respondToEkkoClarificationMock,
-  waitForEkkoClarification: vi.fn(),
 }))
 
 vi.mock('../../packages/server/src/modules/studio/public/chat-agent-runtime', () => ({
   createPrimaryAgentBridge: vi.fn(() => bridgeMock),
   getPrimaryAgentBridgeManager: vi.fn(() => ({ start: vi.fn(async () => {}), ensureReady: vi.fn() })),
   redactPrimaryAgentBridgeError: (error?: string) => error,
-  chatCodingAgentRunManager: {
-    resolveApproval: vi.fn(() => ({ handled: false, resolved: false })),
-    resolveClarification: vi.fn(() => ({ handled: false, resolved: false })),
-    stop: vi.fn(),
-  },
+  chatCodingAgentRunManager: codingAgentRunManagerMock,
   handleChatCodingAgentSessionCommand: vi.fn(),
   parseChatCodingAgentSessionCommand: vi.fn(() => null),
-  getChatEkkoAgent: vi.fn(() => ({ requestBoundaryInterrupt: vi.fn() })),
-  respondToChatEkkoToolApproval: vi.fn(() => ({ handled: false, resolved: false })),
-  respondToChatEkkoClarification: respondToEkkoClarificationMock,
 }))
 
 vi.mock('../../packages/server/src/modules/studio/public/logging', () => ({
@@ -95,13 +87,13 @@ describe('ChatRunSocket clarify responses', { timeout: 15_000 }, () => {
     sessionStoreMock.getSession.mockReturnValue({ id: 'session-1', profile: 'default' })
     bridgeMock.clarifyRespond.mockReset()
     bridgeMock.statusIfLoaded.mockReset()
-    respondToEkkoClarificationMock.mockReset()
-    respondToEkkoClarificationMock.mockReturnValue({ handled: false, resolved: false })
+    codingAgentRunManagerMock.resolveClarification.mockReset()
+    codingAgentRunManagerMock.resolveClarification.mockReturnValue({ handled: false, resolved: false })
     bridgeMock.statusIfLoaded.mockResolvedValue({ ok: true, exists: false, running: false, loaded: false })
   })
 
-  it('routes Ekko clarification responses without calling the Hermes bridge', async () => {
-    respondToEkkoClarificationMock.mockReturnValueOnce({ handled: true, resolved: true })
+  it('routes clarification responses to the active coding-agent run without calling the Hermes bridge', async () => {
+    codingAgentRunManagerMock.resolveClarification.mockReturnValueOnce({ handled: true, resolved: true })
     const { ChatRunSocket } = await import('../../packages/server/src/modules/studio/sockets/chat-run')
     const { handlers, io, socket } = createSocketHarness()
     const server = new ChatRunSocket(io as any)
@@ -109,13 +101,13 @@ describe('ChatRunSocket clarify responses', { timeout: 15_000 }, () => {
     ;(server as any).onConnection(socket)
     await handlers.get('clarify.respond')?.({
       session_id: 'session-1',
-      clarify_id: 'ekko-clarify-1',
+      clarify_id: 'coding-agent-clarify-1',
       response: 'B',
     })
 
-    expect(respondToEkkoClarificationMock).toHaveBeenCalledWith(
+    expect(codingAgentRunManagerMock.resolveClarification).toHaveBeenCalledWith(
       'session-1',
-      'ekko-clarify-1',
+      'coding-agent-clarify-1',
       'B',
     )
     expect(bridgeMock.clarifyRespond).not.toHaveBeenCalled()

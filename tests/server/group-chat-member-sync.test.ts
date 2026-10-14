@@ -937,8 +937,8 @@ describe('Group Chat member/agent identity sync', () => {
     const broadcastEmit = vi.fn()
     const agentMember = {
       id: 'agent-socket-1',
-      userId: 'agent-ekko-1',
-      name: 'ekko-agent',
+      userId: 'agent-codex-1',
+      name: 'codex-agent',
       description: '',
       joinedAt: Date.now(),
       online: true,
@@ -953,21 +953,21 @@ describe('Group Chat member/agent identity sync', () => {
     server.storage = {
       getRoom: vi.fn(() => ({ id: 'room-1', name: 'Room', sessionSeed: 'seed-1' })),
       getRoomAgentByAgentId: vi.fn(() => ({
-        id: 'row-ekko-1',
+        id: 'row-codex-1',
         roomId: 'room-1',
-        agentId: 'agent-ekko-1',
-        agent: 'ekko',
+        agentId: 'agent-codex-1',
+        agent: 'codex',
         profile: 'default',
         provider: 'deepseek',
         model: 'deepseek-v4-flash',
         reasoningEffort: '',
-        name: 'ekko-agent',
+        name: 'codex-agent',
       })),
     }
     server.nsp = { to: vi.fn(() => ({ emit: broadcastEmit })) }
     const socket = { id: 'agent-socket-1' }
-    const sessionId = groupBridgeSessionId('room-1', 'default', 'ekko-agent', 'seed-1', {
-      agent: 'ekko',
+    const sessionId = groupBridgeSessionId('room-1', 'default', 'codex-agent', 'seed-1', {
+      agent: 'codex',
       provider: 'deepseek',
       model: 'deepseek-v4-flash',
       reasoningEffort: '',
@@ -975,17 +975,17 @@ describe('Group Chat member/agent identity sync', () => {
 
     server.handleMessageStreamStart(socket, {
       roomId: 'room-1',
-      id: 'ekko-stream',
+      id: 'codex-stream',
       agentSessionId: sessionId,
     })
 
     expect(broadcastEmit).toHaveBeenCalledWith(
       'message_stream_start',
       expect.objectContaining({
-        id: 'ekko-stream',
-        senderId: 'agent-ekko-1',
-        senderAgentRecordId: 'row-ekko-1',
-        senderName: 'ekko-agent',
+        id: 'codex-stream',
+        senderId: 'agent-codex-1',
+        senderAgentRecordId: 'row-codex-1',
+        senderName: 'codex-agent',
       }),
     )
   })
@@ -1186,7 +1186,7 @@ describe('Group Chat member/agent identity sync', () => {
   })
 
   it('broadcasts the complete room agent roster after mutations', () => {
-    const agents = [{ id: 'row-agent', agentId: 'agent-1', name: 'Agent', executorType: 'server' }]
+    const agents = [{ id: 'row-agent', agentId: 'agent-1', agent: 'hermes', name: 'Agent', executorType: 'server' }]
     const emit = vi.fn()
     const to = vi.fn(() => ({ emit }))
     const server = Object.create(GroupChatServer.prototype) as any

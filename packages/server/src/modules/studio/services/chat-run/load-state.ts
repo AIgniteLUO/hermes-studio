@@ -15,7 +15,7 @@ function restoreBackgroundDelegations(messages: any[]): SessionState['background
     try {
       const payload = JSON.parse(String(message.content || '')) as Record<string, unknown>
       const delegationId = String(payload.delegation_id || '').trim()
-      if (payload.runtime === 'ekko' || payload.mode !== 'background' || !delegationId) continue
+      if (payload.mode !== 'background' || !delegationId) continue
       let status: 'running' | 'completed' | 'failed' | 'interrupted' = 'running'
       if (message.display_content) {
         const display = JSON.parse(String(message.display_content)) as Record<string, unknown>
@@ -70,9 +70,7 @@ export async function loadSessionStateFromDb(sid: string, _sessionMap: Map<strin
     const session = actualDetail?.session || getSession(sid)
     const usageSource = session?.source === 'coding_agent' || ['codex', 'pi', 'claude', 'claude-code', 'claude_code'].includes(session?.agent || '')
       ? 'coding_agent'
-      : session?.agent === 'ekko_agent' || session?.agent === 'ekko-agent'
-        ? 'ekko_agent'
-        : 'hermes'
+      : 'hermes'
     const totals = getRecordedUsageTotals(sid, usageSource)
     const pageUsage = estimateUsageTokensFromMessages(messages)
     const latestUsage = getUsage(sid)

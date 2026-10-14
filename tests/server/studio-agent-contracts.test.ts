@@ -12,12 +12,11 @@ import {
 } from '../../packages/server/src/modules/studio'
 
 describe('Studio agent contracts', () => {
-  it('keeps the three families distinct from the five runtimes', () => {
-    expect(AGENT_FAMILIES).toEqual(['hermes', 'ekko', 'coding'])
-    expect(AGENT_RUNTIMES).toEqual(['hermes', 'ekko', 'claude-code', 'codex', 'pi'])
+  it('keeps the two families distinct from the four runtimes', () => {
+    expect(AGENT_FAMILIES).toEqual(['hermes', 'coding'])
+    expect(AGENT_RUNTIMES).toEqual(['hermes', 'claude-code', 'codex', 'pi'])
     expect(AGENT_RUNTIMES.map(agentFamilyForRuntime)).toEqual([
       'hermes',
-      'ekko',
       'coding',
       'coding',
       'coding',

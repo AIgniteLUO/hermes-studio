@@ -42,8 +42,6 @@ import {
   listAppConnections,
 } from '../modules/studio/repositories/app-connections-store'
 import { ensureAppRelayHostClient } from '../modules/studio/services/app-relay/connection'
-import { setupGlobalEkkoAgent } from './ekko'
-import { injectManagedEkkoMcpServers } from '../modules/ekko/services/mcp'
 import { WorkflowSocketServer } from '../modules/studio/sockets/workflow'
 import { PetStateSocketServer } from '../modules/studio/sockets/pet-state'
 import { logger } from '../modules/studio/public/logging'
@@ -384,7 +382,6 @@ export async function bootstrap() {
   }
   console.log(`[bootstrap] Hermes source=${hermesSelection.source} version=${hermesSelection.version || '-'} path=${hermesSelection.path || '-'} python=${hermesSelection.pythonPath || '-'} root=${hermesSelection.agentRoot || '-'}`)
   if (lockedDesktopSelection) recordLockedHermesSelection(hermesSelection)
-  updateAgentStatus('ekko-agent', { version: APP_VERSION })
   const inventoryResults = await Promise.allSettled([
     ...(!lockedDesktopSelection ? [getRuntimeVersionStatus({ includeRemote: false })] : []),
     getCodingAgentsStatus(),
@@ -444,27 +441,6 @@ export async function bootstrap() {
     }
   } catch (err) {
     logger.warn(err, '[bootstrap] failed to restore persisted Pi proxy targets')
-  }
-
-  try {
-    const ekkoSetup = setupGlobalEkkoAgent()
-    try {
-      const injection = injectManagedEkkoMcpServers(ekkoSetup)
-      const changed = injection.targets.filter(target => target.status === 'injected' || target.status === 'updated')
-      if (changed.length > 0) {
-        logger.info({
-          serverNames: injection.serverNames,
-          targets: changed,
-        }, '[bootstrap] Studio MCP servers injected into Ekko config')
-      }
-    } catch (err) {
-      logger.warn(err, '[bootstrap] failed to inject Studio MCP servers into Ekko config')
-      console.warn('[bootstrap] failed to inject Studio MCP servers into Ekko config:', err instanceof Error ? err.message : err)
-    }
-    console.log('[bootstrap] ekko-agent setup complete')
-  } catch (err) {
-    logger.error(err, '[bootstrap] ekko-agent setup failed; continuing with Ekko unavailable')
-    console.error('[bootstrap] ekko-agent setup failed; continuing without Ekko:', err instanceof Error ? err.message : err)
   }
 
   agentBridgeManager = getAgentBridgeManager()

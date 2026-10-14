@@ -12,8 +12,8 @@ export interface NormalizedTokenUsage {
 export interface RecordSessionUsageInput {
   sessionId: string
   runId?: string | null
-  source: 'hermes' | 'coding_agent' | 'ekko_agent'
-  agent: 'hermes' | 'claude_code' | 'codex' | 'pi' | 'ekko_agent'
+  source: 'hermes' | 'coding_agent'
+  agent: 'hermes' | 'claude_code' | 'codex' | 'pi'
   profile?: string | null
   model?: string | null
   provider?: string | null

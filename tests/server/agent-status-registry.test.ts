@@ -16,15 +16,13 @@ describe('Agent status registry', () => {
 
     expect(snapshot.agents.map(agent => agent.id)).toEqual([
       'hermes',
-      'ekko-agent',
       'claude-code',
       'codex',
       'pi',
     ])
-    expect(snapshot.agents.find(agent => agent.id === 'ekko-agent')).toMatchObject({
-      installed: true,
-      source: 'built-in',
-    })
+    // No runtime is bundled with the product any more: every record starts out
+    // not installed until an installation is recorded.
+    expect(snapshot.agents.every(agent => agent.installed === false && agent.source === 'not-installed')).toBe(true)
   })
 
   it('updates version, source, path, and installations atomically', () => {
@@ -85,8 +83,8 @@ describe('Agent status registry', () => {
     expect(isHermesAgentAvailable()).toBe(true)
   })
 
-  it('reports built-in and installed coding Agents as available', () => {
-    expect(isAgentAvailable('ekko-agent')).toBe(true)
+  it('reports installed coding Agents as available', () => {
+    expect(isAgentAvailable('hermes')).toBe(false)
     expect(isAgentAvailable('codex')).toBe(false)
 
     updateAgentStatus('codex', {

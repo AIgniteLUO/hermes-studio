@@ -55,7 +55,6 @@ vi.mock('../../packages/server/src/modules/studio/public/profile-config', () => 
 vi.mock('../../packages/server/src/modules/studio/repositories/usage-store', () => ({ updateUsage: vi.fn() }))
 vi.mock('../../packages/server/src/modules/studio/public/group-chat-agent-runtime', () => ({
   createGroupPrimaryAgentBridge: vi.fn(() => bridgeMock),
-  cancelGroupEkkoClarification: vi.fn(() => ({ resolved: false })),
 }))
 vi.mock('../../packages/server/src/modules/studio/services/chat-run/workspace-diff-tracker', () => trackerMock)
 
@@ -188,7 +187,7 @@ describe('group chat agent workspace bridge runs', () => {
   it.each([
     ['codex', 'codex'],
     ['claude', 'claude-code'],
-    ['ekko', 'ekko-agent'],
+    ['pi', 'pi'],
   ] as const)('keeps %s tool output mention text non-routable', async (agent, codingAgentId) => {
     const { AgentClients } = await import('../../packages/server/src/modules/studio/services/group-chat/agent-clients')
     const runAndWait = vi.fn(async (_data: any, options: any) => {
@@ -730,7 +729,7 @@ describe('group chat agent workspace bridge runs', () => {
   })
 
   it.each([
-    ['ekko', 'ekko-agent'],
+    ['codex', 'codex'],
     ['claude', 'claude-code'],
     ['pi', 'pi'],
   ] as const)('passes the dynamic group system prompt to the %s runtime', async (agent, codingAgentId) => {
@@ -750,7 +749,7 @@ describe('group chat agent workspace bridge runs', () => {
       runAndWait,
       abortSession: vi.fn(async () => {}),
     })
-    const displayName = agent === 'ekko' ? 'Ekko' : agent === 'claude' ? 'Claude' : 'Pi'
+    const displayName = agent === 'codex' ? 'Codex' : agent === 'claude' ? 'Claude' : 'Pi'
     const client = await clients.createAgent({
       agentId: `agent-${agent}`,
       agent,
@@ -792,34 +791,8 @@ describe('group chat agent workspace bridge runs', () => {
     expect(runData.group_system_prompt).toBe(runData.instructions)
     expect(runData.group_room_id).toBe('room-runtime')
     expect(runData.group_agent_id).toBe(`agent-${agent}`)
-    if (agent === 'ekko') {
-      expect(runData.memory_messages).toEqual([
-        expect.objectContaining({
-          role: 'user',
-          content: 'Human：reply',
-          metadata: expect.objectContaining({ senderName: 'Human' }),
-        }),
-      ])
-      expect(runData.memory_write_policy).toBe('automatic')
-      expect(runData.memory_origin).toEqual({
-        host: 'hermes-studio',
-        namespace: 'group-chat',
-        contextId: 'room-runtime',
-      })
-      expect(runData.memory_recall_scopes).toEqual([
-        { type: 'profile' },
-        { type: 'context', namespace: 'studio.group-chat', id: 'room-runtime' },
-        { type: 'session', id: expect.any(String) },
-      ])
-      expect(runData.memory_default_write_scope).toEqual({
-        type: 'context',
-        namespace: 'studio.group-chat',
-        id: 'room-runtime',
-      })
-    } else {
-      expect(runData).not.toHaveProperty('memory_messages')
-      expect(runData).not.toHaveProperty('memory_write_policy')
-    }
+    expect(runData).not.toHaveProperty('memory_messages')
+    expect(runData).not.toHaveProperty('memory_write_policy')
     expect(mockSocket.emit).toHaveBeenCalledWith('clarify.requested', expect.objectContaining({
       roomId: 'room-runtime', clarify_id: `clarify-${agent}`, question: 'Continue?',
     }))
@@ -1045,20 +1018,20 @@ describe('group chat agent workspace bridge runs', () => {
     const clients = new AgentClients()
     clients.setChatRunService(chatRunService)
     const client = await clients.createAgent({
-      agentId: 'agent-ekko',
-      agent: 'ekko',
+      agentId: 'agent-codex',
+      agent: 'codex',
       profile: 'default',
-      name: 'Ekko',
+      name: 'Codex',
       description: '',
       invited: 0,
       backgroundDelegationEnabled: false,
     } as any) as any
     client.setStorage({ getRoom: vi.fn(() => ({ sessionSeed: 'seed-1', workspace: '' })) })
     ;(clients as any).rooms.set('room-1', new Map([[client.agentId, client]]))
-    const activeSessionId = `gc_run_room-1_default_Ekko_${'a'.repeat(32)}`
+    const activeSessionId = `gc_run_room-1_default_Codex_${'a'.repeat(32)}`
     client.activeSessions.set('room-1', activeSessionId)
 
-    await clients.interruptAgent('room-1', 'Ekko')
+    await clients.interruptAgent('room-1', 'Codex')
 
     expect(chatRunService.abortSession).toHaveBeenCalledWith(
       activeSessionId,

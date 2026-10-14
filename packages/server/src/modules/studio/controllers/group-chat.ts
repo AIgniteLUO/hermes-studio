@@ -22,6 +22,7 @@ import {
     AGENT_NOT_INSTALLED,
     assertAgentAvailable,
 } from '../services/agent-availability'
+import { normalizeStoredGroupAgent } from '../services/group-chat/agent-clients'
 
 let chatServer: GroupChatServer | null = null
 const roomAgentUpdates = new Set<string>()
@@ -104,7 +105,7 @@ function contentPreview(content: unknown): string {
 
 type AgentInput = {
     presetId?: string
-    agent?: 'hermes' | 'ekko' | 'codex' | 'claude' | 'pi'
+    agent?: 'hermes' | 'codex' | 'claude' | 'pi'
     profile: string
     provider?: string
     model?: string
@@ -131,7 +132,7 @@ type RoomSummaryInput = {
 }
 
 const GROUP_AGENT_REASONING_EFFORTS = new Set(['', 'none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'])
-const GROUP_AGENT_TYPES = new Set(['hermes', 'ekko', 'codex', 'claude', 'pi'])
+const GROUP_AGENT_TYPES = new Set(['hermes', 'codex', 'claude', 'pi'])
 const GROUP_AGENT_API_MODES = new Set(['chat_completions', 'codex_responses', 'anthropic_messages'])
 const GROUP_AGENT_AVATAR_MAX_LENGTH = 1_500_000
 
@@ -290,7 +291,7 @@ function roomAgentSummaries(storage: ReturnType<GroupChatServer['getStorage']>, 
         id: agent.id,
         roomId: agent.roomId,
         agentId: agent.agentId,
-        agent: agent.agent,
+        agent: normalizeStoredGroupAgent(agent.agent),
         name: agent.name,
         avatar: agent.avatar || '',
     }))
@@ -347,7 +348,7 @@ export async function createRoom(ctx: any) {
         inviteCode?: string
         agents?: {
             presetId?: string
-            agent?: 'hermes' | 'ekko' | 'codex' | 'claude' | 'pi'
+            agent?: 'hermes' | 'codex' | 'claude' | 'pi'
             profile: string
             provider?: string
             model?: string
@@ -534,7 +535,7 @@ export async function cloneRoom(ctx: any) {
         if (sourceAgent.executorType === 'remote') continue
         try {
             const agent = await connectAndPersistRoomAgent(chatServer, roomId, {
-                agent: sourceAgent.agent,
+                agent: normalizeStoredGroupAgent(sourceAgent.agent),
                 profile: sourceAgent.profile,
                 provider: sourceAgent.provider,
                 model: sourceAgent.model,
@@ -954,7 +955,10 @@ export async function updateRoomAgent(ctx: any) {
         if (runtimeSwapped) {
             await chatServer.agentClients.removeAgentFromRoom(roomId, previous.agentId)
             try {
-                const restored = await createRoomAgentRuntimeClient(chatServer, previous.agentId, previous)
+                const restored = await createRoomAgentRuntimeClient(chatServer, previous.agentId, {
+                    ...previous,
+                    agent: normalizeStoredGroupAgent(previous.agent),
+                })
                 await chatServer.agentClients.addAgentToRoom(roomId, restored)
             } catch (restoreErr: any) {
                 console.error(`[GroupChat] Failed to restore agent ${previous.profile} in room ${roomId}: ${sanitizeAgentConnectReason(restoreErr.message)}`)

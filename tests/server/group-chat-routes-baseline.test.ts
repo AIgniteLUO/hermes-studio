@@ -518,6 +518,42 @@ describe('group chat REST route baseline', () => {
     }])
   })
 
+  it('reads a historical room agent whose type was removed without throwing and normalizes it to hermes', async () => {
+    storage.getRoomsForProfiles.mockReturnValue([
+      { id: 'room-legacy', name: 'Legacy room', inviteCode: 'LEGACY', lastActiveAt: 100 },
+    ])
+    storage.agents.set('room-legacy', [{
+      id: 'row-legacy',
+      roomId: 'room-legacy',
+      agentId: 'agent-legacy',
+      agent: 'ekko',
+      profile: 'default',
+      provider: 'openai',
+      model: 'legacy-model',
+      apiMode: '',
+      reasoningEffort: '',
+      name: 'Legacy Worker',
+      description: '',
+      avatar: '',
+      invited: 0,
+    }])
+
+    const res = await fetch(`${baseUrl}/api/studio/group-chat/rooms`, {
+      headers: { 'x-test-user': 'member' },
+    })
+
+    expect(res.status).toBe(200)
+    const body = await res.json() as any
+    expect(body.rooms[0].agents).toEqual([{
+      id: 'row-legacy',
+      roomId: 'room-legacy',
+      agentId: 'agent-legacy',
+      agent: 'hermes',
+      name: 'Legacy Worker',
+      avatar: '',
+    }])
+  })
+
   it('paginates the authorized room list without changing activity order', async () => {
     storage.getRoomsForProfiles.mockReturnValue([
       { id: 'room-3', name: 'Third', inviteCode: 'C', lastActiveAt: 100 },

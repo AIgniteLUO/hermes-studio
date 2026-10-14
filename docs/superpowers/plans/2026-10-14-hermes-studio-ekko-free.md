@@ -29,10 +29,12 @@
   - `tests/server/hermes-cli-discovery.test.ts`
   - `tests/server/hermes-cli-selection-live.test.ts`
   - `tests/server/hermes-runtime-selection.test.ts`
+- **⚠️ `vue-tsc` 对 `.vue` 路径有盲区（Task 7 实测发现）**：`vite/client` 类型含 `declare module '*.vue'` 通配声明，**任何** `.vue` 路径（包括不存在的文件）都能解析通过。实测 `packages/client/src/router/index.ts:205,211,217,223` 仍 `import('@/views/ekko/*.vue')` 而 `npx vue-tsc -b --force --noEmit` **exit 0**。**因此 client 侧真正的完成判据是 `npx vite build` exit 0**（它以 `UNLOADABLE_DEPENDENCY` 精确指认缺失文件），不是 `vue-tsc`。client 侧的工作清单同样必须用 `grep -rn -i ekko packages/client/src` 生成。
 - **每层验证命令**（下称「三层检查」）：
   ```bash
-  npx vue-tsc -b --noEmit
+  npx vue-tsc -b --noEmit          # 仅能查 .ts 类型，查不到缺失的 .vue —— 不可单独作为 client 闸门
   npx tsc --noEmit -p packages/server/tsconfig.json
+  npx vite build                    # client 侧的真正闸门
   npx vitest run
   ```
 
@@ -894,13 +896,17 @@ git commit -m "♻️ refactor(mcu): MCU 语音默认运行时由 Ekko 改为 He
 
 `WorkflowView.vue:418` 删除 Ekko 选项；`GroupChatLinkView.vue:101,127-128` 删除选项与三元分支；`LogsView.vue:18,76,90` 删除 `ekko-agent` 正则替换、查询条件与回退项。
 
-- [ ] **Step 8: 让 client 类型检查变绿**
+- [ ] **Step 8: 让 client 通过真正的闸门**
 
 ```bash
-npx vue-tsc -b --noEmit
+npx vue-tsc -b --noEmit     # 必须 exit 0（但它查不到缺失的 .vue，见 Global Constraints）
+npx vite build              # ← 真正的完成判据，必须 exit 0
 ```
 
-预期：exit 0。若报错，**不要用 `as any` 掩盖**，回到对应 Step 收敛。
+> **注意**：在原计划的这一步写成「`vue-tsc` exit 0 即可」，但 Task 7 开始时实测该命令**已经是 exit 0**（因为 `*.vue` 通配声明掩盖了 4 处指向已删除文件的路由 import）。**只有 `vite build` 能证明 client 已收敛** —— 它会以 `UNLOADABLE_DEPENDENCY` 报出仍指向已删文件的 `.vue` 引用。
+
+预期：两条命令均 exit 0，`vite build` 无 `UNLOADABLE_DEPENDENCY`。
+若报错，**不要用 `as any` 掩盖**，回到对应 Step 收敛。
 
 - [ ] **Step 9: 提交**
 

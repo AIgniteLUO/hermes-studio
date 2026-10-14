@@ -44,7 +44,7 @@ extraResources:
       - "dist/**"
       - "!packages/desktop/**"
       # Exclude repository-root development files without dropping nested
-      # runtime assets such as dist/ekko-skills/*/scripts/**.
+      # runtime assets such as dist/skills/*/scripts/**.
       - "!.git/**"
       - "!.github/**"
       - "!docs/**"

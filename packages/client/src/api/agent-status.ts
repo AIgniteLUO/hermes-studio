@@ -1,6 +1,6 @@
 import { request } from './client'
 
-export type AgentStatusId = 'hermes' | 'ekko-agent' | 'claude-code' | 'codex' | 'pi'
+export type AgentStatusId = 'hermes' | 'claude-code' | 'codex' | 'pi'
 export type AgentStatusSource = 'managed-runtime' | 'user-cli' | 'built-in' | 'not-installed'
 
 export interface AgentStatusRecord {
@@ -34,8 +34,6 @@ export type AgentInstallationState = 'installed' | 'not-installed' | 'unknown'
 
 const AGENT_STATUS_ALIASES: Record<string, AgentStatusId> = {
   hermes: 'hermes',
-  ekko: 'ekko-agent',
-  'ekko-agent': 'ekko-agent',
   claude: 'claude-code',
   'claude-code': 'claude-code',
   codex: 'codex',

@@ -86,7 +86,7 @@ export interface RoomAgent {
     id: string
     roomId: string
     agentId: string
-    agent: 'hermes' | 'ekko' | 'codex' | 'claude' | 'pi'
+    agent: 'hermes' | 'codex' | 'claude' | 'pi'
     profile: string
     provider: string
     model: string
@@ -123,7 +123,7 @@ export interface GroupAgentActivity {
 
 export interface RoomAgentInput {
     presetId?: string
-    agent: 'hermes' | 'ekko' | 'codex' | 'claude' | 'pi'
+    agent: 'hermes' | 'codex' | 'claude' | 'pi'
     profile: string
     provider?: string
     model?: string

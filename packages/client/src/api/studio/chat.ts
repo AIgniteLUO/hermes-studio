@@ -82,7 +82,7 @@ export interface RunEvent {
   output?: string | null
   /** Run-level workspace diff summary attached to terminal run events. */
   workspace_run_change?: unknown
-  /** Provider/runtime context returned by Ekko for follow-up runs. */
+  /** Provider/runtime context attached to follow-up runs. */
   context?: unknown
   usage?: {
     input_tokens: number
@@ -133,7 +133,7 @@ export interface RunEvent {
   }>
   generation?: string
   queue_id?: string
-  runtime?: 'hermes' | 'ekko' | 'claude-code' | 'codex' | 'pi'
+  runtime?: 'hermes' | 'claude-code' | 'codex' | 'pi'
   phase?: 'requesting' | 'waiting_for_tool_batch' | 'stopping_current_turn' | 'starting_queued_message' | 'cancelled'
   guarantee?: 'strict' | 'immediate'
   requested_at?: number
@@ -186,7 +186,7 @@ export interface ResumeSessionPayload {
     generation: string
     run_id?: string
     queue_id: string
-    runtime: 'hermes' | 'ekko' | 'claude-code' | 'codex' | 'pi'
+    runtime: 'hermes' | 'claude-code' | 'codex' | 'pi'
     phase: 'requesting' | 'waiting_for_tool_batch' | 'stopping_current_turn' | 'starting_queued_message'
     guarantee: 'strict' | 'immediate'
     requested_at: number

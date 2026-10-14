@@ -230,11 +230,10 @@ const profileOptions = computed(() =>
     profilesStore.profiles.map(p => ({ label: p.name, value: p.name }))
 )
 
-type GroupAgentType = 'hermes' | 'ekko' | 'codex' | 'claude' | 'pi'
+type GroupAgentType = 'hermes' | 'codex' | 'claude' | 'pi'
 
 const groupAgentTypeDefinitions: Array<{ label: string; value: GroupAgentType }> = [
     { label: 'Hermes', value: 'hermes' },
-    { label: 'Ekko', value: 'ekko' },
     { label: 'Claude', value: 'claude' },
     { label: 'Codex', value: 'codex' },
     { label: 'Pi', value: 'pi' },
@@ -278,13 +277,11 @@ function getAgentModelGroups(profile: string) {
         .filter((group) => {
             if (group.provider === 'moa') return selectedAgentType.value === 'hermes'
             if (selectedAgentType.value === 'hermes') return true
-            const codingAgentId = selectedAgentType.value === 'ekko'
-                ? 'ekko-agent'
-                : selectedAgentType.value === 'claude'
-                    ? 'claude-code'
-                    : selectedAgentType.value === 'pi'
-                        ? 'pi'
-                        : 'codex'
+            const codingAgentId = selectedAgentType.value === 'claude'
+                ? 'claude-code'
+                : selectedAgentType.value === 'pi'
+                    ? 'pi'
+                    : 'codex'
             return canScopedCodingAgentUseProvider(codingAgentId, group.provider)
         })
 }
@@ -367,7 +364,7 @@ const agentReasoningEffortOptions = computed(() => [
 
 const summaryModelGroups = computed(() =>
     (appStore.profileModelGroups.find(entry => entry.profile === summaryConfig.value.summaryProfile)?.groups || [])
-        .filter(group => group.provider !== 'moa' && canScopedCodingAgentUseProvider('ekko-agent', group.provider))
+        .filter(group => group.provider !== 'moa')
 )
 const summaryProviderOptions = computed(() => summaryModelGroups.value.map(group => ({
     label: group.label || group.provider,

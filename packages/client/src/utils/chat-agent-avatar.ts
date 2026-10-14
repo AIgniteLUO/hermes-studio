@@ -1,5 +1,5 @@
 export interface ChatAgentAvatar {
-  label: 'Hermes' | 'Ekko' | 'Claude' | 'Codex' | 'Pi'
+  label: 'Hermes' | 'Claude' | 'Codex' | 'Pi'
   src: string
 }
 
@@ -11,7 +11,6 @@ interface ChatAgentSessionIdentity {
 
 const AGENT_AVATARS = {
   hermes: { label: 'Hermes', src: '/coding-agents/hermes.png' },
-  'ekko-agent': { label: 'Ekko', src: '/coding-agents/ekko-agent.png' },
   'claude-code': { label: 'Claude', src: '/coding-agents/claude-code.svg' },
   codex: { label: 'Codex', src: '/coding-agents/codex-openai.png' },
   pi: { label: 'Pi', src: '/coding-agents/pi.svg' },
@@ -19,7 +18,6 @@ const AGENT_AVATARS = {
 
 export function chatSessionAgentAvatar(session?: ChatAgentSessionIdentity | null): ChatAgentAvatar {
   const runtime = String(session?.codingAgentId || session?.agent || '').trim().toLowerCase()
-  if (runtime === 'ekko-agent' || runtime === 'ekko_agent' || runtime === 'ekko') return AGENT_AVATARS['ekko-agent']
   if (runtime === 'claude' || runtime === 'claude-code') return AGENT_AVATARS['claude-code']
   if (runtime === 'codex') return AGENT_AVATARS.codex
   if (runtime === 'pi') return AGENT_AVATARS.pi

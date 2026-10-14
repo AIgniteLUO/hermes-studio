@@ -295,9 +295,6 @@ const canInsertQueuedMessages = computed(() => {
   const session = chatStore.activeSession;
   if (!session) return false;
   const agent = session.codingAgentId || session.agent;
-  if (agent === "ekko-agent") {
-    return session.source === "coding_agent" || session.source === "global_agent";
-  }
   if (agent === "codex" || agent === "pi" || agent === "claude" || agent === "claude-code") return true;
   return !session.source || session.source === "cli" || session.source === "global_agent";
 });

@@ -56,7 +56,7 @@ import PageSidebarNav from "@/components/layout/PageSidebarNav.vue";
 import { isStoredSuperAdmin } from "@/api/client";
 import { useDefaultWorkspace } from "@/composables/useDefaultWorkspace";
 import { useCollapsedProviderGroups } from "@/composables/useCollapsedProviderGroups";
-import { canScopedCodingAgentUseProvider, usesServerManagedProviderAuth } from "@/utils/codingAgentProviders";
+import { canScopedCodingAgentUseProvider } from "@/utils/codingAgentProviders";
 import { OPEN_SUBAGENT_STREAM_EVENT, type OpenSubagentStreamDetail } from "@/utils/hermes/subagent-stream";
 import { desktopBridge, hasDesktopBrowserBridge } from "@/utils/desktop-bridge";
 import { OPEN_DESKTOP_BROWSER_PANEL_EVENT } from "@/utils/desktop-browser";
@@ -921,7 +921,6 @@ const hiddenDefaultWorkspaces = computed(() => {
 
 const newChatAgentOptions = computed(() => [
   { label: "Hermes", value: "hermes" },
-  { label: "Ekko", value: "ekko-agent" },
   { label: "Claude", value: "claude-code" },
   { label: "Codex", value: "codex" },
   { label: "Pi", value: "pi" },
@@ -939,10 +938,10 @@ const newChatAgentModeOptions = computed(() => [
 ]);
 
 function effectiveNewChatMode(
-  agent: typeof newChatAgent.value,
+  _agent: typeof newChatAgent.value,
   requestedMode: typeof newChatAgentMode.value,
 ) {
-  return agent === "ekko-agent" ? "scoped" : requestedMode;
+  return requestedMode;
 }
 
 function getModelGroupsForProfile(profile: string) {
@@ -1052,13 +1051,9 @@ const newChatUsesProviderModel = computed(() => !isNewChatGlobalCodingAgent.valu
 const newChatNeedsBaseUrl = computed(() =>
   isNewChatCodingAgent.value && effectiveNewChatAgentMode.value === "scoped" && !selectedNewChatProviderGroup.value?.base_url,
 );
-const newChatUsesServerAuth = computed(() =>
-  usesServerManagedProviderAuth(newChatAgent.value as ChatCodingAgentId, selectedNewChatProviderGroup.value?.provider),
-);
 const newChatNeedsApiKey = computed(() =>
   isNewChatCodingAgent.value &&
   effectiveNewChatAgentMode.value === "scoped" &&
-  !newChatUsesServerAuth.value &&
   !selectedNewChatProviderGroup.value?.api_key,
 );
 const canConfirmNewChat = computed(() => {
@@ -1245,8 +1240,6 @@ async function confirmNewChat() {
       ? "claude"
       : newChatAgent.value === "pi"
         ? "pi"
-      : newChatAgent.value === "ekko-agent"
-        ? "ekko-agent"
       : "hermes";
   const session = chatStore.newChat({
     profile: newChatProfile.value,
@@ -1772,9 +1765,7 @@ const sessionModelCodingAgentId = computed<ChatCodingAgentId | undefined>(() =>
     ? "claude-code"
     : sessionModelSession.value?.agent === "codex"
       ? "codex"
-      : sessionModelSession.value?.agent === "ekko-agent"
-        ? "ekko-agent"
-        : undefined),
+      : undefined),
 );
 const isSessionModelCodingAgent = computed(() =>
   sessionModelSession.value?.source === "coding_agent" || Boolean(sessionModelSession.value?.codingAgentId),

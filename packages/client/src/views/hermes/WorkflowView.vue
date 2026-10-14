@@ -415,7 +415,6 @@ let workflowBudgetClock: number | null = null
 
 const workflowAgentDefinitions: WorkflowSelectOption[] = [
   { label: 'Hermes', value: 'hermes' },
-  { label: 'Ekko', value: 'ekko-agent' },
   { label: 'Claude', value: 'claude-code' },
   { label: 'Codex', value: 'codex' },
   { label: 'Pi', value: 'pi' },

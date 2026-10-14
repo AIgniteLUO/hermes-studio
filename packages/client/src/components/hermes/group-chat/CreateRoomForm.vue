@@ -6,7 +6,6 @@ import { getStoredUsername } from '@/api/client'
 import FolderPicker from '@/components/hermes/chat/FolderPicker.vue'
 import { useAppStore } from '@/stores/hermes/app'
 import { useProfilesStore } from '@/stores/hermes/profiles'
-import { canScopedCodingAgentUseProvider } from '@/utils/codingAgentProviders'
 import { generateGroupChatInviteCode } from '@/utils/group-chat-invite-code'
 import { inferCodingAgentApiMode, normalizeCodingAgentApiMode } from '@/api/coding-agents'
 import type { RoomAgentInput, RoomSummaryConfig } from '@/api/studio/group-chat'
@@ -38,7 +37,7 @@ const summaryEveryTurns = ref(20)
 
 const summaryModelGroups = computed(() =>
     (appStore.profileModelGroups.find(entry => entry.profile === summaryProfile.value)?.groups || [])
-        .filter(group => group.provider !== 'moa' && canScopedCodingAgentUseProvider('ekko-agent', group.provider))
+        .filter(group => group.provider !== 'moa')
 )
 const summaryProviderOptions = computed(() => summaryModelGroups.value.map(group => ({
     label: group.label || group.provider,

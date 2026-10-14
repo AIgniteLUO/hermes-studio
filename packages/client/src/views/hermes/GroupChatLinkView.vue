@@ -98,7 +98,6 @@ const hasServerHandoff = computed(() => (
 ))
 const groupAgentTypeDefinitions: Array<{ label: string; value: GroupAgentType }> = [
   { label: 'Hermes', value: 'hermes' },
-  { label: 'Ekko', value: 'ekko' },
   { label: 'Claude', value: 'claude' },
   { label: 'Codex', value: 'codex' },
   { label: 'Pi', value: 'pi' },
@@ -124,13 +123,11 @@ function getAgentModelGroups(profile: string) {
     .filter((group) => {
       if (group.provider === 'moa') return selectedAgentType.value === 'hermes'
       if (selectedAgentType.value === 'hermes') return true
-      const codingAgentId = selectedAgentType.value === 'ekko'
-        ? 'ekko-agent'
-        : selectedAgentType.value === 'claude'
-          ? 'claude-code'
-          : selectedAgentType.value === 'pi'
-            ? 'pi'
-            : 'codex'
+      const codingAgentId = selectedAgentType.value === 'claude'
+        ? 'claude-code'
+        : selectedAgentType.value === 'pi'
+          ? 'pi'
+          : 'codex'
       return canScopedCodingAgentUseProvider(codingAgentId, group.provider)
     })
 }

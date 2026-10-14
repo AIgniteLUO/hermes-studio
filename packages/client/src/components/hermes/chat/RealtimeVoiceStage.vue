@@ -155,7 +155,6 @@ const agentDisplayName = computed(() => {
     claude: 'Claude',
     'claude-code': 'Claude',
     codex: 'Codex',
-    'ekko-agent': 'Ekko',
   }[agent] || agent
 })
 const statusLabel = computed(() => t(`realtimeVoice.status.${mode.value}`, {

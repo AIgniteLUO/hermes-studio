@@ -26,9 +26,9 @@ export function formatMcpConfigInput(data: Record<string, unknown>, mode: McpCon
 }
 
 /**
- * Shared JSON/YAML MCP editor behavior used by both Hermes and Ekko.
+ * Shared JSON/YAML MCP editor behavior used by the Hermes MCP screens.
  * It intentionally keeps parsing, wrapper correction, formatting, and mode
- * conversion in one place so the two configuration screens cannot drift.
+ * conversion in one place so the configuration screens cannot drift.
  */
 export function useMcpConfigInput(options: McpConfigInputOptions) {
   const inputMode = ref<McpConfigInputMode>('json')

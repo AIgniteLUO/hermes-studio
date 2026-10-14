@@ -160,8 +160,8 @@ function buildAiHelpPrompt(agent: CodingAgentCard, operation: AgentManagementOpe
 function startAiHelpChat(prompt: string) {
   chatStore.newChat({
     source: 'coding_agent',
-    agent: 'ekko-agent',
-    codingAgentId: 'ekko-agent',
+    agent: 'hermes',
+    codingAgentId: undefined,
     codingAgentMode: 'scoped',
   })
   aiHelpPrompt.value = prompt

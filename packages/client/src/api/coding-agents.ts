@@ -2,7 +2,7 @@ import { request } from './client'
 import type { ProviderApiMode } from './studio/provider-api-mode'
 
 export type CodingAgentId = 'claude-code' | 'codex' | 'pi'
-export type ChatCodingAgentId = CodingAgentId | 'ekko-agent'
+export type ChatCodingAgentId = CodingAgentId
 export const CODING_AGENT_API_MODES = [
   'chat_completions',
   'codex_responses',

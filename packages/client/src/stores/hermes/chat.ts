@@ -27,13 +27,12 @@ export type ContentBlock = ContentBlockImport
 export const LIVE_CHAT_MESSAGE_PAGE_SIZE = 150
 export const LIVE_CHAT_MAX_LOADED_MESSAGES = 300
 const LEGACY_WORKSPACE_RUN_CHANGE_MESSAGE_PREFIX = 'workspace-run-change:'
-type ChatAgentId = 'hermes' | 'claude' | 'codex' | 'pi' | 'ekko-agent'
+type ChatAgentId = 'hermes' | 'claude' | 'codex' | 'pi'
 
 function agentToCodingAgentId(agent?: string): ChatCodingAgentId | undefined {
   if (agent === 'codex') return 'codex'
   if (agent === 'pi') return 'pi'
   if (agent === 'claude') return 'claude-code'
-  if (agent === 'ekko-agent') return 'ekko-agent'
   return undefined
 }
 
@@ -41,7 +40,6 @@ function codingAgentIdToAgent(id?: ChatCodingAgentId): ChatAgentId | undefined {
   if (id === 'codex') return 'codex'
   if (id === 'pi') return 'pi'
   if (id === 'claude-code') return 'claude'
-  if (id === 'ekko-agent') return 'ekko-agent'
   return undefined
 }
 
@@ -433,7 +431,7 @@ export interface QueueInsertionState {
   generation: string
   runId?: string
   queueId: string
-  runtime: 'hermes' | 'ekko' | 'claude-code' | 'codex' | 'pi'
+  runtime: 'hermes' | 'claude-code' | 'codex' | 'pi'
   phase: 'requesting' | 'waiting_for_tool_batch' | 'stopping_current_turn'
   guarantee: 'strict' | 'immediate'
   requestedAt: number
@@ -974,40 +972,6 @@ function mapHermesMessages(msgs: HermesMessage[]): Message[] {
       // may reuse raw ids such as `item_2` on every resumed turn.
       if (placeholderIdx !== -1) {
         result.splice(placeholderIdx, 1)
-      }
-      if (delegatePayload?.runtime === 'ekko') {
-        const subagentId = String(delegatePayload.subagent_id || '').trim()
-        if (!subagentId) continue
-        const delegateArgs = runtimeObjectPayload(toolArgs)
-        const status = subagentStatus(delegatePayload.status)
-        const taskIndex = Number(delegatePayload.task_index ?? 0)
-        const taskCount = Math.max(1, Number(delegatePayload.task_count ?? 1) || 1)
-        const goal = String(delegatePayload.goal || delegateArgs?.goal || '').trim()
-        const summary = String(delegatePayload.summary || delegatePayload.output || '').trim()
-        const label = `${Number.isFinite(taskIndex) ? taskIndex + 1 : 1}/${taskCount}`
-        const durationMs = Number(delegatePayload.duration_ms)
-        const restoredPayload = {
-          ...delegatePayload,
-          goal,
-          duration_seconds: delegatePayload.duration_seconds
-            ?? (Number.isFinite(durationMs) ? durationMs / 1000 : undefined),
-        }
-        result.push({
-          id: String(msg.id),
-          role: 'tool',
-          content: '',
-          timestamp: Math.round(msg.timestamp * 1000),
-          toolName: 'delegate_task',
-          toolCallId: `subagent:${subagentId}`,
-          toolArgs,
-          toolPreview: `${label}${summary ? ` · ${summary}` : goal ? ` · ${goal}` : ''}`.slice(0, 220),
-          toolResult: restoredPayload,
-          reasoning: toolReasoning,
-          toolStatus: status === 'running' ? 'running' : status === 'completed' ? 'done' : 'error',
-          finishReason: readFinishReason(msg),
-          runMarker: readRunMarker(msg),
-        })
-        continue
       }
       if (delegatePayload?.runtime === 'hermes') {
         const persistedTasks = Array.isArray(delegatePayload.tasks)
@@ -2267,11 +2231,6 @@ export const useChatStore = defineStore('chat', () => {
     return s?.messages || []
   }
 
-  function isEkkoAgentSession(sessionId: string): boolean {
-    const session = sessions.value.find(item => item.id === sessionId)
-    return session?.codingAgentId === 'ekko-agent' || session?.agent === 'ekko-agent'
-  }
-
   function addMessage(sessionId: string, msg: Message) {
     const s = sessions.value.find(s => s.id === sessionId)
     if (s) s.messages.push(msg)
@@ -2296,7 +2255,7 @@ export const useChatStore = defineStore('chat', () => {
     runMarker?: string | null,
   ) {
     const payload = runtimeObjectPayload(output)
-    if (!payload || payload.mode !== 'background' || payload.runtime === 'ekko') return
+    if (!payload || payload.mode !== 'background') return
     const baseId = toolCallId || String(payload.delegation_id || uid())
     const messages = getSessionMsgs(sessionId)
     for (const task of backgroundDelegateTaskDescriptors(payload, toolArgs)) {
@@ -2402,10 +2361,7 @@ export const useChatStore = defineStore('chat', () => {
 
   function handleToolStartedEvent(sessionId: string, evt: RunEvent, reasoning?: string) {
     const toolName = evt.tool || evt.name
-    if (
-      isBackgroundDelegateToolPayload(toolName, evt.arguments)
-      || (isEkkoAgentSession(sessionId) && toolName === 'delegate_task')
-    ) return
+    if (isBackgroundDelegateToolPayload(toolName, evt.arguments)) return
 
     const toolCallId = typeof (evt as any).tool_call_id === 'string'
       ? String((evt as any).tool_call_id)
@@ -2463,15 +2419,6 @@ export const useChatStore = defineStore('chat', () => {
         existing?.toolArgs,
         eventRunMarker,
       )
-      return
-    }
-    if (
-      isEkkoAgentSession(sessionId)
-      && toolName === 'delegate_task'
-      && runtimeObjectPayload(output)?.runtime === 'ekko'
-    ) {
-      const session = sessions.value.find(item => item.id === sessionId)
-      if (session && existing) session.messages = session.messages.filter(message => message !== existing)
       return
     }
 
@@ -2998,8 +2945,7 @@ export const useChatStore = defineStore('chat', () => {
       generation,
       runId: typeof raw.run_id === 'string' ? raw.run_id : undefined,
       queueId,
-      runtime: raw.runtime === 'ekko'
-        || raw.runtime === 'claude-code'
+      runtime: raw.runtime === 'claude-code'
         || raw.runtime === 'codex'
         || raw.runtime === 'pi'
         ? raw.runtime
@@ -3421,9 +3367,6 @@ export const useChatStore = defineStore('chat', () => {
     }
     if (codingAgentId === 'pi') {
       return { icon: '/coding-agents/pi.svg' }
-    }
-    if (codingAgentId === 'ekko-agent') {
-      return { icon: '/coding-agents/ekko-agent.png' }
     }
     return { icon: '/coding-agents/hermes.png' }
   }
@@ -4081,10 +4024,7 @@ export const useChatStore = defineStore('chat', () => {
             case 'tool.started': {
               runHadToolActivity = true
               const startedToolName = evt.tool || evt.name
-              if (
-                isBackgroundDelegateToolPayload(startedToolName, evt.arguments)
-                || (isEkkoAgentSession(sid) && startedToolName === 'delegate_task')
-              ) break
+              if (isBackgroundDelegateToolPayload(startedToolName, evt.arguments)) break
               const msgs = getSessionMsgs(sid)
               const last = activeAssistantMessageId
                 ? msgs.find(m => m.id === activeAssistantMessageId)
@@ -4740,10 +4680,7 @@ export const useChatStore = defineStore('chat', () => {
         case 'tool.started': {
           runHadToolActivity = true
           const startedToolName = evt.tool || evt.name
-          if (
-            isBackgroundDelegateToolPayload(startedToolName, evt.arguments)
-            || (isEkkoAgentSession(sid) && startedToolName === 'delegate_task')
-          ) break
+          if (isBackgroundDelegateToolPayload(startedToolName, evt.arguments)) break
           const msgs = getSessionMsgs(sid)
           const last = activeAssistantMessageId
             ? msgs.find(m => m.id === activeAssistantMessageId)

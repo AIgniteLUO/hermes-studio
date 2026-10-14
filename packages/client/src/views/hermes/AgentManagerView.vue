@@ -16,7 +16,6 @@ import { fetchAgentStatusSnapshot, type AgentStatusSnapshot } from '@/api/agent-
 import { fetchRuntimeVersionStatus, type RuntimeVersionStatus } from '@/api/hermes/runtime-versions'
 import HermesDataDirectoryHint from '@/components/hermes/HermesDataDirectoryHint.vue'
 import VersionManagementModal from '@/components/layout/VersionManagementModal.vue'
-import { useAppStore } from '@/stores/hermes/app'
 import { useChatStore } from '@/stores/hermes/chat'
 
 const AiHelpChatPanel = defineAsyncComponent(async () => (await import('@/components/hermes/chat/ChatPanel.vue')).default)
@@ -68,7 +67,6 @@ const codingAgents: CodingAgentCard[] = [
 const { t } = useI18n()
 const message = useMessage()
 const dialog = useDialog()
-const appStore = useAppStore()
 const chatStore = useChatStore()
 const route = useRoute()
 const router = useRouter()
@@ -159,10 +157,8 @@ function buildAiHelpPrompt(agent: CodingAgentCard, operation: AgentManagementOpe
 
 function startAiHelpChat(prompt: string) {
   chatStore.newChat({
-    source: 'coding_agent',
+    source: 'cli',
     agent: 'hermes',
-    codingAgentId: undefined,
-    codingAgentMode: 'scoped',
   })
   aiHelpPrompt.value = prompt
   aiHelpDrawerVisible.value = true
@@ -362,30 +358,6 @@ onMounted(() => {
           </NAlert>
 
           <div class="coding-agent-grid">
-            <section class="agent-card coding-agent-card" data-testid="agent-card-ekko">
-              <header class="agent-card-header compact">
-                <div class="agent-identity">
-                  <img :src="'/coding-agents/ekko-agent.png'" alt="" class="agent-logo" />
-                  <div>
-                    <div class="agent-name-row">
-                      <h3>Ekko</h3>
-                      <NTag type="success" size="small" :bordered="false">{{ t('agentManager.builtIn') }}</NTag>
-                    </div>
-                    <p class="agent-version">Studio {{ formatVersion(appStore.serverVersion) }}</p>
-                  </div>
-                </div>
-              </header>
-              <div class="agent-actions">
-                <NButton
-                  secondary
-                  size="small"
-                  @click="router.push({ name: 'ekko.settings' })"
-                >
-                  {{ t('sidebar.settings') }}
-                </NButton>
-              </div>
-            </section>
-
           <section class="agent-card coding-agent-card hermes-card" data-testid="agent-card-hermes">
             <header class="agent-card-header compact">
               <div class="agent-identity">

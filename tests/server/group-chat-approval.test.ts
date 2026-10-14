@@ -6,17 +6,9 @@ import {
   once,
 } from './group-chat-test-helpers'
 import { GROUP_CHAT_AGENT_SOCKET_SECRET, groupRuntimeSessionId } from '../../packages/server/src/modules/studio/services/group-chat/agent-clients'
+import type { GroupAgentExecutor } from '../../packages/server/src/modules/studio/services/group-chat/agent-clients'
 import { AgentBridgeClient } from '../../packages/server/src/modules/hermes/services/bridge/index'
-import { ChatRunSocket } from '../../packages/server/src/modules/studio/sockets/chat-run'
 import '../../packages/server/src/bootstrap/chat-agent-runtime-adapter'
-import {
-  denyPendingEkkoToolApprovals,
-  waitForEkkoToolApproval,
-} from '../../packages/server/src/modules/ekko/services/approvals'
-import {
-  cancelPendingEkkoClarifications,
-  waitForEkkoClarification,
-} from '../../packages/server/src/modules/ekko/services/clarifications'
 import type { GroupChatServer } from '../../packages/server/src/modules/studio/sockets/group-chat'
 
 describe('group chat approval and context baseline', () => {
@@ -35,11 +27,40 @@ describe('group chat approval and context baseline', () => {
   })
 
   afterEach(() => {
-    denyPendingEkkoToolApprovals()
-    cancelPendingEkkoClarifications()
     harness?.cleanup()
     vi.restoreAllMocks()
   })
+
+  /**
+   * Registers the Agent executor that owns 'room-1'. A remote or coding-agent
+   * executor is the only in-process responder left for pending approvals and
+   * clarifications; without one the group chat falls back to the Hermes bridge.
+   */
+  function registerAgentExecutor(overrides: Partial<GroupAgentExecutor>) {
+    const executor: GroupAgentExecutor = {
+      agentId: 'agent-1',
+      agent: 'hermes',
+      profile: 'default',
+      provider: '',
+      model: '',
+      apiMode: '',
+      reasoningEffort: '',
+      name: 'Agent',
+      description: '',
+      connected: true,
+      disconnect: () => {},
+      sendMessage: async () => '',
+      interrupt: async () => true,
+      getActiveSessionId: () => undefined,
+      isActiveSession: () => false,
+      replyToMention: async () => {},
+      setStorage: () => {},
+      setWorkspaceDiffBroadcaster: () => {},
+      setChatRunService: () => {},
+      ...overrides,
+    }
+    groupServer.agentClients.registerAgentForRoom('room-1', executor)
+  }
 
   async function joinPair() {
     const agentSessionId = groupRuntimeSessionId('room-1', 'default', 'Agent')
@@ -155,26 +176,17 @@ describe('group chat approval and context baseline', () => {
       id: 1, role: 'super_admin', profiles: ['default'],
     }
 
-    const approval = waitForEkkoToolApproval({
-      approvalId: 'approval-global',
-      toolName: 'terminal_exec',
-      key: 'terminal:write',
+    const respondApproval = vi.fn(async () => true)
+    registerAgentExecutor({ respondApproval })
+
+    agent.emit('approval.requested', {
+      roomId: 'room-1',
+      agentName: 'Agent',
+      agentSessionId,
+      approval_id: 'approval-global',
       command: 'touch global.txt',
       description: 'writes a file',
       choices: ['once', 'deny'],
-      allowPermanent: false,
-      timeoutMs: 300_000,
-    }, {
-      sessionId: agentSessionId,
-      onRequested: pending => agent.emit('approval.requested', {
-        roomId: 'room-1',
-        agentName: 'Agent',
-        agentSessionId,
-        approval_id: pending.approvalId,
-        command: pending.command,
-        description: pending.description,
-        choices: pending.choices,
-      }),
     })
 
     await expect(once<any>(owner, 'approval.requested')).resolves.toMatchObject({
@@ -186,7 +198,7 @@ describe('group chat approval and context baseline', () => {
       approval_id: 'approval-global',
       choice: 'once',
     })).resolves.toEqual({ ok: true, resolved: true })
-    await expect(approval).resolves.toBe('once')
+    expect(respondApproval).toHaveBeenCalledWith('approval-global', 'once')
   })
 
   it('replays a still-pending approval when the Agent owner comes online later', async () => {
@@ -247,26 +259,17 @@ describe('group chat approval and context baseline', () => {
     manager.on('approval.requested', payload => { managerLeak = payload })
     stranger.on('approval.requested', payload => { strangerLeak = payload })
     const ownerRequest = once<any>(owner, 'approval.requested')
-    const approval = waitForEkkoToolApproval({
-      approvalId: 'approval-private-global',
-      toolName: 'terminal_exec',
-      key: 'terminal:write',
+    const respondApproval = vi.fn(async () => true)
+    registerAgentExecutor({ respondApproval })
+
+    agent.emit('approval.requested', {
+      roomId: 'room-1',
+      agentName: 'Agent',
+      agentSessionId,
+      approval_id: 'approval-private-global',
       command: 'cat /private/workspace/secret',
       description: 'reads a private file',
       choices: ['once', 'deny'],
-      allowPermanent: false,
-      timeoutMs: 300_000,
-    }, {
-      sessionId: agentSessionId,
-      onRequested: pending => agent.emit('approval.requested', {
-        roomId: 'room-1',
-        agentName: 'Agent',
-        agentSessionId,
-        approval_id: pending.approvalId,
-        command: pending.command,
-        description: pending.description,
-        choices: pending.choices,
-      }),
     })
 
     await expect(ownerRequest).resolves.toMatchObject({ approval_id: 'approval-private-global' })
@@ -288,7 +291,7 @@ describe('group chat approval and context baseline', () => {
       approval_id: 'approval-private-global',
       choice: 'deny',
     })).resolves.toEqual({ ok: true, resolved: true })
-    await expect(approval).resolves.toBe('deny')
+    expect(respondApproval).toHaveBeenCalledWith('approval-private-global', 'deny')
   })
 
   it('sends a guest Agent approval to its inviter instead of the room owner', async () => {
@@ -455,261 +458,29 @@ describe('group chat approval and context baseline', () => {
     })
   })
 
-  it('relays and routes a clarification response to the pending Ekko Agent session', async () => {
+  it('relays and routes a clarification response to the registered Agent executor', async () => {
     const { agent, human, agentSessionId } = await joinPair()
+    const respondClarify = vi.fn(async () => true)
+    registerAgentExecutor({ respondClarify })
     const requested = once<any>(human, 'clarify.requested')
-    const clarification = waitForEkkoClarification({
-      clarifyId: 'clarify-ekko',
+    agent.emit('clarify.requested', {
+      roomId: 'room-1',
+      agentName: 'Agent',
+      agentSessionId,
+      clarify_id: 'clarify-agent',
       question: 'Which environment?',
       choices: ['staging', 'production'],
-      timeoutMs: 300_000,
-    }, {
-      sessionId: agentSessionId,
-      onRequested: pending => agent.emit('clarify.requested', {
-        roomId: 'room-1',
-        agentName: 'Agent',
-        agentSessionId,
-        clarify_id: pending.clarifyId,
-        question: pending.question,
-        choices: pending.choices,
-        timeout_ms: pending.timeoutMs,
-      }),
+      timeout_ms: 300_000,
     })
 
     await expect(requested).resolves.toMatchObject({
       event: 'clarify.requested', roomId: 'room-1', agentName: 'Agent',
-      clarify_id: 'clarify-ekko', question: 'Which environment?',
+      clarify_id: 'clarify-agent', question: 'Which environment?',
     })
     await expect(emitAck(human, 'clarify.respond', {
-      roomId: 'room-1', clarify_id: 'clarify-ekko', response: 'staging',
+      roomId: 'room-1', clarify_id: 'clarify-agent', response: 'staging',
     })).resolves.toEqual({ ok: true, resolved: true })
-    await expect(clarification).resolves.toBe('staging')
-  })
-
-  it('settles an Ekko clarification through the real GroupChat interrupt and ChatRun abort chain', async () => {
-    const human = await connectGroupChatClient(port, 'human-1', 'Human')
-    harness.sockets.push(human)
-    groupServer.getIO().of('/group-chat').sockets.get(human.id!)!.data.authUser = {
-      id: 1, role: 'user', profiles: ['default'],
-    }
-    await emitAck(human, 'join', { roomId: 'room-1', inviteCode: 'ROOM1' })
-
-    const chatRun = new ChatRunSocket(groupServer.getIO())
-    ;(chatRun as any).bridge.interrupt = vi.fn(async () => ({ ok: true, synced: true }))
-    ;(chatRun as any).bridge.goalPause = vi.fn(async () => ({ ok: true }))
-    const abortSession = vi.spyOn(chatRun, 'abortSession')
-    const agent = await groupServer.agentClients.createAgent({
-      agentId: 'agent-1',
-      agent: 'ekko',
-      profile: 'default',
-      name: 'Agent',
-      description: '',
-      invited: 0,
-      backgroundDelegationEnabled: false,
-    }, {}, port)
-    await groupServer.agentClients.addAgentToRoom('room-1', agent)
-    groupServer.agentClients.setChatRunService(chatRun)
-
-    let runtimeWaiterSettled = false
-    let runtimeSessionId = ''
-    let clarificationRegistered!: () => void
-    const clarificationRegisteredBarrier = new Promise<void>(resolve => {
-      clarificationRegistered = resolve
-    })
-    vi.spyOn(chatRun, 'runAndWait').mockImplementation(async (data, options) => {
-      const runtimeRunId = 'runtime-current'
-      runtimeSessionId = data.session_id
-      // Match the installed event ordering: ChatRun can abort its current
-      // controller while the Ekko clarification waiter belongs to the same
-      // Session/generation but is no longer attached to that controller.
-      ;(chatRun as any).sessionMap.set(data.session_id, {
-        messages: [],
-        isWorking: true,
-        events: [],
-        queue: [],
-        source: 'group_chat',
-        runId: runtimeRunId,
-        abortController: new AbortController(),
-        profile: 'default',
-      })
-      const response = await waitForEkkoClarification({
-        clarifyId: 'clarify-real-chain',
-        question: 'Which city?',
-        choices: null,
-        timeoutMs: 300_000,
-      }, {
-        sessionId: data.session_id,
-        runId: runtimeRunId,
-        onRequested: pending => {
-          clarificationRegistered()
-          options?.onEvent?.('clarify.requested', {
-            event: 'clarify.requested',
-            run_id: runtimeRunId,
-            clarify_id: pending.clarifyId,
-            question: pending.question,
-            choices: pending.choices,
-            timeout_ms: pending.timeoutMs,
-          })
-        },
-        onResolved: resolution => options?.onEvent?.('clarify.resolved', {
-          event: 'clarify.resolved',
-          run_id: runtimeRunId,
-          clarify_id: 'clarify-real-chain',
-          resolved: resolution.reason === 'response',
-          reason: resolution.reason,
-        }),
-      })
-      runtimeWaiterSettled = true
-      return { ok: false, error: response }
-    })
-
-    let delivery: Promise<unknown> | undefined
-    try {
-      const requested = new Promise<any>(resolve => human.once('clarify.requested', resolve))
-      delivery = groupServer.agentClients.processMentions('room-1', {
-        messageId: 'message-real-chain',
-        content: '@Agent check the weather',
-        senderName: 'Human',
-        senderId: 'human-1',
-        timestamp: Date.now(),
-        role: 'user',
-        mentions: [{ type: 'agent', participantId: 'agent-1', displayName: 'Agent' }],
-      })
-      await clarificationRegisteredBarrier
-      await expect(requested).resolves.toMatchObject({
-        clarify_id: 'clarify-real-chain',
-        agentName: 'Agent',
-      })
-
-      const resolved = new Promise<any>(resolve => human.once('clarify.resolved', resolve))
-      const interrupted = new Promise<any>(resolve => {
-        human.emit('interrupt_agent', {
-          roomId: 'room-1', agentName: 'Agent',
-        }, resolve)
-      })
-      await expect(interrupted).resolves.toEqual({ ok: true })
-      await new Promise<void>(resolve => setImmediate(resolve))
-
-      expect(abortSession).toHaveBeenCalledWith(
-        runtimeSessionId,
-        'Interrupted by group chat user',
-      )
-      expect(runtimeWaiterSettled).toBe(true)
-      await expect(resolved).resolves.toMatchObject({
-        clarify_id: 'clarify-real-chain',
-        resolved: false,
-      })
-      await expect(emitAck(human, 'clarify.respond', {
-        roomId: 'room-1', clarify_id: 'clarify-real-chain', response: 'late',
-      })).resolves.toEqual({ error: 'Clarification is not pending in this room' })
-      const joined = await emitAck<any>(human, 'join', { roomId: 'room-1', inviteCode: 'ROOM1' })
-      expect(joined.pendingClarifies).toEqual([])
-    } finally {
-      cancelPendingEkkoClarifications()
-      await delivery
-      await chatRun.close()
-    }
-  }, 15_000)
-
-  it('claims only the active Ekko clarification generation before the abort completes', async () => {
-    const { agent, human, agentSessionId } = await joinPair()
-    let finishAbort!: () => void
-    const abortPending = new Promise<void>(resolve => {
-      finishAbort = resolve
-    })
-    const cancelClarify = vi.fn(async () => true)
-    vi.spyOn(groupServer.agentClients, 'getAgents').mockReturnValue([{
-      name: 'Agent',
-      agent: 'ekko',
-      cancelClarify,
-    } as any])
-    vi.spyOn(groupServer.agentClients, 'interruptAgent').mockImplementation(async () => {
-      await abortPending
-    })
-
-    agent.emit('context_status', {
-      roomId: 'room-1',
-      agentName: 'Agent',
-      status: 'replying',
-      agentSessionId,
-      runId: 'run-current',
-    })
-    const currentRequested = new Promise<any>(resolve => human.once('clarify.requested', resolve))
-    agent.emit('clarify.requested', {
-      roomId: 'room-1',
-      agentName: 'Agent',
-      agentSessionId,
-      runId: 'run-current',
-      runtimeRunId: 'runtime-current',
-      clarify_id: 'clarify-current',
-      question: 'Current question?',
-    })
-    await currentRequested
-    const laterRequested = new Promise<any>(resolve => human.once('clarify.requested', resolve))
-    agent.emit('clarify.requested', {
-      roomId: 'room-1',
-      agentName: 'Agent',
-      agentSessionId,
-      runId: 'run-later',
-      runtimeRunId: 'runtime-later',
-      clarify_id: 'clarify-later',
-      question: 'Later question?',
-    })
-    await laterRequested
-    const unscopedRequested = new Promise<any>(resolve => human.once('clarify.requested', resolve))
-    agent.emit('clarify.requested', {
-      roomId: 'room-1',
-      agentName: 'Agent',
-      agentSessionId,
-      clarify_id: 'clarify-unscoped',
-      question: 'Unscoped question?',
-    })
-    await unscopedRequested
-
-    const resolved = new Promise<any>(resolve => human.once('clarify.resolved', resolve))
-    const interrupted = new Promise<any>(resolve => {
-      human.emit('interrupt_agent', {
-        roomId: 'room-1',
-        agentName: 'Agent',
-      }, resolve)
-    })
-    await vi.waitFor(() => {
-      expect(groupServer.agentClients.interruptAgent).toHaveBeenCalledTimes(1)
-    })
-    await expect(emitAck(human, 'clarify.respond', {
-      roomId: 'room-1',
-      clarify_id: 'clarify-current',
-      response: 'late',
-    })).resolves.toEqual({ error: 'Clarification is not pending in this room' })
-
-    finishAbort()
-    await expect(interrupted).resolves.toEqual({ ok: true })
-    await expect(resolved).resolves.toMatchObject({
-      clarify_id: 'clarify-current',
-      resolved: false,
-      reason: 'Agent run interrupted',
-    })
-    expect(cancelClarify).toHaveBeenCalledTimes(1)
-    expect(cancelClarify).toHaveBeenCalledWith(
-      'clarify-current',
-      agentSessionId,
-      'runtime-current',
-    )
-
-    const joined = await emitAck<any>(human, 'join', {
-      roomId: 'room-1',
-      inviteCode: 'ROOM1',
-    })
-    expect(joined.pendingClarifies).toEqual([
-      expect.objectContaining({ clarify_id: 'clarify-later' }),
-      expect.objectContaining({ clarify_id: 'clarify-unscoped' }),
-    ])
-
-    await expect(emitAck(human, 'interrupt_agent', {
-      roomId: 'room-1',
-      agentName: 'Agent',
-    })).resolves.toEqual({ ok: true })
-    expect(cancelClarify).toHaveBeenCalledTimes(1)
+    expect(respondClarify).toHaveBeenCalledWith('clarify-agent', 'staging')
   })
 
   it('routes a clarification response to the Hermes bridge', async () => {
@@ -756,47 +527,35 @@ describe('group chat approval and context baseline', () => {
     expect(joined.pendingClarifies[0].requested_at).toEqual(expect.any(Number))
   })
 
-  it('routes approval responses back to the pending Ekko Agent session', async () => {
+  it('routes approval responses back to the registered Agent executor instead of the Bridge', async () => {
     const { agent, human, agentSessionId } = await joinPair()
+    const respondApproval = vi.fn(async () => true)
+    registerAgentExecutor({ respondApproval })
     const bridgeApproval = vi.spyOn(AgentBridgeClient.prototype, 'approvalRespond')
       .mockResolvedValue({ resolved: false } as any)
     const requested = once<any>(human, 'approval.requested')
-    const approval = waitForEkkoToolApproval({
-      approvalId: 'approval-ekko',
-      toolName: 'terminal_exec',
-      key: 'terminal:delete',
+    agent.emit('approval.requested', {
+      roomId: 'room-1',
+      agentName: 'Agent',
+      agentSessionId,
+      approval_id: 'approval-owned',
       command: 'rm -rf build',
       description: 'deletes files or directories',
       choices: ['once', 'session', 'always', 'deny'],
-      allowPermanent: true,
-      timeoutMs: 300_000,
-    }, {
-      sessionId: agentSessionId,
-      onRequested: pending => {
-        agent.emit('approval.requested', {
-          roomId: 'room-1',
-          agentName: 'Agent',
-          agentSessionId,
-          approval_id: pending.approvalId,
-          command: pending.command,
-          description: pending.description,
-          choices: pending.choices,
-          allow_permanent: pending.allowPermanent,
-        })
-      },
+      allow_permanent: true,
     })
 
     await expect(requested).resolves.toMatchObject({
       roomId: 'room-1',
       agentName: 'Agent',
-      approval_id: 'approval-ekko',
+      approval_id: 'approval-owned',
     })
     await expect(emitAck(human, 'approval.respond', {
       roomId: 'room-1',
-      approval_id: 'approval-ekko',
+      approval_id: 'approval-owned',
       choice: 'once',
     })).resolves.toEqual({ ok: true, resolved: true })
-    await expect(approval).resolves.toBe('once')
+    expect(respondApproval).toHaveBeenCalledWith('approval-owned', 'once')
     expect(bridgeApproval).not.toHaveBeenCalled()
   })
 

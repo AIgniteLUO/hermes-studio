@@ -159,7 +159,7 @@ describe('LocalAppRelayServer', () => {
     const io = { of: vi.fn(() => namespace) }
     const entitlement = {
       issuer: 'hermes-studio-server',
-      audience: 'ekko-studio',
+      audience: 'hermes-studio',
       userId: 7001,
       deviceCode: 'phone-001',
       features: ['lan_access'],
@@ -234,7 +234,7 @@ describe('LocalAppRelayServer', () => {
         status: 'expired',
         claims: {
           issuer: 'hermes-studio-server',
-          audience: 'ekko-studio',
+          audience: 'hermes-studio',
           userId: 7001,
           deviceCode: 'phone-001',
           features: ['lan_access'],
@@ -278,7 +278,7 @@ describe('LocalAppRelayServer', () => {
       entitlementRequired: true,
       verifyEntitlementToken: () => ({
         issuer: 'hermes-studio-server',
-        audience: 'ekko-studio',
+        audience: 'hermes-studio',
         userId: 7001,
         deviceCode: 'phone-001',
         features: ['lan_access'],

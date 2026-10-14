@@ -173,7 +173,6 @@ function agentStatusSnapshot() {
         path: '/runtime/0.21.0/bin/hermes',
         version: 'v0.21.0 (2026.8.27) · upstream 3f497e2b · local 470cf66b (+1 carried commit)',
       },
-      { id: 'ekko-agent', installed: true, source: 'built-in', path: '', version: '0.7.0' },
       { id: 'claude-code', installed: true, source: 'user-cli', path: '/usr/local/bin/claude', version: '2.0.0' },
       { id: 'codex', installed: false, source: 'not-installed', path: '', version: '' },
       { id: 'pi', installed: false, source: 'not-installed', path: '', version: '' },
@@ -252,17 +251,18 @@ describe('Agent Manager page', () => {
     expect(api.fetchRuntimeVersionStatus).not.toHaveBeenCalled()
     expect(api.fetchCodingAgentsStatus).not.toHaveBeenCalled()
 
-    const ekkoCard = wrapper.get('[data-testid="agent-card-ekko"]')
-    expect(ekkoCard.findAll('button').map(button => button.text())).toEqual(['sidebar.settings'])
-    expect(ekkoCard.get('.agent-version').text()).toBe('Studio v0.7.0')
-    expect(ekkoCard.text()).not.toContain('agentManager.ekkoDescription')
     const claudeCard = wrapper.get('[data-testid="agent-card-claude-code"]')
     expect(claudeCard.get('.agent-version').text()).toBe('v2.0.0')
     expect(claudeCard.text()).not.toContain('agentManager.codingAgentDescription')
     expect(wrapper.get('[data-testid="agent-card-codex"]').text()).toContain('agentManager.codingAgentDescription')
     expect(wrapper.get('[data-testid="agent-card-codex"]').text()).toContain('codingAgents.installNow')
-    expect(wrapper.get('.coding-agent-grid').findAll('.agent-card').map(card => card.attributes('data-testid')))
-      .toEqual(['agent-card-ekko', 'agent-card-hermes', 'agent-card-claude-code', 'agent-card-codex', 'agent-card-pi'])
+    const cards = wrapper.get('.coding-agent-grid').findAll('.agent-card')
+    expect(cards.map(card => card.attributes('data-testid')))
+      .toEqual(['agent-card-hermes', 'agent-card-claude-code', 'agent-card-codex', 'agent-card-pi'])
+    // The Hermes card shares the compact header of the coding-agent cards and no
+    // other built-in runtime is rendered beside it.
+    expect(cards.map(card => card.find('.agent-card-header.compact').exists()))
+      .toEqual([true, true, true, true])
   })
 
   it('detects the CLI before offering Runtime management in the desktop shell', async () => {
@@ -405,7 +405,7 @@ describe('Agent Manager page', () => {
     expect(api.fetchAgentStatusSnapshot).toHaveBeenCalledTimes(2)
   })
 
-  it('opens a dedicated Ekko help drawer from the Ask AI button beside refresh', async () => {
+  it('opens a dedicated Hermes help drawer from the Ask AI button beside refresh', async () => {
     const wrapper = mountPage()
     await flushPromises()
 
@@ -420,17 +420,15 @@ describe('Agent Manager page', () => {
 
     expect(dialogWarning).not.toHaveBeenCalled()
     expect(newChat).toHaveBeenCalledWith({
-      source: 'coding_agent',
-      agent: 'ekko-agent',
-      codingAgentId: 'ekko-agent',
-      codingAgentMode: 'scoped',
+      source: 'cli',
+      agent: 'hermes',
     })
     const chat = wrapper.getComponent({ name: 'AiHelpChatPanel' })
     expect(chat.props('initialComposerText')).toBe('agentManager.aiHelpGeneralPrompt')
     expect(chat.props('composerPersistDraft')).toBe(false)
   })
 
-  it('offers an Ekko troubleshooting drawer with precise install context after installation fails', async () => {
+  it('offers a Hermes troubleshooting drawer with precise install context after installation fails', async () => {
     api.installCodingAgent.mockResolvedValue({
       success: false,
       message: 'npm install failed',
@@ -454,10 +452,8 @@ describe('Agent Manager page', () => {
     await flushPromises()
 
     expect(newChat).toHaveBeenCalledWith({
-      source: 'coding_agent',
-      agent: 'ekko-agent',
-      codingAgentId: 'ekko-agent',
-      codingAgentMode: 'scoped',
+      source: 'cli',
+      agent: 'hermes',
     })
     const chat = wrapper.getComponent({ name: 'AiHelpChatPanel' })
     expect(chat.props('standalone')).toBe(true)
@@ -469,7 +465,7 @@ describe('Agent Manager page', () => {
     expect(chat.props('initialComposerText')).toContain('"error":"npm install failed"')
   })
 
-  it('labels delete failures as removal problems before opening Ekko troubleshooting', async () => {
+  it('labels delete failures as removal problems before opening Hermes troubleshooting', async () => {
     api.deleteCodingAgent.mockResolvedValue({
       success: false,
       message: 'Delete completed but the command is still available',

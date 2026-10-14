@@ -168,10 +168,12 @@ describe('MessageList session scroll position', () => {
       alt: 'Hermes',
     },
     {
-      runtime: 'Ekko',
-      session: { source: 'global_agent', agent: 'ekko-agent', codingAgentId: 'ekko-agent' },
-      logo: '/coding-agents/ekko-agent.png',
-      alt: 'Ekko',
+      // A Global Agent session persisted before the built-in runtime was removed
+      // must render the Hermes logo instead of an unresolvable one.
+      runtime: 'legacy Hermes',
+      session: { source: 'global_agent', agent: 'ekko-agent' },
+      logo: '/coding-agents/hermes.png',
+      alt: 'Hermes',
     },
   ])('renders the $runtime logo for an empty Global Agent session', async ({ session, logo, alt }) => {
     const chatStore = useChatStore()
@@ -192,18 +194,19 @@ describe('MessageList session scroll position', () => {
   })
 
   it.each([
-    ['Hermes', { agent: 'hermes' }, '/coding-agents/hermes.png'],
-    ['Ekko', { agent: 'ekko-agent', codingAgentId: 'ekko-agent' }, '/coding-agents/ekko-agent.png'],
-    ['Claude', { source: 'coding_agent', agent: 'claude', codingAgentId: 'claude-code' }, '/coding-agents/claude-code.svg'],
-    ['Codex', { source: 'coding_agent', agent: 'codex', codingAgentId: 'codex' }, '/coding-agents/codex-openai.png'],
-    ['Pi', { source: 'coding_agent', agent: 'pi', codingAgentId: 'pi' }, '/coding-agents/pi.svg'],
-  ])('passes the $runtime avatar to Assistant message bubbles', async (label, identity, src) => {
+    ['Hermes', { agent: 'hermes' }, 'Hermes', '/coding-agents/hermes.png'],
+    // A session persisted before the built-in runtime was removed keeps the Hermes avatar.
+    ['legacy Hermes', { agent: 'ekko-agent' }, 'Hermes', '/coding-agents/hermes.png'],
+    ['Claude', { source: 'coding_agent', agent: 'claude', codingAgentId: 'claude-code' }, 'Claude', '/coding-agents/claude-code.svg'],
+    ['Codex', { source: 'coding_agent', agent: 'codex', codingAgentId: 'codex' }, 'Codex', '/coding-agents/codex-openai.png'],
+    ['Pi', { source: 'coding_agent', agent: 'pi', codingAgentId: 'pi' }, 'Pi', '/coding-agents/pi.svg'],
+  ])('passes the $runtime avatar to Assistant message bubbles', async (runtime, identity, label, src) => {
     const chatStore = useChatStore()
-    const activeSession = { ...makeSession(`avatar-${label}`), ...identity } as Session
+    const activeSession = { ...makeSession(`avatar-${runtime}`), ...identity } as Session
     activeSession.messages = [{
-      id: `assistant-${label}`,
+      id: `assistant-${runtime}`,
       role: 'assistant',
-      content: label,
+      content: runtime,
       timestamp: Date.now(),
     }]
     chatStore.activeSessionId = activeSession.id

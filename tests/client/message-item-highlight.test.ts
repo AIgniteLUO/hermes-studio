@@ -95,15 +95,15 @@ describe('MessageItem tool details', () => {
           timestamp: Date.now(),
         } satisfies Message,
         assistantAgent: {
-          label: 'Ekko',
-          src: '/coding-agents/ekko-agent.png',
+          label: 'Codex',
+          src: '/coding-agents/codex-openai.png',
         },
       },
       global: { stubs: { MarkdownRenderer: true } },
     })
 
-    expect(wrapper.get('.assistant-message-author .message-author-name').text()).toBe('Ekko')
-    expect(wrapper.get('.assistant-message-author .msg-avatar').attributes('src')).toBe('/coding-agents/ekko-agent.png')
+    expect(wrapper.get('.assistant-message-author .message-author-name').text()).toBe('Codex')
+    expect(wrapper.get('.assistant-message-author .msg-avatar').attributes('src')).toBe('/coding-agents/codex-openai.png')
   })
 
   it('selects a completed user or assistant message as the next-turn reference', async () => {

@@ -422,7 +422,7 @@ describe('chat store compression state', () => {
     ])
   })
 
-  it('restores a completed Ekko background card at its original turn instead of the transcript tail', async () => {
+  it('restores a completed Hermes background card at its original turn instead of the transcript tail', async () => {
     chatApi.resumeSession.mockImplementationOnce((sessionId: string, onResumed: (data: any) => void) => {
       onResumed({
         session_id: sessionId,
@@ -448,14 +448,14 @@ describe('chat store compression state', () => {
           id: 3,
           role: 'tool',
           content: JSON.stringify({
-            runtime: 'ekko',
+            runtime: 'hermes',
             mode: 'background',
             subagent_id: 'child-1',
             status: 'running',
             goal: 'Inspect the task',
           }),
           display_content: JSON.stringify({
-            runtime: 'ekko',
+            runtime: 'hermes',
             mode: 'background',
             subagent_id: 'child-1',
             status: 'completed',
@@ -508,7 +508,7 @@ describe('chat store compression state', () => {
     }))
   })
 
-  it('restores a completed Ekko foreground subtask as a clickable child stream', async () => {
+  it('restores a completed Hermes foreground subtask as a clickable child stream', async () => {
     chatApi.resumeSession.mockImplementationOnce((sessionId: string, onResumed: (data: any) => void) => {
       onResumed({
         session_id: sessionId,
@@ -534,13 +534,14 @@ describe('chat store compression state', () => {
           id: 3,
           role: 'tool',
           content: JSON.stringify({
-            runtime: 'ekko',
+            runtime: 'hermes',
             mode: 'foreground',
             subagent_id: 'foreground-child',
             status: 'completed',
+            goal: 'Inspect the foreground task',
             summary: 'Inspection completed.',
             output: 'Full foreground inspection result.',
-            duration_ms: 1250,
+            duration_seconds: 1.25,
           }),
           tool_call_id: 'delegate-call-1',
           tool_name: 'delegate_task',
@@ -582,12 +583,11 @@ describe('chat store compression state', () => {
     )
   })
 
-  it('keeps only the clickable child card for a live Ekko foreground subtask', async () => {
+  it('keeps a single clickable child card for a live Hermes foreground subtask', async () => {
     const store = useChatStore()
     store.sessions = [{
       ...makeSession('session-1'),
-      agent: 'ekko-agent',
-      codingAgentId: 'ekko-agent',
+      agent: 'hermes',
     }]
     await store.switchSession('session-1')
 
@@ -620,19 +620,31 @@ describe('chat store compression state', () => {
       tool: 'delegate_task',
       tool_call_id: 'delegate-call-1',
       output: {
-        runtime: 'ekko',
+        runtime: 'hermes',
         mode: 'foreground',
         subagent_id: 'foreground-child',
         status: 'completed',
       },
     })
 
-    expect(store.messages.filter(message => message.toolName === 'delegate_task')).toEqual([
+    const delegateRows = store.messages.filter(message => message.toolName === 'delegate_task')
+    // The parent delegate_task row is finalized and the live subagent stays as a
+    // single clickable child card instead of duplicating the stream.
+    expect(delegateRows).toHaveLength(2)
+    expect(delegateRows.filter(row => row.toolCallId?.startsWith('subagent:'))).toEqual([
       expect.objectContaining({
         toolCallId: 'subagent:foreground-child',
         toolStatus: 'done',
       }),
     ])
+    expect(delegateRows.find(row => row.toolCallId === 'delegate-call-1')).toMatchObject({
+      toolStatus: 'done',
+    })
+    expect(store.getSubagentStream('session-1', 'foreground-child')).toEqual(expect.objectContaining({
+      status: 'completed',
+      goal: 'Inspect live work',
+      summary: 'Live inspection completed.',
+    }))
   })
 
   it('keeps persisted Hermes background dispatch rows on the existing recovery path', async () => {

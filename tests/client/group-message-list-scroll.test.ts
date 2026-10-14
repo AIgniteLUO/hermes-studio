@@ -130,13 +130,12 @@ describe('GroupMessageList scroll behavior', () => {
     expect(wrapper.getComponent({ name: 'VirtualMessageList' }).props('virtualized')).toBe(false)
   })
 
-  it('shows all four agent avatars in the group-chat empty state', () => {
+  it('shows the three surviving agent avatars in the group-chat empty state', () => {
     const wrapper = mount(GroupMessageList)
     const avatars = wrapper.findAll('.empty-agent-avatar img')
 
     expect(avatars.map(avatar => avatar.attributes('alt'))).toEqual([
       'Hermes',
-      'Ekko',
       'Codex',
       'Claude',
     ])

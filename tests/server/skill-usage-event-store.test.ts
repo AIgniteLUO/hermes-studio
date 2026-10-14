@@ -21,15 +21,15 @@ describe('Studio skill usage event store', () => {
     rmSync(databaseDirectory, { recursive: true, force: true })
   })
 
-  it('records evidence-backed Ekko, Codex, Claude, and Pi skill events in one indexed table', async () => {
+  it('records evidence-backed Hermes, Codex, Claude, and Pi skill events in one indexed table', async () => {
     const now = Math.floor(Date.now() / 1000)
     const { createSession, addMessages } = await import('../../packages/server/src/modules/studio/repositories/session-store')
     const { getLocalSkillUsageStats } = await import('../../packages/server/src/modules/studio/repositories/skill-usage-store')
 
     const cases = [
       {
-        sessionId: 'ekko-skill-session',
-        agent: 'ekko-agent',
+        sessionId: 'hermes-skill-session',
+        agent: 'hermes',
         toolName: 'skill_view',
         args: { name: 'research' },
         content: '{"ok":true}',

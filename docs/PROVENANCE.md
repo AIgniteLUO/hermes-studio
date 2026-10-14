@@ -86,6 +86,52 @@
 `npm run build` 会重新生成 `docs/openapi.json`，其中 `info.version` 取自 `package.json`；
 版本号改为 `1.0.0` 后该文件随之从 `0.7.15` 更新为 `1.0.0`（已随本次提交）。
 
+## 终态验收（2026-10-15）
+
+### 全量测试
+
+```
+ Test Files  1 failed | 541 passed | 2 skipped (544)
+      Tests  1 failed | 4393 passed | 6 skipped (4400)
+```
+
+唯一的失败是 `tests/server/hermes-cli-selection-live.test.ts` 的 `Error: Test timed out in 5000ms.`
+—— 即上文基线已记录的 CLI 子进程超时抖动，落在白名单内。相对基线（`578 passed | 2 skipped`）少
+36 个测试文件/368 个测试，减少部分全部是随 Ekko Agent 一族一起删除的专测（`tests/client/ekko-*`、
+`modules/ekko` 专测等），以及 2 个断言已删除机制（运行时侧澄清等待器 / 中断时 `cancelClarify`）
+的用例。
+
+### Ekko 残留扫描（`grep -rai "ekko"`，**必须带 `-a`**）
+
+| | 基线（Task 2 记录） | 终态 |
+| :--- | :--- | :--- |
+| 命中文件 | 303 | 37 |
+| 命中行 | 5128 | 488 |
+
+（终态数字含本文件自身命中的行。）剩余 37 个文件全部属于白名单或已归档任务范围：
+
+- **本 fork 记录 / 署名 / 许可证**：`LICENSE`（Licensor）、`docs/PROVENANCE.md`、
+  `docs/superpowers/{specs,plans}/`、`packages/skills/{apikey-image-gen,grok-image-to-video,hyperframes,markdown-viewer,minimax-image-to-video,remotion}/SKILL.md`
+  的 `author: Ekko`（真实作者署名，Ruling #11 明确保留）
+- **偶然字符串**：`packages/server/src/modules/studio/public/runs/prompt.ts` 的
+  `/Users/ekko/Desktop/...`（示例 Markdown 里的 macOS 用户名）、`tests/client/markdown-rendering.test.ts`
+  的同名用户名用例
+- **删除行为的守护断言**：断言已删除运行时被拒绝/回退/写不进固件（`agent-availability`、
+  `agent-status-availability`、`studio-agent-contracts`、`workflow-manager`、
+  `workflow-import-capabilities`、`mcu-firmware-source`、`mcu-login-controller`、`client-agent-display-names`）
+- **历史数据迁移用例的输入值**：`gc_room_agents` / `gc_agent_presets` / 会话行可能仍存有该取值，
+  用例以它为**输入**断言归一为 `hermes` 或回退到 Hermes 头像（`group-chat-history-window`、
+  `group-chat-routes-baseline`、`chat-webhooks`、`session-push`、`run-chat-abort-goal`、
+  `chat-agent-avatar`、`message-list-scroll-position`、`session-list-item`）
+- **Task 14（文档重写与发版）范围**：`README.md`、`README_zh.md`、`ARCHITECTURE.md`、`AGENTS.md`、
+  `docs/planning/*.md`
+
+### 品牌域名扫描
+
+`grep -rai "ekkolearnai\|ekkoye8888\|hermes-studio\.ai"` 与 `grep -rl "EKKOLearnAI"` 的命中
+**只剩** `LICENSE`、`docs/PROVENANCE.md` 与 `docs/superpowers/{specs,plans}/`，无任何源码或构建产物
+指向上游云服务。
+
 ## 许可证
 
 上游采用 **Business Source License 1.1**（BSL 1.1）。Additional Use Grant 允许个人、

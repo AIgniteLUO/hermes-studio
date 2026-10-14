@@ -33,22 +33,31 @@ describe('server module boundary harness', () => {
 
   it('enforces the acyclic domain dependency matrix', () => {
     expect(forbiddenDomainDependency('studio', 'hermes')).toBe(true)
-    expect(forbiddenDomainDependency('hermes', 'ekko')).toBe(true)
+    expect(forbiddenDomainDependency('studio', 'coding-agents')).toBe(true)
+    expect(forbiddenDomainDependency('hermes', 'coding-agents')).toBe(true)
     expect(forbiddenDomainDependency('coding-agents', 'hermes')).toBe(true)
     expect(forbiddenDomainDependency('hermes', 'studio')).toBe(false)
-    expect(forbiddenDomainDependency('bootstrap', 'ekko')).toBe(false)
+    expect(forbiddenDomainDependency('hermes', 'hermes')).toBe(false)
+    expect(forbiddenDomainDependency('bootstrap', 'studio')).toBe(false)
+    expect(forbiddenDomainDependency('bootstrap', 'hermes')).toBe(false)
   })
 
   it('allows agents to consume only Studio contracts and public APIs', () => {
     expect(validateTargetDependency(
-      'modules/ekko/services/run.ts',
+      'modules/hermes/services/run.ts',
       'modules/studio/contracts/agents/runner.ts',
     )).toEqual([])
     expect(validateTargetDependency(
-      'modules/ekko/services/run.ts',
+      'modules/hermes/services/run.ts',
       'modules/studio/services/config/service.ts',
     )).toEqual([
-      'modules/ekko/services/run.ts must use Studio contracts/public APIs, not Studio internal path modules/studio/services/config/service.ts',
+      'modules/hermes/services/run.ts must use Studio contracts/public APIs, not Studio internal path modules/studio/services/config/service.ts',
+    ])
+    expect(validateTargetDependency(
+      'modules/coding-agents/services/run.ts',
+      'modules/studio/services/config/service.ts',
+    )).toEqual([
+      'modules/coding-agents/services/run.ts must use Studio contracts/public APIs, not Studio internal path modules/studio/services/config/service.ts',
     ])
   })
 

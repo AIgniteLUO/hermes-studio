@@ -15,9 +15,11 @@ describe('group agent avatars', () => {
 
   it('falls back to the matching single-chat agent icon', () => {
     expect(defaultGroupAgentAvatar('hermes').dataUrl).toBe('/coding-agents/hermes.png')
-    expect(defaultGroupAgentAvatar('ekko').dataUrl).toBe('/coding-agents/ekko-agent.png')
     expect(defaultGroupAgentAvatar('codex').dataUrl).toBe('/coding-agents/codex-openai.png')
     expect(defaultGroupAgentAvatar('claude').dataUrl).toBe('/coding-agents/claude-code.svg')
+    expect(defaultGroupAgentAvatar('pi').dataUrl).toBe('/coding-agents/pi.svg')
+    // A room agent without a runtime keeps the Hermes icon instead of a blank avatar.
+    expect(defaultGroupAgentAvatar(undefined).dataUrl).toBe('/coding-agents/hermes.png')
     expect(groupAgentAvatar({ agent: 'codex', avatar: '' }).dataUrl).toBe('/coding-agents/codex-openai.png')
   })
 

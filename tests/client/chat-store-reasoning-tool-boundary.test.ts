@@ -874,12 +874,12 @@ describe('chat store reasoning/tool boundaries', () => {
     expect(body.reasoning_effort).toBeUndefined()
   })
 
-  it('sends the hidden API mode when starting a scoped Ekko run', async () => {
+  it('sends the hidden API mode when starting a scoped Pi run', async () => {
     const store = useChatStore()
     const session = makeSession()
     session.source = 'coding_agent'
-    session.agent = 'ekko-agent'
-    session.codingAgentId = 'ekko-agent'
+    session.agent = 'pi'
+    session.codingAgentId = 'pi'
     session.codingAgentMode = 'scoped'
     session.provider = 'custom:fun-codex'
     session.model = 'gpt-5.5'
@@ -893,7 +893,7 @@ describe('chat store reasoning/tool boundaries', () => {
 
     expect(chatApi.startRunViaSocket.mock.calls[0][0]).toEqual(expect.objectContaining({
       source: 'coding_agent',
-      coding_agent_id: 'ekko-agent',
+      coding_agent_id: 'pi',
       mode: 'scoped',
       provider: 'custom:fun-codex',
       model: 'gpt-5.5',

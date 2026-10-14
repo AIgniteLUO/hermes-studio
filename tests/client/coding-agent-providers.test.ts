@@ -2,26 +2,41 @@ import { describe, expect, it } from 'vitest'
 import {
   canScopedCodingAgentUseProvider,
   isAuthModelProvider,
-  usesServerManagedProviderAuth,
 } from '../../packages/client/src/utils/codingAgentProviders'
 
+const SERVER_MANAGED_AUTH_PROVIDERS = [
+  'nous',
+  'openai-codex',
+  'copilot',
+  'xai-oauth',
+  'qwen-oauth',
+  'claude-oauth',
+  'minimax-oauth',
+] as const
+
+const SCOPED_CODING_AGENTS = ['claude-code', 'codex', 'pi'] as const
+
 describe('coding agent provider visibility', () => {
-  it.each(['nous', 'openai-codex', 'copilot', 'xai-oauth', 'qwen-oauth', 'claude-oauth', 'minimax-oauth'])(
-    'exposes %s to scoped Ekko sessions',
+  it.each(SERVER_MANAGED_AUTH_PROVIDERS)(
+    'classifies %s as a server-managed auth provider',
     (provider) => {
       expect(isAuthModelProvider(provider)).toBe(true)
-      expect(canScopedCodingAgentUseProvider('ekko-agent', provider)).toBe(true)
-      expect(usesServerManagedProviderAuth('ekko-agent', provider)).toBe(true)
     },
   )
 
-  it.each(['claude-code', 'codex'] as const)(
-    'keeps auth providers hidden from scoped %s sessions',
+  it.each(SCOPED_CODING_AGENTS)(
+    'keeps every server-managed auth provider hidden from scoped %s sessions',
     (agentId) => {
-      expect(canScopedCodingAgentUseProvider(agentId, 'openai-codex')).toBe(false)
-      expect(canScopedCodingAgentUseProvider(agentId, 'qwen-oauth')).toBe(false)
-      expect(usesServerManagedProviderAuth(agentId, 'openai-codex')).toBe(false)
+      for (const provider of SERVER_MANAGED_AUTH_PROVIDERS) {
+        expect(canScopedCodingAgentUseProvider(agentId, provider)).toBe(false)
+      }
       expect(canScopedCodingAgentUseProvider(agentId, 'deepseek')).toBe(true)
     },
   )
+
+  it('matches providers case- and whitespace-insensitively', () => {
+    expect(isAuthModelProvider('  OpenAI-Codex ')).toBe(true)
+    expect(canScopedCodingAgentUseProvider('codex', ' OpenAI-Codex ')).toBe(false)
+    expect(canScopedCodingAgentUseProvider('codex', '')).toBe(true)
+  })
 })

@@ -42,9 +42,6 @@ vi.mock('../../packages/server/src/modules/studio/public/logging', () => ({
 vi.mock('../../packages/server/src/modules/studio/services/app-relay/client', () => ({
   stopAppRelayClient: vi.fn(),
 }))
-vi.mock('../../packages/server/src/modules/ekko/services/manager', () => ({
-  closeGlobalEkkoAgent: vi.fn(),
-}))
 vi.mock('../../packages/server/src/modules/studio/services/webhooks', () => ({
   stopChatWebhookDispatcher: vi.fn(),
 }))

@@ -202,14 +202,13 @@ describe('SessionListItem', () => {
     expect(logo.attributes('alt')).toBe('Hermes')
   })
 
-  it('renders the Ekko logo for Ekko Global Agent sessions', () => {
+  it('falls back to the Hermes logo for Global Agent sessions whose runtime was removed', () => {
     const wrapper = mount(SessionListItem, {
       props: {
         session: {
           ...session,
           source: 'global_agent',
           agent: 'ekko-agent',
-          codingAgentId: 'ekko-agent',
         },
         active: false,
         pinned: false,
@@ -223,8 +222,8 @@ describe('SessionListItem', () => {
     })
 
     const logo = wrapper.get('.session-item-agent-logo')
-    expect(logo.attributes('src')).toBe('/coding-agents/ekko-agent.png')
-    expect(logo.attributes('alt')).toBe('Ekko')
+    expect(logo.attributes('src')).toBe('/coding-agents/hermes.png')
+    expect(logo.attributes('alt')).toBe('Hermes')
   })
 
   it('defaults old sessions without agent metadata to the Hermes logo', () => {

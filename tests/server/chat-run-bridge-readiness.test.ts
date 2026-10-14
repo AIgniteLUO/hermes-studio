@@ -70,9 +70,6 @@ vi.mock('../../packages/server/src/modules/studio/public/chat-agent-runtime', ()
   },
   handleChatCodingAgentSessionCommand: vi.fn(),
   parseChatCodingAgentSessionCommand: vi.fn(() => null),
-  getChatEkkoAgent: vi.fn(() => ({ requestBoundaryInterrupt: vi.fn() })),
-  respondToChatEkkoToolApproval: vi.fn(() => ({ handled: false, resolved: false })),
-  respondToChatEkkoClarification: vi.fn(() => ({ handled: false, resolved: false })),
 }))
 
 vi.mock('../../packages/server/src/modules/studio/public/logging', () => ({

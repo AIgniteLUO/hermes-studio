@@ -439,7 +439,7 @@ describe('run chat compression trigger', () => {
     )
   })
 
-  it('passes an Ekko-only summarizer policy through the shared compressor', async () => {
+  it('passes an explicitly disabled summarizer fallback through the shared compressor', async () => {
     compressorCompressMock.mockResolvedValue({
       messages: [{ role: 'user', content: 'compressed' }],
       meta: {

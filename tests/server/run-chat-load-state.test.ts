@@ -166,4 +166,77 @@ describe('loadSessionStateFromDb', () => {
       }),
     })
   })
+
+  it('skips legacy Ekko background delegations so they are never restored or polled', async () => {
+    const hermesDelegation = {
+      id: 42,
+      role: 'tool',
+      content: JSON.stringify({
+        mode: 'background',
+        delegation_id: 'delegation-hermes',
+        runtime: 'hermes',
+        goals: ['Inspect the task'],
+      }),
+      display_content: null,
+      tool_call_id: 'delegate-call-hermes',
+      tool_name: 'delegate_task',
+      timestamp: 100,
+    }
+    const legacyEkkoDelegation = {
+      id: 43,
+      role: 'tool',
+      content: JSON.stringify({
+        mode: 'background',
+        delegation_id: 'delegation-legacy-ekko',
+        runtime: 'ekko',
+        subagent_id: 'legacy-child',
+        goals: ['Legacy Ekko dispatch that never finished'],
+      }),
+      display_content: null,
+      tool_call_id: 'delegate-call-legacy',
+      tool_name: 'delegate_task',
+      timestamp: 101,
+    }
+    getSessionDetailPaginatedMock.mockReturnValue({
+      messages: [legacyEkkoDelegation, hermesDelegation],
+    })
+    const { loadSessionStateFromDb } = await import('../../packages/server/src/modules/studio/services/chat-run/load-state')
+
+    const state = await loadSessionStateFromDb('session-1', new Map())
+
+    // The legacy Ekko row is dropped; the Hermes row next to it still restores.
+    expect(Object.keys(state.backgroundDelegations || {})).toEqual(['delegation-hermes'])
+    expect(state.backgroundDelegations).not.toHaveProperty('delegation-legacy-ekko')
+    // No restored delegation satisfies the pollable predicate used by
+    // needsBackgroundPoll() in sockets/chat-run.ts for the legacy row.
+    expect(Object.values(state.backgroundDelegations || {}).filter(item => (
+      item.status === 'running' || item.status === 'delivering'
+    ))).toEqual([
+      expect.objectContaining({ delegationId: 'delegation-hermes' }),
+    ])
+  })
+
+  it('does not restore a legacy Ekko background delegation even when it is the only row', async () => {
+    getSessionDetailPaginatedMock.mockReturnValue({
+      messages: [{
+        id: 44,
+        role: 'tool',
+        content: JSON.stringify({
+          mode: 'background',
+          delegation_id: 'delegation-legacy-only',
+          runtime: 'ekko',
+          subagent_id: 'legacy-child',
+        }),
+        display_content: JSON.stringify({ status: 'running' }),
+        tool_call_id: 'delegate-call-legacy-only',
+        tool_name: 'delegate_task',
+        timestamp: 102,
+      }],
+    })
+    const { loadSessionStateFromDb } = await import('../../packages/server/src/modules/studio/services/chat-run/load-state')
+
+    const state = await loadSessionStateFromDb('session-1', new Map())
+
+    expect(state.backgroundDelegations).toEqual({})
+  })
 })

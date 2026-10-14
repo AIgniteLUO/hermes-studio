@@ -15,6 +15,12 @@ function restoreBackgroundDelegations(messages: any[]): SessionState['background
     try {
       const payload = JSON.parse(String(message.content || '')) as Record<string, unknown>
       const delegationId = String(payload.delegation_id || '').trim()
+      // Legacy Ekko-era dispatch records are skipped up front: the Ekko runtime is
+      // gone, so such a delegation can never complete. Restoring it would resurrect a
+      // forever-running entry that needsBackgroundPoll() (sockets/chat-run.ts) keeps
+      // polling and that renders as a permanently in-flight subagent card.
+      // Both pre-fork and post-fork Hermes dispatches use runtime 'hermes'.
+      if (payload.runtime === 'ekko') continue
       if (payload.mode !== 'background' || !delegationId) continue
       let status: 'running' | 'completed' | 'failed' | 'interrupted' = 'running'
       if (message.display_content) {

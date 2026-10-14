@@ -931,16 +931,46 @@ git commit -m "♻️ refactor(client): 收敛 Ekko 类型分支、映射表与�
 
 `AgentManagerView.vue:365-389` —— 整段 `<section>` 删除（含 `data-testid="agent-card-ekko"`、logo、Studio 版本标签、设置按钮）。`:382` 的 `router.push({name:'ekko.settings'})` 随卡片一并消失。
 
-- [ ] **Step 2: 把 AI 排障会话改指 Hermes**
+- [ ] **Step 2: 把 AI 排障会话改指 Hermes（⚠️ 原方案已证伪，用下面的写法）**
 
-`AgentManagerView.vue:161-166` —— `startAiHelpChat` 中的 `agent: 'ekko-agent', codingAgentId: 'ekko-agent'` 改为：
+> **原方案 `agent: 'hermes'` + `codingAgentId: undefined` 是错的，必须整段替换。**
+> Task 7 的 review 实测证明它会让抽屉实际跑 **Claude Code**，链路：
+> 1. `stores/hermes/chat.ts:1845` `const codingAgentId = options.codingAgentId || agentToCodingAgentId(options.agent)` → `undefined`（`'hermes'` 不是 coding agent）
+> 2. `chat.ts:1846` `const codingAgentMode = codingAgentId ? (options.codingAgentMode || 'scoped') : undefined` → **`codingAgentMode` 被丢弃**
+> 3. `chat.ts:1172-1176` `isCodingAgentLikeSession` 因 `source === 'coding_agent'` 仍为 `true`
+> 4. `chat.ts:3529-3532` `coding_agent_id = activeSession.codingAgentId || agentToCodingAgentId(activeSession.agent) || 'claude-code'` → **`'claude-code'`**，且 `mode = 'scoped'`
+>
+> 副作用：`MessageList.vue:294-300` 的 `canInsertQueuedMessages` 对该会话返回 `false`（`agent='hermes'` + `source='coding_agent'` 落到最后的 `return`），队列插入入口消失。
+
+`AgentManagerView.vue:161-166` —— `startAiHelpChat` 创建**Hermes 形态**的会话（不要 `source: 'coding_agent'`，不要 `codingAgentId` / `codingAgentMode`）：
 
 ```ts
-agent: 'hermes',
-codingAgentId: undefined,
+function startAiHelpChat(prompt: string) {
+  chatStore.newChat({
+    source: 'cli',
+    agent: 'hermes',
+  })
+  aiHelpPrompt.value = prompt
+  aiHelpDrawerVisible.value = true
+}
 ```
 
 `:179-184` 的 `openGeneralAiHelpDrawer` 无需改动（它只调 `startAiHelpChat`）。
+
+- [ ] **Step 2b: 为抽屉补一条断言运行载荷的测试**
+
+**只断言"抽屉打开了"是不够的** —— 上面的缺陷正是"会话对象显示 hermes、实际载荷是 claude-code"。必须断言**运行载荷**：
+
+```ts
+it('AI 排障会话以 Hermes 形态发起运行，而不是回落为 claude-code', async () => {
+  // 触发 startAiHelpChat（沿用 AgentManagerView 既有测试的挂载方式）
+  // 然后断言发给后端的运行载荷：
+  expect(payload.source).not.toBe('coding_agent')
+  expect(payload.coding_agent_id).toBeUndefined()
+})
+```
+
+**这条测试必须先红**：在 Step 2 的修正之前（即 `source: 'coding_agent'` 的旧写法下），它应当以 `coding_agent_id === 'claude-code'` 失败。
 
 - [ ] **Step 3: 改写 i18n 文案**
 
@@ -1314,7 +1344,20 @@ git commit -m "🌐 i18n(client): 移除 Ekko 配置块与相关文案"
 
 **Files:**
 - Modify: `tests/server/*.test.ts`（约 30 个含 ekko 引用的文件）
+- Modify: `tests/client/*.test.ts`（**Task 7 review 实测新增的一批**，见下）
 - Create: `docs/PROVENANCE.md` 的终态章节
+
+**tests/client 下必须一并处理的文件（Task 7 review 枚举，原先遗漏）**：
+- `tests/client/ekko-*.test.ts`（5 个：`ekko-config-navigation`、`ekko-configuration-api`、`ekko-memory-graph`、`ekko-memory-view`、`ekko-settings-view`）—— import 已删路径
+- `tests/client/coding-agent-providers.test.ts` —— import 已删除的 `usesServerManagedProviderAuth`（整文件失败，含 2 条非 Ekko 断言）
+- `tests/client/chat-panel-pi-mode.test.ts:9` —— 断言了被移除的源码行
+- `tests/client/agent-status-availability.test.ts:27,36`
+- `tests/client/chat-panel-session-click.test.ts:78,95`
+- `tests/client/ekko-display-name.test.ts` —— 6 条断言要求 Ekko 存在
+- `tests/client/agent-manager-page.test.ts:255-265,424-459`
+- `tests/client/chat-store-reasoning-tool-boundary.test.ts:877-896`
+
+**注意**：Task 3–12 期间这些文件报错是**预期的中间态**，不是新增回归。上面这批文件**都不得删除了事** —— 断言 Ekko 行为的应当改写为断言两族行为。
 
 **Interfaces:**
 - Consumes: Task 1–12 全部产出

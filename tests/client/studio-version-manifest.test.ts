@@ -27,7 +27,7 @@ describe('Studio version manifest client', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     await expect(fetchStudioVersionManifest()).resolves.toEqual(manifest)
-    expect(STUDIO_VERSION_MANIFEST_URL).toBe('https://api.github.com/repos/AIgniteLUO/hermes-studio/releases')
+    expect(STUDIO_VERSION_MANIFEST_URL).toBe('https://api.github.com/repos/AIgniteLUO/hermes-studio/releases?per_page=100')
     expect(fetchMock).toHaveBeenCalledWith(STUDIO_VERSION_MANIFEST_URL, {
       headers: { Accept: 'application/json' },
     })

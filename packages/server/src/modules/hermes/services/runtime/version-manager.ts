@@ -12,7 +12,7 @@ import { detectHermesHome } from './path'
 import { cleanupRuntimePath, removeRuntimePath, renameRuntimePath } from './runtime-filesystem'
 
 const ACTIVE_VERSION_FILE = 'active-version.json'
-const DEFAULT_REMOTE_MANIFEST_URL = 'https://api.github.com/repos/AIgniteLUO/hermes-studio/releases'
+const DEFAULT_REMOTE_MANIFEST_URL = 'https://api.github.com/repos/AIgniteLUO/hermes-studio/releases?per_page=100'
 const DEFAULT_DOWNLOAD_BASE_URL = 'https://github.com/AIgniteLUO/hermes-studio/releases/download'
 const DEFAULT_GITHUB_REPO = 'AIgniteLUO/hermes-studio'
 

@@ -1,4 +1,4 @@
-export const STUDIO_VERSION_MANIFEST_URL = 'https://api.github.com/repos/AIgniteLUO/hermes-studio/releases'
+export const STUDIO_VERSION_MANIFEST_URL = 'https://api.github.com/repos/AIgniteLUO/hermes-studio/releases?per_page=100'
 
 export interface StudioMobileLinkChannel {
   url: string

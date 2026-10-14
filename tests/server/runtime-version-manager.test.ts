@@ -148,7 +148,7 @@ describe('runtime version manager storage migration', () => {
     expect(status.hermes.remoteVersions).toEqual(['0.19.1', '0.20.4'])
     expect(status.webui.remoteVersions).toEqual([])
     expect(fetch).toHaveBeenCalledWith(
-      'https://api.github.com/repos/AIgniteLUO/hermes-studio/releases',
+      'https://api.github.com/repos/AIgniteLUO/hermes-studio/releases?per_page=100',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     )
   })
@@ -171,7 +171,7 @@ describe('runtime version manager storage migration', () => {
     expect(status.hermes.remoteVersions).toEqual(['0.20.4', '0.19.1'])
     expect(status.remoteError).toBe('')
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.github.com/repos/AIgniteLUO/hermes-studio/releases',
+      'https://api.github.com/repos/AIgniteLUO/hermes-studio/releases?per_page=100',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     )
   })
@@ -271,7 +271,7 @@ describe('runtime version manager storage migration', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.github.com/repos/AIgniteLUO/hermes-studio/releases',
+      'https://api.github.com/repos/AIgniteLUO/hermes-studio/releases?per_page=100',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     )
     expect(status.hermes.remoteVersions).toEqual([])

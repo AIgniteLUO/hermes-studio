@@ -23,7 +23,12 @@
 - **Node 版本**：`>=23.0.0`（本机 24.x）
 - **提交信息**：中文，格式 `<emoji> <type>(scope): summary`，emoji 遵循 gitmoji.dev
 - **禁止**：不得运行 `prettier` / `eslint --fix` 等全局格式化命令
-- **基线状态（已实测，2026-10-14）**：`npm ci` exit 0；`npm run build` exit 0；`npx vitest run` **exit 1** —— `tests/server/studio-mcp-autoinject.test.ts` 有 **13 个上游自带的失败**（`Test Files 1 failed | 577 passed | 2 skipped`，`Tests 13 failed | 4748 passed | 6 skipped`）。该失败与 Ekko 无关，根因是该文件的 `listProfileNamesFromDiskMock` 未生效（返回 `[]` 而非 `['default','work']`）。**因此所有测试验收标准是"无新增失败"，不是"全绿"。**
+- **测试必须在仓库真实路径下运行，禁止在 `/tmp` 下跑** —— `studio-autoinject.ts:127` 用 `join(process.cwd(), 'bin/hermes-studio-mcp.mjs')` 定位脚本，`isTransientPath()`（`:69-74`）判定是否位于 `tmpdir()`/`/tmp`/`/private/tmp` 之下（先 `realpathSync`），命中即跳过 MCP 自动注入，导致 `tests/server/studio-mcp-autoinject.test.ts` 出现 **13 个假红**。这是测量环境问题，不是上游缺陷。
+- **基线状态（Task 1 实测修正，2026-10-14）**：`npm ci --ignore-scripts && npm rebuild node-pty` exit 0；`npm run build` exit 0；`npx vitest run` 连跑 4 次中 1 次全绿（`578 passed | 2 skipped`）。**基线本身存在超时抖动**。
+- **回归判据（所有任务的验收标准）**：失败数为 **0**，**或**失败数 ≤ 3 且**全部**是下列 3 个文件的 `Error: Test timed out in 5000ms.`（vitest 默认 `testTimeout` 未上调，这三个文件会拉起真实 CLI 子进程，随机器负载波动）。**其余任何失败一律按新增回归处理。**
+  - `tests/server/hermes-cli-discovery.test.ts`
+  - `tests/server/hermes-cli-selection-live.test.ts`
+  - `tests/server/hermes-runtime-selection.test.ts`
 - **每层验证命令**（下称「三层检查」）：
   ```bash
   npx vue-tsc -b --noEmit
@@ -158,42 +163,49 @@ echo "exit=$?"
 tail -30 /tmp/hermes-studio-baseline-test.log
 ```
 
-预期（已实测，照此核对）：**exit 1**，末行为
+> ⚠️ **本步骤的原始预期已被 Task 1 实测推翻，以下为修正后内容。**
+> 原预期是「exit 1，`tests/server/studio-mcp-autoinject.test.ts` 13 个失败」。实测在该文件
+> 于仓库真实路径下**全部通过**（18/18）。原失败是**控制器在 `/tmp` 下测基线**造成的假红：
+> 该用例用 `mkdtempSync(join(process.cwd(), ...))` 造 fixture，而 `studio-autoinject.ts:127`
+> 同样以 `process.cwd()` 定位 MCP 脚本，`isTransientPath()`（`:69-74`）对 `/tmp`、`/private/tmp`
+> 命中后直接跳过自动注入，`targets` 停在 `[]`。
+> **结论：不是上游缺陷，无需修复；但测试必须在仓库真实路径下运行。**
+
+预期：连跑 ≥2 次，至少一次为 **exit 0 全绿**：
 
 ```
- Test Files  1 failed | 577 passed | 2 skipped (580)
-      Tests  13 failed | 4748 passed | 6 skipped (4767)
+ Test Files  578 passed | 2 skipped (580)
+      Tests  4761 passed | 6 skipped (4767)
 ```
 
-唯一失败文件是 `tests/server/studio-mcp-autoinject.test.ts`。
+若未全绿，失败必须是 `Error: Test timed out in 5000ms.`，且**只**出现在下列 3 个文件
+（vitest 默认 `testTimeout` 未上调，这三者会拉起真实 CLI 子进程，随机器负载波动）：
 
-**把这个结果原样写进 `docs/PROVENANCE.md`**，作为后续一切"是否引入回归"的判据：
+- `tests/server/hermes-cli-discovery.test.ts`
+- `tests/server/hermes-cli-selection-live.test.ts`
+- `tests/server/hermes-runtime-selection.test.ts`
+
+**把实际结果写进 `docs/PROVENANCE.md`**，作为后续一切"是否引入回归"的判据：
 
 ```markdown
 ## 基线状态（2026-10-14）
 
 - `npm ci --ignore-scripts && npm rebuild node-pty` → exit 0
 - `npm run build` → exit 0
-- `npx vitest run` → exit 1
-  - Test Files: 1 failed | 577 passed | 2 skipped (580)
-  - Tests: 13 failed | 4748 passed | 6 skipped (4767)
-  - 失败文件：`tests/server/studio-mcp-autoinject.test.ts`（13 个）
-  - 根因：`listProfileNamesFromDiskMock` 未生效，返回 `[]` 而非 `['default','work']`
-  - 性质：**上游 v0.7.15 自带，与 Ekko 无关**，本 fork 未引入
+- `npx vitest run` → 连跑 4 次中 1 次全绿（578 passed | 2 skipped；4761 tests passed）
+  - 另外 3 次仅 1~3 个 `Test timed out in 5000ms`，且全部落在上述 3 个 CLI 子进程文件
+  - `tests/server/studio-mcp-autoinject.test.ts` 单独跑 18/18，从未失败
+
+**回归判据**：失败数为 0，或失败数 ≤ 3 且全部是上述 3 个文件的 5000ms 超时。
+其余任何失败均按新增回归处理。
+
+**必须在仓库真实路径下运行测试**：在 `/tmp` 下运行会让 `studio-mcp-autoinject` 出现 13 个假红
+（`isTransientPath` 命中 `/private/tmp` 后跳过 MCP 注入）。
 ```
 
-- [ ] **Step 8: （可选，建议执行）triage 上游自带的 13 个失败**
+- [ ] **Step 8: 基线假红排查（已由 Task 1 完成，无需执行）**
 
-> **为什么建议做**：绿的基线是后续每个 Task 最可靠的回归信号。留着 13 个已知红灯，等于每次验证都要人肉区分"新坏 vs 旧坏"。
-
-```bash
-npx vitest run tests/server/studio-mcp-autoinject.test.ts --reporter=verbose 2>&1 | head -60
-```
-
-排查方向：该文件 `vi.mock` 的模块路径是否与 `packages/server/src/modules/studio/services/mcp/*` 的实际导出签名一致；`listProfileNamesFromDisk` 的 mock 工厂是否因路径变更而静默失效。
-
-- 若 **≤ 30 分钟**能修掉：修，提交 `🐛 test(studio-mcp): 修复 profile 列表 mock 未生效导致的 13 个失败`，并把 PROVENANCE 的基线改为全绿。
-- 若修不动：**放弃**，保持记录，后续一律用"无新增失败"判据。不要在这上面耗时间 —— 它与本项目目标无关。
+原始任务书要求 triage「13 个上游自带失败」。**Task 1 已查明其非上游缺陷且非真实失败**，根因见上方说明，**未改动任何上游测试与源码**。本步骤保留为记录，不再执行。
 
 - [ ] **Step 9: 提交**
 
@@ -1332,17 +1344,20 @@ grep -rln "ekko" tests/ --include=*.ts
 npx vitest run --reporter=basic 2>&1 | tee /tmp/hermes-studio-final-test.log | tail -30
 ```
 
-**验收标准是"无新增失败"，不是"全绿"**（基线本就红，见 Global Constraints）：
+**验收标准见 Global Constraints 的「回归判据」**（基线存在超时抖动，不是稳定全绿）：
 
-- 若 Task 1 Step 8 修掉了那 13 个 → 期望 **exit 0**，`Test Files 578 passed`。
-- 若没修掉 → 期望 **exit 1**，且失败**仅**为 `tests/server/studio-mcp-autoinject.test.ts` 的同一批 13 个，总数不超过基线。用下面这条命令确认失败集合与基线一致：
+- 失败数 **0** → 通过。
+- 失败数 **≤ 3**，且**全部**是 `Error: Test timed out in 5000ms.` 且**只**出现在那 3 个 CLI 子进程文件 → 通过。
+- **其余任何失败 → 视为新增回归，必须先修复再继续**，不得带着回归进入 Task 14。
+
+用下面这条命令确认失败集合落在允许范围内（**必须在仓库根目录运行，不要 `cd /tmp`**）：
 
 ```bash
+npx vitest run --reporter=basic 2>&1 | tee /tmp/hermes-studio-final-test.log | tail -30
 grep "FAIL " /tmp/hermes-studio-final-test.log | sort -u
-grep "FAIL " /tmp/hermes-studio-baseline-test.log | sort -u
 ```
 
-两条输出必须完全相同。**出现任何新增失败文件，都必须先修复再继续**，不得带着回归进入 Task 14。
+`tests/server/studio-mcp-autoinject.test.ts` **不得出现在失败列表里** —— 若出现，几乎一定是运行时 cwd 落到了 `/tmp`（见 Task 1 Step 7 说明），而非代码回归。
 
 - [ ] **Step 6: 终态 Ekko 残留扫描**
 

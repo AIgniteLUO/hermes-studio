@@ -193,17 +193,20 @@ npm run verify:sharp-runtime
 - **改写**：约 30 个含 ekko 断言的既有测试（`agent-availability`、`agent-status-registry`、`studio-agent-contracts`、`server-module-boundaries`、`workflow-import-capabilities`、`workflow-manager`、`context-compressor`、`group-chat-*`、`global-agent-server`、`logs-controller`、`run-chat-*`、`session-push`、`usage-store-agent-stats-db`、`mcu-*`、`local-stt-model-manager`、`app-relay-*`、`app-entitlement`、`runtime-version-manager`、`update-controller` 等）。
 - **新增**：群聊摘要 Hermes 实现的行为测试（变更 A）。
 
-### 基线（已实测 2026-10-14）
+### 基线（Task 1 实测修正，2026-10-14）
 
 | 命令 | 结果 |
 |---|---|
 | `npm ci --ignore-scripts && npm rebuild node-pty` | exit 0 |
 | `npm run build` | exit 0 |
-| `npx vitest run` | **exit 1** —— `Test Files 1 failed \| 577 passed \| 2 skipped (580)`；`Tests 13 failed \| 4748 passed \| 6 skipped (4767)` |
+| `npx vitest run` | 连跑 4 次中 1 次全绿：`Test Files 578 passed \| 2 skipped (580)`；`Tests 4761 passed \| 6 skipped (4767)` |
 
-13 个失败全部来自 `tests/server/studio-mcp-autoinject.test.ts`，根因是该文件的 `listProfileNamesFromDiskMock` 未生效（返回 `[]` 而非 `['default','work']`）。**属上游 v0.7.15 自带缺陷，与 Ekko 无关。**
+**基线本身存在超时抖动**：另外 3 次各有 1~3 个 `Error: Test timed out in 5000ms.`（vitest 默认 `testTimeout` 未上调），且**只**出现在会拉起真实 CLI 子进程的三个文件：`hermes-cli-discovery.test.ts`、`hermes-cli-selection-live.test.ts`、`hermes-runtime-selection.test.ts`。
 
-**影响**：所有测试验收标准定为**「无新增失败」**，而非「全绿」。若能在 30 分钟内修掉则修，否则保持记录、不投入时间。
+**回归判据**：失败数为 0，或失败数 ≤ 3 且全部是上述三文件的 5000ms 超时。其余任何失败一律按新增回归处理。
+
+> **更正**：早先记录的「`tests/server/studio-mcp-autoinject.test.ts` 有 13 个上游自带失败」是**测量错误**。真实成因是运行目录 —— 该用例以 `process.cwd()` 造 fixture，而 `studio-autoinject.ts:127` 同样以 `process.cwd()` 定位 MCP 脚本，`isTransientPath()`（`:69-74`）对 `/tmp` 与 `/private/tmp`（macOS 上 `realpathSync` 会把前者解析为后者）命中后跳过自动注入，使 `targets` 停在 `[]`。在仓库真实路径下该文件 18/18 全通过。
+> **推论：所有测试必须在仓库真实路径下运行，禁止 `cd /tmp` 后跑测试。**
 
 ---
 

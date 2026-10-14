@@ -10,12 +10,11 @@ export const SERVER_SOURCE_ROOT = 'packages/server/src'
 export const TARGET_MODULES = Object.freeze([
   'studio',
   'hermes',
-  'ekko',
   'coding-agents',
 ])
 
 const TARGET_MODULE_SET = new Set(TARGET_MODULES)
-const AGENT_MODULE_SET = new Set(['hermes', 'ekko', 'coding-agents'])
+const AGENT_MODULE_SET = new Set(['hermes', 'coding-agents'])
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.mts', '.cts'])
 const RESOLUTION_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs']
 const STUDIO_AGENT_ENTRY_POINTS = new Set(['contracts', 'public'])

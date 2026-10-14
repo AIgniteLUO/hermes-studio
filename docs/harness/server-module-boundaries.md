@@ -1,7 +1,7 @@
 # Server Module Boundaries
 
 This document is the architecture contract for `packages/server/src`. It
-separates Studio-owned capabilities from the three agent families while
+separates Studio-owned capabilities from the two agent families while
 preserving request/response semantics and persisted data. Studio-owned HTTP
 operations use `/api/studio/*`; Hermes-owned operations use `/api/hermes/*`.
 Old server source trees are not retained. The only old Studio URL aliases are
@@ -18,12 +18,12 @@ Do not use one `source` or `agent` field for all of these concepts:
 
 | Concept | Allowed values | Meaning |
 | --- | --- | --- |
-| `AgentFamily` | `hermes`, `ekko`, `coding` | Product/domain owner of an agent implementation. |
-| `AgentRuntime` | `hermes`, `ekko`, `claude-code`, `codex`, `pi` | Concrete runtime selected for a run. |
+| `AgentFamily` | `hermes`, `coding` | Product/domain owner of an agent implementation. |
+| `AgentRuntime` | `hermes`, `claude-code`, `codex`, `pi` | Concrete runtime selected for a run. |
 | `RunSurface` | `chat`, `workflow`, `group-chat`, `global-agent`, `api` | Studio surface that initiated a run. |
 | `RunMode` | `scoped`, `global` | Whether the run is workspace/profile scoped or global. |
 
-Hermes and Ekko are both a family and a runtime. Claude Code, Codex, and Pi are
+Hermes is both a family and a runtime. Claude Code, Codex, and Pi are
 three runtimes in the Coding family. Persist and transport these concepts
 separately whenever a schema is introduced or revised.
 
@@ -255,36 +255,6 @@ packages/server/src/
         terminal.ts
         kanban-events.ts
 
-    ekko/                          # Ekko Agent-owned API and behavior
-      index.ts
-      public/
-        runner.ts
-      contracts/
-      routes/
-        chat.ts
-        providers.ts
-        approvals.ts
-        clarifications.ts
-        mcp.ts
-      controllers/
-        chat.ts
-        providers.ts
-        approvals.ts
-        clarifications.ts
-        mcp.ts
-      services/
-        runner/
-        runtime/
-        providers/
-        auth/
-        tools/
-        memory/
-        approvals/
-        clarifications/
-        mcp/
-      sockets/
-        chat.ts
-
     coding-agents/                 # Claude Code, Codex, and Pi family
       index.ts
       public/
@@ -339,7 +309,6 @@ registry. Studio orchestration never imports a concrete agent module.
 | Weixin channel configuration | Hermes | Mutates Hermes profile environment and restarts the Hermes gateway. |
 | Hermes Agent history adapters | Hermes | Read `~/.hermes/.../state.db`; they are separate from Studio repositories. |
 | Hermes runtime download/activation/version | Hermes | Manages the Hermes runtime; split it from Studio Web UI updating. |
-| Ekko runtime, provider handling, tools, memory, approvals, clarification, MCP | Ekko | Concrete Ekko Agent behavior. |
 | Claude Code, Codex, Pi and their shared protocol | Coding Agents | Shared by runtimes in one family, not by all Studio agents. |
 
 If a feature can dispatch multiple agents, that alone does not make its data
@@ -352,13 +321,12 @@ still exposed through a Hermes adapter, but Studio owns the chat-run lifecycle.
 
 An arrow means the row may import the column.
 
-| From / To | Studio | Hermes | Ekko | Coding Agents |
-| --- | ---: | ---: | ---: | ---: |
-| `bootstrap` | yes | yes | yes | yes |
-| Studio | yes | no | no | no |
-| Hermes | contracts/public | yes | no | no |
-| Ekko | contracts/public | no | yes | no |
-| Coding Agents | contracts/public | no | no | yes |
+| From / To | Studio | Hermes | Coding Agents |
+| --- | ---: | ---: | ---: |
+| `bootstrap` | yes | yes | yes |
+| Studio | yes | no | no |
+| Hermes | contracts/public | yes | no |
+| Coding Agents | contracts/public | no | yes |
 
 Additional layer rules:
 

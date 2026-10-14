@@ -31,6 +31,8 @@ packages/desktop/resources/python/
 packages/desktop/node_modules/
 packages/*/.pio/
 packages/*/*/.pio/
+# Locally built ESP32 firmware binaries; never check these in (see docs/PROVENANCE.md)
+packages/esp32-c3/release/
 
 # Hermes config files (should be in user data directory, not project root)
 config.yaml

@@ -2,7 +2,7 @@
 
 Date: 2026-07-19
 Updated: 2026-07-20
-Issue: https://github.com/AIgniteLUO/hermes-studio/issues/2138
+Issue: upstream issue #2138 (not present in this fork)
 
 Status: Implemented on 2026-07-20. The legacy index fields remain available
 for compatibility and are upgraded only by a successful compression cycle.
@@ -137,19 +137,20 @@ middle section to be loaded again.
 ### Compression Execution
 
 Summary generation is not an in-process string transformation. Each actual
-full or incremental summary first creates a fresh Ekko Agent runtime. That
-runtime has tools, MCP, skills, and memory disabled, allows one model step, and
-does not retry a failed model request. It receives only the summary prompt and
-the fixed instruction to generate the checkpoint.
+full or incremental summary runs a dedicated Hermes summarization call through
+the Hermes Agent Bridge: a temporary `compress_*` session ID, the dedicated
+`<profile>:compression:<source-session-id>` worker key, `wait: true`,
+`background_delegation_enabled: false`, and only the summary prompt plus the
+fixed checkpoint instruction as input. The temporary compression session is
+destroyed afterward.
 
-For Hermes Agent conversations, an Ekko failure or unusable summary falls back
-to the previous Hermes `chat` run through Agent Bridge. The fallback uses a
-temporary `compress_*` session ID, receives the same summary prompt as
-conversation history, uses the dedicated
-`<profile>:compression:<source-session-id>` worker key, waits for the result,
-and destroys the temporary compression session afterward. Ekko Agent
-conversations disable that fallback: an Ekko summarization failure stays in the
-shared compressor's normal failure path and never starts Hermes Agent.
+Upstream, this section also described a separate summarizer runtime as the
+primary path with a fallback to the Hermes `chat` run. This fork removed that
+runtime (see [`docs/PROVENANCE.md`](./PROVENANCE.md)), so the Hermes summarizer
+is the only implementation: `allowHermesFallback: false` no longer selects
+between runtimes, it disables summarization for that run
+(`Hermes summarization is disabled for this run`) and the shared compressor's
+normal failure path applies.
 
 The first compression therefore sends the complete selected historical range
 to a summarizer model. Incremental compression sends the previous summary and

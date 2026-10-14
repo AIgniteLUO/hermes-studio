@@ -40,7 +40,9 @@ npm run mcu:v2:flash:clean
 After `pio run`, `npm run build` copies the firmware into
 `packages/esp32-c3/release/v2/firmware.bin` and `dist/mcu/v2/firmware.bin`.
 Firmware v2 checks only the version-isolated v2 OTA manifest and cannot consume
-v1 updates.
+v1 updates. ESP32 firmware binaries are not bundled with release builds and are
+not checked into this repository, so build the firmware locally with
+`pio run -d packages/esp32-c3/v2` before the repository build.
 
 ## Speak Subtitles
 

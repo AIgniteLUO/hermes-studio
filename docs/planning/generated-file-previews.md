@@ -1,7 +1,7 @@
 # Generated File Preview Plan
 
 Date: 2026-07-17
-Issue: https://github.com/AIgniteLUO/hermes-studio/issues/2103
+Issue: upstream issue #2103 (not present in this fork)
 
 ## Context
 

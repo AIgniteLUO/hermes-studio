@@ -6,6 +6,10 @@
 <code>webContents.debugger</code>，不通过 <code>agent-browser</code>，也不开放
 远程调试端口。
 
+> 注：本文是上游规划记录。本 fork 已删除上游为它引入的第二个 Agent 运行时
+> （见 [`docs/PROVENANCE.md`](./PROVENANCE.md)）。文中涉及该运行时的段落仅作为
+> 上游历史保留，当前实现以 Hermes Agent 和 Coding Agents 为准。
+
 ## 一、结论
 
 Hermes Studio 桌面端新增一个基于 Electron <code>WebContentsView</code> 的内置浏览器。
@@ -23,7 +27,7 @@ Vue 浏览器界面
   → WebContentsView
 
 Agent 操作：
-Ekko / Hermes / Codex / Claude Code
+Hermes / Codex / Claude Code
   → MCP（stdio）
   → 本地 Browser Broker（私有 RPC）
   → BrowserManager / BrowserAutomation
@@ -45,7 +49,7 @@ Electron API 和 CDP：
 - 在 Hermes Studio 桌面端提供可见的内置浏览器。
 - 支持多个标签页，并保留每个标签页独立的导航状态。
 - 用户与 Agent 操作同一个可见页面，而不是另外启动隐藏浏览器。
-- Ekko Agent、Hermes Agent、Codex、Claude Code 共用同一套浏览器工具。
+- Hermes Agent、Codex、Claude Code 共用同一套浏览器工具。
 - 复用 CDP Accessibility/DOM/Input/Page 协议，并由桌面端维护短期元素引用。
 - 用户可以实时看到 Agent 的点击、输入、滚动和跳转。
 - 用户可以随时停止 Agent 并接管当前标签页。
@@ -70,9 +74,10 @@ Electron API 和 CDP：
 
 ## 四、现状
 
-### 4.1 Ekko Agent
+### 4.1 上游第二运行时（本 fork 已删除）
 
-<code>packages/ekko-agent/src/tools/browser.ts</code> 已经提供：
+本 fork 已删除该运行时，本节保留为上游历史记录。上游该运行时的
+<code>src/tools/browser.ts</code> 提供：
 
 ~~~text
 browser_navigate
@@ -94,7 +99,7 @@ browser_console
 ### 4.2 MCP
 
 仓库已有 <code>bin/hermes-studio-mcp.mjs</code>，当前按以下 toolset
-向 Ekko 和 coding agent 注入工具：
+向 Hermes 和 coding agent 注入工具：
 
 ~~~text
 api
@@ -136,7 +141,7 @@ browser
 
 ### 6.1 为什么使用 MCP
 
-浏览器不只给 Ekko Agent 使用，还需要提供给 Hermes Agent 和 coding agent。
+浏览器不只给 Hermes Agent 使用，还需要提供给 coding agent。
 MCP 是这些 Agent 都能接入的统一协议，比为每一种 Agent 单独实现一套私有接口
 更合适。
 
@@ -200,7 +205,7 @@ command: hermes-studio-mcp
 args: [browser]
 ~~~
 
-Web UI、Ekko Agent、Hermes Agent 和 coding agent 都注册相同的
+Web UI、Hermes Agent 和 coding agent 都注册相同的
 <code>hermes-studio-browser</code> 托管配置，不再根据
 <code>HERMES_DESKTOP</code> 增删配置，避免多个 Web UI 进程反复改写同一份 Profile。
 
@@ -208,9 +213,9 @@ Web UI、Ekko Agent、Hermes Agent 和 coding agent 都注册相同的
 <code>tools/list</code> 返回 browser 类目入口；普通 Web UI、VPS 或 Broker 已失效时
 返回空工具列表，强行调用只返回明确的不可用错误，不影响 Web UI 主进程。
 
-桌面模式下 Ekko Agent 也使用这套 MCP 工具。原有 Ekko 浏览器工具只作为
-非桌面环境或桌面 Browser Broker 不可用时的独立浏览器回退方案。工具注册器
-必须显式选择其中一种，不能依赖同名工具覆盖顺序。
+桌面模式下 agent 也统一使用这套 MCP 工具。上游另有该运行时自带的浏览器工具，作为
+非桌面环境或桌面 Browser Broker 不可用时的独立浏览器回退方案；该实现已随该运行时
+一并删除。工具注册器必须显式选择其中一种，不能依赖同名工具覆盖顺序。
 
 ## 七、进程通信
 
@@ -624,7 +629,6 @@ interface BrowserProfileSwitchImpact {
 
 - Web UI Server；
 - MCP 进程；
-- Ekko Agent；
 - Hermes Agent；
 - coding agent；
 - 模型。
@@ -758,7 +762,7 @@ interface BrowserAnnotationSession {
 - 小型 JSON/Text 摘要；
 - Tab ID、URL、Viewport 等非敏感信息。
 
-Ekko 的 MCP Client 和模型 Provider Adapter 必须保留图片内容，不能把图片降级为
+Agent 的 MCP Client 和模型 Provider Adapter 必须保留图片内容，不能把图片降级为
 本地路径文本。
 
 内部可以使用：
@@ -1026,7 +1030,7 @@ browserSession.setDownloadPath(profile.downloadPath)
 - 测试地址栏、前进、后退、刷新、标题和 Loading；
 - 创建、切换、关闭多个标签页；
 - 第九个标签页返回本地化错误；
-- Ekko、Hermes、一个 coding agent 分别操作同一个可见页面；
+- Hermes、一个 coding agent 分别操作同一个可见页面；
 - UI 切换标签页后，Agent 仍绑定原标签页；
 - Agent 不能访问 Hermes Studio 主 Renderer；
 - Profile Cookie 持久化且与 Web UI 隔离；
@@ -1091,7 +1095,7 @@ browserSession.setDownloadPath(profile.downloadPath)
 - 实现 Browser Broker；
 - 实现 Broker 描述文件和认证；
 - 实现 1 个 Browser MCP 类目入口和 6 个内部操作；
-- 向 Web UI、Ekko、Hermes、Codex、Claude Code 统一注入 browser MCP 配置；
+- 向 Web UI、Hermes、Codex、Claude Code 统一注入 browser MCP 配置；
 - 没有有效 Desktop Browser Broker 时返回空工具列表；
 - 实现 Caller ID、Tab Binding、Lease、Abort 和 Action Status；
 - Agent 操作同一个可见 View。
@@ -1119,7 +1123,7 @@ browserSession.setDownloadPath(profile.downloadPath)
 
 - 桌面用户可以在 Hermes Studio 内打开多个本地或 HTTPS 页面。
 - 标签页切换后各自状态保持。
-- Ekko、Hermes、Codex、Claude Code 使用同一套 MCP 工具。
+- Hermes、Codex、Claude Code 使用同一套 MCP 工具。
 - 所有 Agent 操作的是同一个可见页面，不启动第二个 Chrome。
 - Agent 操作始终绑定指定标签页。
 - Agent 不能访问 Hermes Studio 主 Renderer。

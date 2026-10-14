@@ -24,8 +24,20 @@ pio device monitor
 
 After `pio run`, run `npm run build` from the repository root to sync the
 firmware into `packages/esp32-c3/release/v1/firmware.bin` and package it into
-`dist/mcu/v1/firmware.bin`. GitHub release builds reuse the checked-in release
-firmware and do not build ESP32 firmware in CI.
+`dist/mcu/v1/firmware.bin`. `npm run build` picks up the PlatformIO artifact
+(`packages/esp32-c3/v1/.pio/build/esp32-c3-devkitm-1/firmware.bin`)
+automatically, so build the firmware locally before the repository build:
+
+```bash
+pio run -d packages/esp32-c3/v1
+npm run build
+```
+
+Release builds do not bundle ESP32 firmware: no CI workflow compiles ESP32
+firmware, and this fork does not check firmware binaries into the repository.
+If no PlatformIO artifact is present, `npm run build` skips
+`dist/mcu/v1/firmware.bin` (or reuses an existing
+`packages/esp32-c3/release/v1/firmware.bin` if one was built locally).
 
 ## Speak Subtitles
 

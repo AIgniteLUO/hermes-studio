@@ -12,6 +12,12 @@
 
 - 物理移除 Ekko Agent 一族能力（`packages/ekko-agent`、`modules/ekko`、`client/*/ekko` 等）
 - 断开上游云服务（App Relay 中继、App Entitlement、版本清单、桌面更新 feed）
+- 删除已提交的 ESP32 预编译固件（其中包含指向原作者服务器的 phone-home URL），并把
+  `packages/esp32-c3/release/` 加入 `.gitignore`。原因：`scripts/build-server.mjs` 会把
+  本地 `pio run` 产物写回该目录，而 `.gitignore` 此前只忽略 `.pio/`，一次常规
+  `git add -A` 就会把新编译的二进制重新提交进来。发布流程不再打包固件，需要固件时先
+  `pio run -d packages/esp32-c3/v1`（或 `v2`）再 `npm run build`，构建会自动拾取
+  `.pio` 产物；找不到固件时构建只会打印 warning 并跳过，不会失败
 - 替换 Ekko 品牌标识与域名
 - server 服务层与 sockets 收敛：清除 bootstrap / sockets / services / controllers / repositories 中的
   Ekko 分支，`npx tsc --noEmit -p packages/server/tsconfig.json` 由 53 个报错收敛到 exit 0
@@ -88,27 +94,55 @@
 
 ## 终态验收（2026-10-15）
 
+### 三层检查与全量构建
+
+| 命令 | 结果 |
+| :--- | :--- |
+| `npx vite build` | exit 0 |
+| `npx tsc --noEmit -p packages/server/tsconfig.json` | exit 0 |
+| `npm run build`（openapi → `vue-tsc -b` → vite build → server tsc → build-server.mjs） | exit 0 |
+| `npm run harness:check` | exit 0 |
+| `npm run verify:sharp-runtime` | exit 0（`verified Sharp 0.35.3 with libvips 8.18.3`） |
+| `npx vitest run` | 见下 |
+
+`npm run build` 在本地没有 ESP32 固件时只打印
+`ESP32-C3 v1/v2 firmware not found, skipped dist/mcu/.../firmware.bin` 警告并继续，
+不影响 exit code。
+
 ### 全量测试
 
 ```
- Test Files  1 failed | 541 passed | 2 skipped (544)
-      Tests  1 failed | 4393 passed | 6 skipped (4400)
+ Test Files  542 passed | 2 skipped (544)
+      Tests  4394 passed | 6 skipped (4400)
 ```
 
-唯一的失败是 `tests/server/hermes-cli-selection-live.test.ts` 的 `Error: Test timed out in 5000ms.`
-—— 即上文基线已记录的 CLI 子进程超时抖动，落在白名单内。相对基线（`578 passed | 2 skipped`）少
-36 个测试文件/368 个测试，减少部分全部是随 Ekko Agent 一族一起删除的专测（`tests/client/ekko-*`、
-`modules/ekko` 专测等），以及 2 个断言已删除机制（运行时侧澄清等待器 / 中断时 `cancelClarify`）
-的用例。
+exit 0，全绿。相对基线（`578 passed | 2 skipped` / `4761 passed | 6 skipped (4767)`）
+少 36 个测试文件 / 367 个测试，减少部分全部是随 Ekko Agent 一族一起删除的专测
+（`tests/client/ekko-*`、`modules/ekko` 专测等），以及 2 个断言已删除机制（运行时侧
+澄清等待器 / 中断时 `cancelClarify`）的用例。
+
+> **关于一次非全绿运行（Task 13 review 指出）**：本文件早前在同一节记录过
+> `1 failed | 4393 passed | 6 skipped (4400)`，唯一失败是
+> `tests/server/hermes-cli-selection-live.test.ts` 的 `Error: Test timed out in 5000ms.`
+> ——即上文基线已列明的 CLI 子进程超时抖动（该文件单独运行 1.5s 内通过）。Task 14 复跑
+> 两次：第一次同样命中该抖动（同一文件、同一 5000ms 超时），第二次 **exit 0 全绿**
+> （上表数字）。按基线回归判据（失败数为 0，或 ≤3 且**全部**是白名单 3 个文件的
+> 5000ms 超时）两次运行均判定无回归；上表记录的是全绿那次。
 
 ### Ekko 残留扫描（`grep -rai "ekko"`，**必须带 `-a`**）
 
-| | 基线（Task 2 记录） | 终态 |
-| :--- | :--- | :--- |
-| 命中文件 | 303 | 37 |
-| 命中行 | 5128 | 488 |
+| | 基线（Task 2 记录） | Task 13 终态 | Task 14 终态 |
+| :--- | :--- | :--- | :--- |
+| 命中文件 | 303 | 37 | 28 |
+| 命中行 | 5128 | 488 | 369 |
 
-（终态数字含本文件自身命中的行。）剩余 37 个文件全部属于白名单或已归档任务范围：
+扫描范围为仓库根目录（本机 shell 的 `grep` 是 ugrep 包装，遵守 `.gitignore`，
+不进入 `node_modules/`、`dist/`、`.pio/` 等忽略目录）。终态数字包含本文件自身命中的
+行；单独扫描 `dist/` 的命中全部是白名单源文件的构建副本（6 个 `SKILL.md` 与
+`prompt.ts` 的 macOS 用户名示例）。
+
+Task 14 完成后的 28 个命中文件 = 17 个测试文件 + 6 个 `SKILL.md` + `prompt.ts` +
+`LICENSE` + 本文件 + `docs/superpowers/{specs,plans}/` 两份，全部属于白名单：
 
 - **本 fork 记录 / 署名 / 许可证**：`LICENSE`（Licensor）、`docs/PROVENANCE.md`、
   `docs/superpowers/{specs,plans}/`、`packages/skills/{apikey-image-gen,grok-image-to-video,hyperframes,markdown-viewer,minimax-image-to-video,remotion}/SKILL.md`
@@ -123,14 +157,28 @@
   用例以它为**输入**断言归一为 `hermes` 或回退到 Hermes 头像（`group-chat-history-window`、
   `group-chat-routes-baseline`、`chat-webhooks`、`session-push`、`run-chat-abort-goal`、
   `chat-agent-avatar`、`message-list-scroll-position`、`session-list-item`）
-- **Task 14（文档重写与发版）范围**：`README.md`、`README_zh.md`、`ARCHITECTURE.md`、`AGENTS.md`、
-  `docs/planning/*.md`
 
-### 品牌域名扫描
+`README.md`、`README_zh.md`、`ARCHITECTURE.md`、`AGENTS.md`、`docs/planning/*.md`
+已由 Task 14 重写完毕，不再有命中。
 
-`grep -rai "ekkolearnai\|ekkoye8888\|hermes-studio\.ai"` 与 `grep -rl "EKKOLearnAI"` 的命中
-**只剩** `LICENSE`、`docs/PROVENANCE.md` 与 `docs/superpowers/{specs,plans}/`，无任何源码或构建产物
-指向上游云服务。
+### 上游云服务
+
+已全部断开（Task 11），静态扫描（含 `dist/` 构建产物）确认无任何上游云服务地址：
+
+- 版本清单改指 `https://api.github.com/repos/AIgniteLUO/hermes-studio/releases`，
+  备用清单常量整行删除；App Relay / App Entitlement / 桌面更新 feed 的上游地址
+  一并删除或改指自有仓库
+- `grep -rai "ekkolearnai\|ekkoye8888\|hermes-studio\.ai"` 与 `grep -rl "EKKOLearnAI"`
+  的命中**只剩** `LICENSE`、`docs/PROVENANCE.md` 与 `docs/superpowers/{specs,plans}/`
+
+### `authorized-provider-adapter` 处置
+
+结论已记于上文「改动摘要」（Task 4 Step 2 的决策点）：**未保留 adapter**，
+`packages/server/src/bootstrap/authorized-provider-adapter.ts` 与
+`packages/server/src/modules/studio/public/authorized-provider-runtime.ts` 已连同
+`bootstrap/ekko.ts` 一起删除。全仓库引用只剩 adapter 自身与桥接模块自身——Hermes 侧
+（`modules/hermes/controllers/*-auth.ts`、`model-catalog-cache.ts`）与 Coding Agents
+直接引用 `modules/hermes/services/providers/authorized-provider-credentials`，不经桥接层。
 
 ## 许可证
 

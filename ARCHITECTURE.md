@@ -9,7 +9,6 @@ backend, and an Electron desktop distribution around Hermes Agent.
 | --- | --- | --- |
 | Client | `packages/client/src` | Vue UI, routing, Pinia stores, API wrappers, i18n, browser-visible state. |
 | Server | `packages/server/src` | HTTP API, auth, Socket.IO, SQLite stores, file access, Hermes runtime integration. |
-| Ekko Agent | `packages/ekko-agent` | Canonical Ekko runtime, profile facade, providers, tools, memory, skills, conversations, and package API. |
 | Desktop | `packages/desktop` | Electron shell, local Web UI server bootstrap, updater, bundled Python/Hermes runtime. |
 | Tests | `tests` | Vitest unit/integration tests and Playwright browser tests. |
 | CI | `.github/workflows` | Build, e2e, lockfile, Docker, and desktop release automation. |
@@ -38,8 +37,8 @@ should not duplicate server persistence rules.
 ## Server Structure
 
 Server code is separated by business ownership under `modules/studio`,
-`modules/hermes`, `modules/ekko`, and `modules/coding-agents`; concrete module
-composition belongs in `bootstrap`.
+`modules/hermes`, and `modules/coding-agents`; concrete module composition
+belongs in `bootstrap`.
 See `docs/harness/server-module-boundaries.md` for the complete target tree,
 ownership decisions, allowed dependency matrix, and migration rules.
 

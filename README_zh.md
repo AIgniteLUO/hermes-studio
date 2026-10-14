@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-  面向 <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>、Ekko、Claude Code、Codex 和 Pi 的<br/>
+  面向 <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>、Claude Code、Codex 和 Pi 的<br/>
   多 Agent 桌面应用、本地运行时和 Web 控制台。<br/>
   在一个本地优先的工作区中完成聊天、群聊、工作流、编码任务、语音、文件和设备管理。
 </p>
@@ -39,35 +39,47 @@
 
 | 模块 | Hermes Studio 能做什么 |
 |---|---|
-| 多 Agent 运行时 | 运行 Hermes、Ekko、Claude Code、Codex 和 Pi，支持流式回复、工具调用轨迹、生成文件预览、持久化会话和桌面独立聊天窗口。 |
+| 多 Agent 运行时 | 运行 Hermes、Claude Code、Codex 和 Pi，支持流式回复、工具调用轨迹、生成文件预览、持久化会话和桌面独立聊天窗口。 |
 | Studio 工作区 | 为不同 Agent 运行时提供统一的单聊、群聊、Global Agent、工作流、文件、语音、媒体、设备、主题、日志、用量和 App 连接能力。 |
 | Agent 控制面 | 将 Hermes 的 Profile、Provider、模型、记忆、技能、插件、任务、Kanban、渠道和运行时管理保留在对应的 Agent 模块内。 |
-| 自动化 | 构建可执行的可视化工作流，通过定时任务、审批节点、群聊房间、平台渠道和 MCP Server 连接五种运行时。 |
+| 自动化 | 构建可执行的可视化工作流，通过定时任务、审批节点、群聊房间、平台渠道和 MCP Server 连接四种运行时。 |
 | 工作区工具 | 提供文件浏览器、Web 终端、桌面 Agent 浏览器、语音输入输出、Coding Agent、设备发现、学习轨迹和性能视图。 |
 | 分发形态 | 支持 Windows/macOS/Linux 桌面应用、npm CLI 包和 Docker 镜像。 |
 
 ## Agent 与平台边界
 
-Hermes Studio 是所有 Agent 共用的产品平台，不是第六种 Agent。当前五种
-具体运行时归入三个 Agent Family：
+Hermes Studio 是所有 Agent 共用的产品平台，不是第五种 Agent。当前四种
+具体运行时归入两个 Agent Family：
 
 | Agent Family | 运行时 | 负责的能力 |
 |---|---|---|
 | Hermes | Hermes | Profile、Provider、模型、技能、插件、记忆、任务、Kanban、渠道、MCP、终端和 Hermes Runtime 集成。 |
-| Ekko | Ekko | Ekko 执行、审批、澄清、记忆、MCP 和 Provider Runtime。 |
 | Coding | Claude Code、Codex、Pi | Coding Agent 的安装、配置、代理、会话和进程执行。 |
 
-Studio 负责三个 Family 共用的能力：单聊、群聊、Global Agent 编排、工作流、
+Studio 负责两个 Family 共用的能力：单聊、群聊、Global Agent 编排、工作流、
 Webhook、会话、文件与上传、TTS/STT、媒体、宠物、主题、设备、网络、日志、
 用量、认证和 App 连接。Studio 所有的 HTTP API 使用 `/api/studio/*`，
 Hermes 控制面 API 使用 `/api/hermes/*`。已经发布的旧版移动 App 路径由
 一个集中兼容层处理，不再保留重复的旧 Controller。
 
+## 本 fork 的改动
+
+本仓库是上游项目的**纯自用、非商业** fork，基于上游标签 `v0.7.15`。与上游相比，
+本 fork：
+
+- 删除了上游在 Hermes Agent 之外引入的额外 Agent 运行时，以及它的包、服务端
+  模块和客户端界面；
+- 断开了全部上游云服务依赖；
+- 替换了残留的上游品牌标识。
+
+上游 commit、完整改动清单，以及基线与终态验证记录见
+[`docs/PROVENANCE.md`](./docs/PROVENANCE.md)。
+
 ## 功能特性
 
 ### AI 聊天
 
-- 聊天前端通过 Socket.IO `/chat-run` 实时流式更新；Studio 通过运行时适配器将任务分发给 Hermes、Ekko、Claude Code、Codex 或 Pi
+- 聊天前端通过 Socket.IO `/chat-run` 实时流式更新；Studio 通过运行时适配器将任务分发给 Hermes、Claude Code、Codex 或 Pi
 - 多会话管理 — 创建、重命名、删除、切换会话
 - **自建会话数据库** — Studio 会话使用本地 SQLite；Hermes state.db 仅作为只读来源用于 Hermes 历史 API
 - 按来源分组会话（Telegram、Discord、Slack 等），可折叠手风琴面板
@@ -126,7 +138,7 @@ Hermes 控制面 API 使用 `/api/hermes/*`。已经发布的旧版移动 App �
 
 ### 可视化工作流
 
-- 基于 Vue Flow 的画布，支持 Hermes、Ekko、Claude Code、Codex、Pi 节点以及文件/图片附件
+- 基于 Vue Flow 的画布，支持 Hermes、Claude Code、Codex、Pi 节点以及文件/图片附件
 - 支持有向连线、结构化条件、成功/失败路由、循环和审批门
 - 工作流定义可导入/导出，并支持按 Profile 管理工作区
 - 支持运行预算、截止时间、停止、重跑和持久化执行历史
@@ -187,7 +199,7 @@ Hermes 控制面 API 使用 `/api/hermes/*`。已经发布的旧版移动 App �
 - 浏览和搜索已安装的技能
 - 查看技能详情和附件
 - 安装和管理 Skill Bundles，并查看按 Profile 统计的技能用量
-- 用户笔记、Ekko Agent 持久记忆和按 Profile 管理的记忆
+- 用户笔记、Hermes Agent 持久记忆和按 Profile 管理的记忆
 - 学习轨迹关系图，支持技能/记忆关系、分类筛选、详情查看和播放
 
 ### 主题自定义
@@ -465,12 +477,11 @@ Koa Bootstrap（仅负责组装）
           │                 会话、文件、语音、设备、Webhook
           ├─ Hermes Family ─ Profile、模型、技能、记忆、任务、
           │                  Kanban、渠道、终端、Hermes Bridge
-          ├─ Ekko Family ─── Ekko Runtime 与 Agent 自有服务
           └─ Coding Family ─ Claude Code、Codex、Pi 适配器
 ```
 
 服务端按业务归属组织在
-`packages/server/src/modules/{studio,hermes,ekko,coding-agents}`。Route 保持轻量，
+`packages/server/src/modules/{studio,hermes,coding-agents}`。Route 保持轻量，
 Controller 处理 HTTP 关注点，Service 负责可复用业务行为，只有
 `packages/server/src/bootstrap` 可以组装具体模块和 Adapter。跨 Agent 的能力归
 Studio；不能因为某项公共功能当前使用 Hermes，就把它放进 Hermes 模块。

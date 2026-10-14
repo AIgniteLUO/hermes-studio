@@ -5,7 +5,7 @@
 
 <p align="center">
   A multi-agent desktop app, local runtime, and web console for<br/>
-  <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>, Ekko, Claude Code, Codex, and Pi.<br/>
+  <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>, Claude Code, Codex, and Pi.<br/>
   Run chats, groups, workflows, coding tasks, voice, files, and devices from one local-first workspace.
 </p>
 
@@ -31,22 +31,21 @@
 
 | Area | What Hermes Studio does |
 | --- | --- |
-| Multi-agent runtime | Runs Hermes, Ekko, Claude Code, Codex, and Pi with streaming responses, tool traces, generated-file previews, persistent sessions, and standalone desktop chat windows. |
+| Multi-agent runtime | Runs Hermes, Claude Code, Codex, and Pi with streaming responses, tool traces, generated-file previews, persistent sessions, and standalone desktop chat windows. |
 | Studio workspace | Provides shared chats, group chat, global-agent runs, workflows, files, voice, media, devices, themes, logs, usage, and App connectivity across agent runtimes. |
 | Agent control planes | Keeps Hermes profiles, providers, models, memory, skills, plugins, jobs, Kanban, channels, and runtime management in their owning agent module. |
-| Automation | Builds executable visual workflows and connects the five runtimes through schedules, approval gates, group-chat rooms, platform channels, and MCP servers. |
+| Automation | Builds executable visual workflows and connects the four runtimes through schedules, approval gates, group-chat rooms, platform channels, and MCP servers. |
 | Workspace tools | Provides a file browser, web terminal, Desktop Agent Browser, voice input/output, coding-agent runners, device discovery, Journey graph, and performance views. |
 | Distribution | Ships as a desktop app for Windows/macOS/Linux, an npm CLI package, and a Docker image. |
 
 ## Agent and Platform Boundaries
 
-Hermes Studio is the shared product platform, not a sixth agent. It coordinates
-five concrete runtimes grouped into three agent families:
+Hermes Studio is the shared product platform, not a fifth agent. It coordinates
+four concrete runtimes grouped into two agent families:
 
 | Agent family | Runtime | Owned behavior |
 | --- | --- | --- |
 | Hermes | Hermes | Profiles, providers, models, skills, plugins, memory, jobs, Kanban, channels, MCP, terminal, and Hermes runtime integration. |
-| Ekko | Ekko | Ekko execution, approvals, clarifications, memory, MCP, and provider runtime behavior. |
 | Coding | Claude Code, Codex, Pi | Coding-agent installation, configuration, proxies, sessions, and process execution. |
 
 Studio owns capabilities shared by those families: single chat, group chat,
@@ -57,11 +56,24 @@ control-plane APIs use `/api/hermes/*`. Already-released mobile App paths are
 handled by one centralized compatibility layer instead of duplicate legacy
 controllers.
 
+## This Fork's Changes
+
+This repository is a self-use, non-commercial fork of the upstream project,
+based on upstream tag `v0.7.15`. Compared with upstream, this fork:
+
+- removes the extra agent runtime that upstream added on top of Hermes Agent,
+  together with its package, server-module, and client surfaces;
+- disconnects every upstream cloud-service dependency;
+- replaces the remaining upstream branding.
+
+See [`docs/PROVENANCE.md`](./docs/PROVENANCE.md) for the upstream commit, the
+full change list, and the baseline and final verification records.
+
 ## Features
 
 ### AI Chat
 
-- Real-time chat streaming over Socket.IO `/chat-run`; Studio dispatches each run to Hermes, Ekko, Claude Code, Codex, or Pi through runtime adapters
+- Real-time chat streaming over Socket.IO `/chat-run`; Studio dispatches each run to Hermes, Claude Code, Codex, or Pi through runtime adapters
 - Multi-session management — create, rename, delete, switch between sessions
 - **Self-built session database** — local SQLite storage for Studio sessions; Hermes state.db remains a read-only source for Hermes history APIs
 - Session grouping by source (Telegram, Discord, Slack, etc.) with collapsible accordion
@@ -120,7 +132,7 @@ Unified configuration for **10 platforms** in one page:
 
 ### Visual Workflows
 
-- Vue Flow canvas for Hermes, Ekko, Claude Code, Codex, and Pi nodes with file/image attachments
+- Vue Flow canvas for Hermes, Claude Code, Codex, and Pi nodes with file/image attachments
 - Directed edges, structured conditions, success/failure routes, loops, and approval gates
 - Import/export for portable workflow definitions and profile-aware workspaces
 - Run budgets, deadlines, stop/rerun controls, and persisted execution history
@@ -181,7 +193,7 @@ Unified configuration for **10 platforms** in one page:
 - Browse and search installed skills
 - View skill details and attached files
 - Install and manage Skill Bundles with profile-aware usage statistics
-- User notes, persistent Ekko Agent memory, and profile-scoped memory management
+- User notes, persistent Hermes Agent memory, and profile-scoped memory management
 - Interactive Journey graph for skill/memory relationships, category filtering, detail inspection, and playback
 
 ### Theme Customization
@@ -465,12 +477,11 @@ Koa bootstrap (composition only)
           │                    sessions, files, voice, devices, webhooks
           ├─ Hermes family ─── profiles, models, skills, memory, jobs,
           │                    Kanban, channels, terminal, Hermes bridge
-          ├─ Ekko family ───── Ekko runtime and agent-owned services
           └─ Coding family ─── Claude Code, Codex, and Pi adapters
 ```
 
 The server is organized by business ownership under
-`packages/server/src/modules/{studio,hermes,ekko,coding-agents}`. Routes stay
+`packages/server/src/modules/{studio,hermes,coding-agents}`. Routes stay
 thin, controllers own HTTP concerns, services own reusable behavior, and only
 `packages/server/src/bootstrap` may compose concrete modules and adapters.
 Cross-agent code belongs to Studio; an agent module must not absorb a shared

@@ -378,7 +378,10 @@ function requestBaseUrl(ctx: Context): string | undefined {
 }
 
 async function verifyRemoteRelayDeviceCode(deviceCode: string): Promise<boolean> {
-  const url = `${config.remoteRelay.url.replace(/\/$/, '')}/global-agent/device/${encodeURIComponent(deviceCode)}`
+  const baseUrl = config.remoteRelay.url.replace(/\/$/, '')
+  // Without a configured relay there is no service to validate device codes against.
+  if (!baseUrl) return false
+  const url = `${baseUrl}/global-agent/device/${encodeURIComponent(deviceCode)}`
   const response = await fetch(url, { method: 'GET' })
   return response.ok
 }

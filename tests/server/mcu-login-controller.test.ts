@@ -189,7 +189,8 @@ describe('MCU login controller', () => {
   })
 
   it('uses the fixed remote relay when remote login is requested', async () => {
-    const remoteRelayUrl = 'https://api.hermes-studio.ai'
+    const remoteRelayUrl = 'https://relay.example.com'
+    vi.stubEnv('HERMES_REMOTE_RELAY_URL', remoteRelayUrl)
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 })))
     startOutboundRelayClientMock.mockReturnValue({ start: vi.fn() })
     const { ctrl, users } = await loadModules()
@@ -230,6 +231,7 @@ describe('MCU login controller', () => {
   })
 
   it('rejects remote login when the fixed relay does not allow the device code', async () => {
+    vi.stubEnv('HERMES_REMOTE_RELAY_URL', 'https://relay.example.com')
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ok: false }), { status: 404 })))
     const { ctrl, users } = await loadModules()
     users.createUser({

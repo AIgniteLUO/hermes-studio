@@ -35,6 +35,7 @@ import { homedir } from 'os'
  *   Discovery probes are sent to the fixed UDP port 48640 plus legacy mapped ports for compatibility.
  * - HERMES_LAN_ADVERTISE_URL: Publicly reachable Studio origin used in LAN QR codes, especially from Docker.
  * - HERMES_APP_ENTITLEMENT_REQUIRED: Require an RS256 cloud entitlement for App LAN relay connections.
+ *   Disabled by default; set 1/true/yes/on to enforce a self-hosted entitlement issuer.
  * - HERMES_APP_ENTITLEMENT_PUBLIC_KEY: Optional PEM public-key override for App entitlement verification.
  * - WORKSPACE_BASE: Base directory for workspace browsing. Default: current user's home directory.
  *
@@ -78,15 +79,17 @@ export function getLanAdvertiseUrl(env: Record<string, string | undefined> = pro
 
 export function isAppEntitlementRequired(env: Record<string, string | undefined> = process.env): boolean {
   const value = String(env.HERMES_APP_ENTITLEMENT_REQUIRED || '').trim().toLowerCase()
-  return !['0', 'false', 'no', 'off'].includes(value)
+  return ['1', 'true', 'yes', 'on'].includes(value)
 }
 
 const appHome = getWebUiHome()
+// Relay endpoints are unset by default: this build ships no vendor cloud relay, so
+// remote access stays off until a self-hosted relay is configured through the env vars.
 const remoteRelay = {
-  url: process.env.HERMES_REMOTE_RELAY_URL?.trim() || 'https://api.hermes-studio.ai',
+  url: process.env.HERMES_REMOTE_RELAY_URL?.trim() || '',
 }
 const appRelay = {
-  url: process.env.HERMES_APP_RELAY_URL?.trim() || 'https://api.hermes-studio.ai',
+  url: process.env.HERMES_APP_RELAY_URL?.trim() || '',
   entitlementRequired: isAppEntitlementRequired(),
 }
 

@@ -146,12 +146,9 @@ describe('local STT model manager', () => {
 
   it('resolves the Cloudflare and GitHub channels to the same pinned release asset', async () => {
     const manager = await import('../../packages/server/src/modules/studio/services/voice/stt/local-model-manager')
-    expect(manager.localSttModelAssetUrl('cf')).toBe(
-      `https://download.ekkolearnai.com/${manager.LOCAL_STT_MODEL_RELEASE_TAG}/${manager.LOCAL_STT_MODEL_ASSET_NAME}`,
-    )
-    expect(manager.localSttModelAssetUrl('github')).toBe(
-      `https://github.com/EKKOLearnAI/hermes-studio/releases/download/${manager.LOCAL_STT_MODEL_RELEASE_TAG}/${manager.LOCAL_STT_MODEL_ASSET_NAME}`,
-    )
+    const assetUrl = `https://github.com/AIgniteLUO/hermes-studio/releases/download/${manager.LOCAL_STT_MODEL_RELEASE_TAG}/${manager.LOCAL_STT_MODEL_ASSET_NAME}`
+    expect(manager.localSttModelAssetUrl('cf')).toBe(assetUrl)
+    expect(manager.localSttModelAssetUrl('github')).toBe(assetUrl)
   })
 
   it('wraps raw 16 kHz mono s16le PCM for local inference without ffmpeg', async () => {

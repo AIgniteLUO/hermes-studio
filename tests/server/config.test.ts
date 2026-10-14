@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { homedir } from 'os'
 import { join, resolve } from 'path'
 import {
+  config,
   getCorsOrigins,
   getLanAdvertiseUrl,
   getListenHost,
@@ -53,9 +54,15 @@ describe('server config', () => {
     expect(getLanAdvertiseUrl({ HERMES_LAN_ADVERTISE_URL: 'file:///tmp/studio' })).toBe('')
   })
 
-  it('enforces App entitlements by default and allows an explicit compatibility opt-out', () => {
-    expect(isAppEntitlementRequired({})).toBe(true)
+  it('keeps App entitlements optional by default and requires an explicit opt-in', () => {
+    expect(isAppEntitlementRequired({})).toBe(false)
     expect(isAppEntitlementRequired({ HERMES_APP_ENTITLEMENT_REQUIRED: 'true' })).toBe(true)
+    expect(isAppEntitlementRequired({ HERMES_APP_ENTITLEMENT_REQUIRED: '1' })).toBe(true)
     expect(isAppEntitlementRequired({ HERMES_APP_ENTITLEMENT_REQUIRED: 'off' })).toBe(false)
+  })
+
+  it('ships no vendor relay endpoint by default', () => {
+    expect(config.appRelay.url).toBe('')
+    expect(config.remoteRelay.url).toBe('')
   })
 })

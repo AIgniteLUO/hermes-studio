@@ -4,8 +4,9 @@ App Relay lets the mobile App reach a Hermes Studio instance without exposing
 the Studio HTTP server to the Internet. It is independent from the MCU
 `/global-agent` connection.
 
-Studio can use the official `https://api.hermes-studio.ai` route or the
-Cloudflare `https://cn.hermes-studio.ai` route. The selected route is persisted
+This build ships no vendor cloud relay. Every relay route resolves to the
+self-hosted relay configured through `HERMES_APP_RELAY_URL`; with that variable
+unset the App Relay stays unavailable. The selected route is persisted
 locally and included in cloud QR codes as informational metadata. The App keeps
 an independent route setting; scanning a cloud QR never changes it.
 

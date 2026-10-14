@@ -148,7 +148,30 @@ describe('runtime version manager storage migration', () => {
     expect(status.hermes.remoteVersions).toEqual(['0.19.1', '0.20.4'])
     expect(status.webui.remoteVersions).toEqual([])
     expect(fetch).toHaveBeenCalledWith(
-      'https://api.hermes-studio.ai/api/studio/versions',
+      'https://api.github.com/repos/AIgniteLUO/hermes-studio/releases',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    )
+  })
+
+  it('maps Hermes runtime release tags from the GitHub releases API response', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ([
+        { tag_name: 'hermes-0.20.4-runtime' },
+        { tag_name: 'hermes-0.19.1-runtime' },
+        { tag_name: 'hermes-0.20.4-runtime' },
+        { tag_name: 'v0.7.34-1' },
+      ]),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { getRuntimeVersionStatus } = await import('../../packages/server/src/modules/hermes/services/runtime/version-manager')
+    const status = await getRuntimeVersionStatus()
+
+    expect(status.hermes.remoteVersions).toEqual(['0.20.4', '0.19.1'])
+    expect(status.remoteError).toBe('')
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.github.com/repos/AIgniteLUO/hermes-studio/releases',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     )
   })
@@ -239,43 +262,30 @@ describe('runtime version manager storage migration', () => {
     })
   })
 
-  it('falls back to the previous website manifest when the Studio version API is unavailable', async () => {
-    const fetchMock = vi.fn()
-      .mockRejectedValueOnce(new Error('connect ECONNREFUSED'))
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ schema: 1, hermes: ['0.19.1', '0.20.0'] }),
-      })
+  it('reports the manifest fetch error without requesting a fallback manifest', async () => {
+    const fetchMock = vi.fn().mockRejectedValueOnce(new Error('connect ECONNREFUSED'))
     vi.stubGlobal('fetch', fetchMock)
 
     const { getRuntimeVersionStatus } = await import('../../packages/server/src/modules/hermes/services/runtime/version-manager')
     const status = await getRuntimeVersionStatus()
 
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      1,
-      'https://api.hermes-studio.ai/api/studio/versions',
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.github.com/repos/AIgniteLUO/hermes-studio/releases',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     )
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
-      'https://hermes-studio.ai/versions.json',
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    )
-    expect(status.hermes.remoteVersions).toEqual(['0.19.1', '0.20.0'])
-    expect(status.remoteError).toBe('')
+    expect(status.hermes.remoteVersions).toEqual([])
+    expect(status.remoteError).toContain('connect ECONNREFUSED')
   })
 
-  it('reports both errors when the Studio API and website manifest are unavailable', async () => {
-    vi.stubGlobal('fetch', vi.fn()
-      .mockResolvedValueOnce({ ok: false, status: 503 })
-      .mockRejectedValueOnce(new Error('website unavailable')))
+  it('surfaces a manifest HTTP failure through remoteError', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce({ ok: false, status: 503 }))
 
     const { getRuntimeVersionStatus } = await import('../../packages/server/src/modules/hermes/services/runtime/version-manager')
     const status = await getRuntimeVersionStatus()
 
     expect(status.hermes.remoteVersions).toEqual([])
     expect(status.remoteError).toContain('returned 503')
-    expect(status.remoteError).toContain('fallback failed: website unavailable')
   })
 
   it('rejects a destination nested inside the current Runtime storage root', async () => {

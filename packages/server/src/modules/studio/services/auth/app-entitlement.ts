@@ -1,7 +1,7 @@
 import { verify as verifySignature, type KeyObject } from 'crypto'
 
 export const APP_ENTITLEMENT_ISSUER = 'hermes-studio-server'
-export const APP_ENTITLEMENT_AUDIENCE = 'ekko-studio'
+export const APP_ENTITLEMENT_AUDIENCE = 'hermes-studio'
 export const APP_ENTITLEMENT_TOKEN_TYPE = 'app_entitlement'
 export const APP_ENTITLEMENT_FEATURE = 'lan_access'
 

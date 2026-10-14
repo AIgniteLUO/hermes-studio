@@ -44,13 +44,12 @@ import {
 } from './runtime-relocation'
 import { t } from './desktop-i18n'
 
-const DEFAULT_RUNTIME_BASE_URL = 'https://download.ekkolearnai.com'
-const DEFAULT_RUNTIME_GITHUB_REPO = 'EKKOLearnAI/hermes-studio'
+const DEFAULT_RUNTIME_GITHUB_REPO = 'AIgniteLUO/hermes-studio'
 const RUNTIME_MANIFEST_NAME = 'runtime-manifest.json'
 const PACKAGED_RUNTIME_RELEASE_NAME = 'runtime-release.json'
 const ACTIVE_RUNTIME_VERSION_NAME = 'active-version.json'
 
-export type RuntimeDownloadSource = 'cf' | 'github'
+export type RuntimeDownloadSource = 'github'
 
 type RuntimeManifest = {
   schema: number
@@ -118,8 +117,7 @@ type RuntimeProgressHandler = (progress: RuntimeProgress) => void
 function runtimeDownloadSource(source?: RuntimeDownloadSource): RuntimeDownloadSource | null {
   if (source) return source
   const value = process.env.HERMES_DESKTOP_RUNTIME_SOURCE?.trim().toLowerCase()
-  if (value === 'github' || value === 'cf') return value
-  return null
+  return value === 'github' ? 'github' : null
 }
 
 function requiredRuntimeFiles(root: string): string[] {
@@ -337,22 +335,12 @@ export function cachedRuntimeNeedsPackagedReleaseUpdate(): boolean {
   return match === false
 }
 
-function runtimeAssetUrl(assetName: string, tag: string, source: RuntimeDownloadSource): string {
-  if (source === 'github') {
-    const repo = process.env.HERMES_DESKTOP_RUNTIME_REPO?.trim() || DEFAULT_RUNTIME_GITHUB_REPO
-    if (tag === 'latest') {
-      return `https://github.com/${repo}/releases/latest/download/${encodeURIComponent(assetName)}`
-    }
-    return `https://github.com/${repo}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(assetName)}`
+function runtimeAssetUrl(assetName: string, tag: string): string {
+  const repo = process.env.HERMES_DESKTOP_RUNTIME_REPO?.trim() || DEFAULT_RUNTIME_GITHUB_REPO
+  if (tag === 'latest') {
+    return `https://github.com/${repo}/releases/latest/download/${encodeURIComponent(assetName)}`
   }
-
-  const template = process.env.HERMES_DESKTOP_RUNTIME_BASE_URL?.trim() || DEFAULT_RUNTIME_BASE_URL
-  if (template.includes('{asset}') || template.includes('{tag}')) {
-    return template
-      .replace(/\{asset\}/g, encodeURIComponent(assetName))
-      .replace(/\{tag\}/g, encodeURIComponent(tag))
-  }
-  return `${template.replace(/\/$/, '')}/${encodeURIComponent(tag)}/${encodeURIComponent(assetName)}`
+  return `https://github.com/${repo}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(assetName)}`
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -383,7 +371,7 @@ async function resolveRuntimeDescriptor(source?: RuntimeDownloadSource): Promise
 
   const candidates = manifestOverride
     ? [{ tag: '', url: manifestOverride }]
-    : releaseTagCandidates().map(tag => ({ tag, url: runtimeAssetUrl(platformManifestName, tag, downloadSource!) }))
+    : releaseTagCandidates().map(tag => ({ tag, url: runtimeAssetUrl(platformManifestName, tag) }))
 
   let lastError: Error | null = null
   for (const candidate of candidates) {
@@ -398,7 +386,7 @@ async function resolveRuntimeDescriptor(source?: RuntimeDownloadSource): Promise
       }
       return {
         name: manifest.asset.name,
-        url: manifest.asset.url || runtimeAssetUrl(manifest.asset.name, candidate.tag, downloadSource!),
+        url: manifest.asset.url || runtimeAssetUrl(manifest.asset.name, candidate.tag),
         sha256: manifest.asset.sha256,
         hermesAgentVersion: manifest.hermesAgentVersion,
       }

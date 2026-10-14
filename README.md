@@ -10,21 +10,21 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/EKKOLearnAI/hermes-studio/releases/latest">Download Hermes Studio Desktop</a>
+  <a href="https://github.com/AIgniteLUO/hermes-studio/releases/latest">Download Hermes Studio Desktop</a>
   ·
-  <a href="https://hermes-studio.ai/#/docs/getting-started">Documentation</a>
+  <a href="https://github.com/AIgniteLUO/hermes-studio#readme">Documentation</a>
   ·
   <code>npm install -g hermes-web-ui && hermes-web-ui start</code>
 </p>
 
 <p align="center">
-  <img src="https://github.com/EKKOLearnAI/hermes-studio/blob/main/packages/client/src/assets/image.gif" alt="Hermes Studio Demo" width="680"/>
+  <img src="https://github.com/AIgniteLUO/hermes-studio/blob/main/packages/client/src/assets/image.gif" alt="Hermes Studio Demo" width="680"/>
 </p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/hermes-web-ui"><img src="https://img.shields.io/npm/v/hermes-web-ui?style=flat-square&color=blue" alt="npm version"/></a>
-  <a href="https://github.com/EKKOLearnAI/hermes-studio/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/hermes-web-ui?style=flat-square" alt="license"/></a>
-  <a href="https://github.com/EKKOLearnAI/hermes-studio/stargazers"><img src="https://img.shields.io/github/stars/EKKOLearnAI/hermes-studio?style=flat-square" alt="stars"/></a>
+  <a href="https://github.com/AIgniteLUO/hermes-studio/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/hermes-web-ui?style=flat-square" alt="license"/></a>
+  <a href="https://github.com/AIgniteLUO/hermes-studio/stargazers"><img src="https://img.shields.io/github/stars/AIgniteLUO/hermes-studio?style=flat-square" alt="stars"/></a>
 </p>
 
 ## Core Capabilities
@@ -256,8 +256,7 @@ hermes-web-ui reset-default-login
 
 - Native Electron shell for Windows, macOS, and Linux
 - Bundles the Studio runtime and starts the local server automatically
-- Uses Cloudflare download endpoints for desktop auto-update metadata and assets first
-- Falls back to GitHub Releases `latest` assets if the Cloudflare update feed is unavailable
+- Uses GitHub Releases `latest` assets for desktop auto-update metadata and packages
 - Windows upgrades attempt to close an existing Hermes Studio process before replacing files
 
 ---
@@ -267,7 +266,7 @@ hermes-web-ui reset-default-login
 ### Desktop App (Recommended)
 
 Download the latest **Hermes Studio** desktop installer from
-[GitHub Releases](https://github.com/EKKOLearnAI/hermes-studio/releases/latest).
+[GitHub Releases](https://github.com/AIgniteLUO/hermes-studio/releases/latest).
 
 Desktop builds are published for macOS, Windows, and Linux, with separate
 architecture assets where applicable. The desktop app bundles the Studio
@@ -292,10 +291,9 @@ Use `hermes-studio cli -h` for Hermes Agent CLI help and
 `api` toolset; choose `browser`, `devices`, or `use` to keep the exposed MCP
 surface focused on the current task.
 
-Desktop auto-updates read the latest feed from
-`https://download.ekkolearnai.com/latest` first. If that endpoint is
-unavailable, the updater falls back to
-`https://github.com/EKKOLearnAI/hermes-studio/releases/latest/download`.
+Desktop auto-updates read metadata and packages from the GitHub Releases
+`latest` assets at
+`https://github.com/AIgniteLUO/hermes-studio/releases/latest/download`.
 
 ### npm
 
@@ -312,7 +310,7 @@ Single-container deployment with integrated Hermes Agent:
 
 ```bash
 # Use pre-built image (Recommended)
-WEBUI_IMAGE=ekkoye8888/hermes-web-ui docker compose up -d
+WEBUI_IMAGE=ghcr.io/aigniteluo/hermes-web-ui docker compose up -d
 
 # Or build from source
 docker compose up -d --build
@@ -346,8 +344,8 @@ These variables configure Hermes Studio, its local Hermes runtime integration, a
 | `PORT` | `8648` | Studio server listen port. |
 | `BIND_HOST` | `0.0.0.0` | Studio server bind host. Set `::` explicitly for IPv6. |
 | `HERMES_LAN_ADVERTISE_URL` | unset | Reachable Studio origin used in App LAN QR codes. Set this to the Docker host's LAN URL when Studio is opened through `localhost`, for example `http://192.168.1.20:6060`. |
-| `HERMES_APP_ENTITLEMENT_REQUIRED` | `true` | Require a valid cloud-signed App entitlement before accepting a LAN App relay connection. Set `false` only for temporary compatibility diagnostics. |
-| `HERMES_APP_ENTITLEMENT_PUBLIC_KEY` | built in | Optional PEM public-key override for RS256 App entitlements. The expected issuer is `hermes-studio-server` and audience is `ekko-studio`. |
+| `HERMES_APP_ENTITLEMENT_REQUIRED` | `false` | Require a valid RS256 App entitlement before accepting a LAN App relay connection. Set `true` to enforce entitlements issued by a self-hosted signer. |
+| `HERMES_APP_ENTITLEMENT_PUBLIC_KEY` | built in | Optional PEM public-key override for RS256 App entitlements. The expected issuer is `hermes-studio-server` and audience is `hermes-studio`. |
 | `HERMES_WEB_UI_HOME` | `~/.hermes-web-ui` | Studio data home for auth token, credentials, logs, DB, and default uploads. `HERMES_WEBUI_STATE_DIR` is also supported as a compatibility alias. |
 | `HERMES_WEBUI_STATE_DIR` | unset | Compatibility alias for `HERMES_WEB_UI_HOME`. |
 | `HERMES_WEB_UI_DISABLE_MCP_AUTOINJECT` | unset | Disable startup injection of the managed `hermes-studio` MCP server into Hermes profile configs. |
@@ -384,7 +382,7 @@ These variables configure Hermes Studio, its local Hermes runtime integration, a
 | `HERMES_BRIDGE_TOOLSETS` | profile/default | Toolset override for bridge runs. |
 | `HERMES_BRIDGE_MAX_TURNS` | profile/default | Maximum turn override for bridge runs. |
 | `HERMES_BRIDGE_SUPPRESS_PLATFORM_HINT` | `cli` | Controls bridge platform hint suppression passed to Hermes Agent. |
-| `HERMES_OPENROUTER_APP_REFERER` | `https://hermes-studio.ai` | OpenRouter attribution referer sent by bridge runs. |
+| `HERMES_OPENROUTER_APP_REFERER` | `https://github.com/AIgniteLUO/hermes-studio` | OpenRouter attribution referer sent by bridge runs. |
 | `HERMES_OPENROUTER_APP_TITLE` | `Hermes Studio` | OpenRouter attribution title sent by bridge runs. |
 | `HERMES_OPENROUTER_APP_CATEGORIES` | `cli-agent,personal-agent` | OpenRouter attribution categories sent by bridge runs. |
 | `HERMES_WEB_UI_MANAGED_GATEWAY` | enabled | Controls Studio-managed Hermes gateway process handling. Set `0`, `false`, `no`, or `off` to use `hermes gateway start` instead. |
@@ -437,7 +435,7 @@ On startup the BFF server automatically:
 ## Development
 
 ```bash
-git clone https://github.com/EKKOLearnAI/hermes-studio.git
+git clone https://github.com/AIgniteLUO/hermes-studio.git
 cd hermes-studio
 npm install
 npm run dev

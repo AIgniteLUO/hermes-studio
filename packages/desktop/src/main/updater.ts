@@ -10,11 +10,9 @@ import { isWindowsUpdaterLockError, pendingUpdateDirectories } from './updater-h
 let initialized = false
 let checking = false
 let downloadedUpdate: UpdateDownloadedEvent | null = null
-let tryingFallbackFeed = false
 let recoveringPendingUpdate = false
 
-const CLOUDFLARE_LATEST_FEED_URL = 'https://download.ekkolearnai.com/latest'
-const GITHUB_LATEST_FEED_URL = 'https://github.com/EKKOLearnAI/hermes-studio/releases/latest/download'
+const GITHUB_LATEST_FEED_URL = 'https://github.com/AIgniteLUO/hermes-studio/releases/latest/download'
 const execFileAsync = promisify(execFile)
 
 interface AutoUpdaterOptions {
@@ -30,20 +28,9 @@ function configureUpdateFeed(url: string): void {
   })
 }
 
-async function checkForUpdatesWithFallback(): Promise<void> {
-  configureUpdateFeed(CLOUDFLARE_LATEST_FEED_URL)
-  try {
-    await autoUpdater.checkForUpdates()
-  } catch (err) {
-    console.warn(`[updater] Cloudflare update feed failed, trying GitHub: ${err instanceof Error ? err.message : String(err)}`)
-    tryingFallbackFeed = true
-    try {
-      configureUpdateFeed(GITHUB_LATEST_FEED_URL)
-      await autoUpdater.checkForUpdates()
-    } finally {
-      tryingFallbackFeed = false
-    }
-  }
+async function checkForUpdatesFromGitHub(): Promise<void> {
+  configureUpdateFeed(GITHUB_LATEST_FEED_URL)
+  await autoUpdater.checkForUpdates()
 }
 
 function showUpToDate(info?: UpdateInfo) {
@@ -208,7 +195,7 @@ export function initAutoUpdater(nextOptions: AutoUpdaterOptions = {}) {
     recoverFailedPendingUpdate(err).catch(cleanupErr => {
       console.warn(`[updater] pending update recovery failed: ${cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr)}`)
     })
-    if (checking && !tryingFallbackFeed) showUpdateCheckFailed()
+    if (checking) showUpdateCheckFailed()
   })
   autoUpdater.on('download-progress', (info: ProgressInfo) => {
     console.log(`[updater] download ${Math.round(info.percent)}%`)
@@ -254,7 +241,7 @@ export async function checkForDesktopUpdates(manual: boolean): Promise<void> {
 
   checking = manual
   try {
-    await checkForUpdatesWithFallback()
+    await checkForUpdatesFromGitHub()
   } catch (err) {
     if (manual) showUpdateCheckFailed()
     throw err

@@ -1,4 +1,4 @@
-export const STUDIO_VERSION_MANIFEST_URL = 'https://api.hermes-studio.ai/api/studio/versions'
+export const STUDIO_VERSION_MANIFEST_URL = 'https://api.github.com/repos/AIgniteLUO/hermes-studio/releases'
 
 export interface StudioMobileLinkChannel {
   url: string
@@ -42,14 +42,55 @@ function isStudioMobileRelease(value: unknown): value is StudioMobileRelease {
     && isRecord(harmony)
 }
 
+// GitHub Releases API tag for a downloadable Hermes runtime package.
+const HERMES_RUNTIME_RELEASE_TAG = /^hermes-(.+)-runtime$/
+
+function hermesVersionsFromGitHubReleases(releases: unknown[]): string[] {
+  const versions: string[] = []
+  for (const release of releases) {
+    if (!isRecord(release)) continue
+    const tag = release.tag_name
+    if (typeof tag !== 'string') continue
+    const version = HERMES_RUNTIME_RELEASE_TAG.exec(tag.trim())?.[1]?.trim()
+    if (version && !versions.includes(version)) versions.push(version)
+  }
+  return versions
+}
+
+// This fork publishes no HStudio mobile app, so the GitHub Releases API response
+// is reported with every mobile channel unavailable instead of vendor store links.
+function unavailableMobileRelease(): StudioMobileRelease {
+  return {
+    version: '',
+    channels: {
+      androidApk: { githubUrl: '', cloudflareUrl: '', online: false },
+      googlePlay: { url: '', online: false },
+      apple: { testFlightUrl: '', appStoreUrl: '', online: false },
+      harmony: { url: '', online: false },
+    },
+  }
+}
+
+function toStudioVersionManifest(value: unknown): StudioVersionManifest | null {
+  if (isRecord(value) && value.schema === 1 && isStudioMobileRelease(value.mobile)) {
+    return value as unknown as StudioVersionManifest
+  }
+  if (Array.isArray(value)) {
+    return {
+      schema: 1,
+      hermes: hermesVersionsFromGitHubReleases(value),
+      mobile: unavailableMobileRelease(),
+    }
+  }
+  return null
+}
+
 export async function fetchStudioVersionManifest(): Promise<StudioVersionManifest> {
   const response = await fetch(STUDIO_VERSION_MANIFEST_URL, {
     headers: { Accept: 'application/json' },
   })
   if (!response.ok) throw new Error(`GET ${STUDIO_VERSION_MANIFEST_URL} returned ${response.status}`)
-  const manifest: unknown = await response.json()
-  if (!isRecord(manifest) || manifest.schema !== 1 || !isStudioMobileRelease(manifest.mobile)) {
-    throw new Error('Invalid Studio version manifest')
-  }
-  return manifest as unknown as StudioVersionManifest
+  const manifest = toStudioVersionManifest(await response.json())
+  if (!manifest) throw new Error('Invalid Studio version manifest')
+  return manifest
 }

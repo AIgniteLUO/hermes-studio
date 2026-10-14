@@ -810,7 +810,7 @@ function runtimeSourceHtml(errorMessage?: string): string {
   .mark{width:34px;height:34px;border-radius:8px;object-fit:contain;display:block}
   h1{font-weight:560;margin:0;font-size:22px;line-height:1.25}
   .label{max-width:520px;font-size:14px;line-height:1.6;color:#b9b9b9;margin:0}
-  .actions{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .actions{width:100%;display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
   button{min-height:86px;border:1px solid #4c4c4c;border-radius:8px;background:#242424;color:#f2f2f2;cursor:pointer;padding:16px;text-align:left;display:flex;flex-direction:column;gap:7px;transition:background .14s ease,border-color .14s ease,transform .14s ease;-webkit-app-region:no-drag}
   button:hover{background:#2d2d2d;border-color:#747474;transform:translateY(-1px)}
   button:active{transform:translateY(0)}
@@ -830,19 +830,12 @@ function runtimeSourceHtml(errorMessage?: string): string {
 <p class="label">${escapeHtml(t('desktop.selectRuntimeSource'))}</p>
 ${errorBlock}
 <div class="actions">
-  <button id="cf">
-    <span class="button-title">${escapeHtml(t('desktop.downloadCloudflareTitle'))}</span>
-    <span class="button-detail">${escapeHtml(t('desktop.downloadCloudflareDetail'))}</span>
-  </button>
   <button id="github">
     <span class="button-title">${escapeHtml(t('desktop.downloadGithubTitle'))}</span>
     <span class="button-detail">${escapeHtml(t('desktop.downloadGithubDetail'))}</span>
   </button>
 </div>
 <script>
-  document.getElementById('cf')?.addEventListener('click', () => {
-    window.hermesDesktop?.retryBootstrap?.('cf')
-  })
   document.getElementById('github')?.addEventListener('click', () => {
     window.hermesDesktop?.retryBootstrap?.('github')
   })
@@ -853,7 +846,7 @@ ${errorBlock}
 
 function envRuntimeDownloadSource(): RuntimeDownloadSource | undefined {
   const source = process.env.HERMES_DESKTOP_RUNTIME_SOURCE?.trim().toLowerCase()
-  return source === 'cf' || source === 'github' ? source : undefined
+  return source === 'github' ? 'github' : undefined
 }
 
 function formatBytes(bytes: number): string {
@@ -1245,7 +1238,7 @@ ipcMain.handle('hermes-desktop:retry-bootstrap', async (_event, source?: Runtime
     await mainWindow?.loadURL(mainRouteUrl() || serverUrl)
     return
   }
-  const selectedSource = source === 'cf' || source === 'github' ? source : undefined
+  const selectedSource = source === 'github' ? source : undefined
   await mainWindow?.loadURL(splashHtml(t('runtime.downloading')))
   await bootstrap(selectedSource)
 })

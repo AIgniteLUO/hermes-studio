@@ -35,8 +35,8 @@ const DEFAULT_MOBILE_RELEASE: StudioMobileRelease = {
   version: '1.0.0',
   channels: {
     androidApk: {
-      githubUrl: 'https://github.com/EKKOLearnAI/hermes-studio/releases/download/v1.0.0/HStudio.apk',
-      cloudflareUrl: 'https://download.ekkolearnai.com/v1.0.0/HStudio.apk',
+      githubUrl: 'https://github.com/AIgniteLUO/hermes-studio/releases/latest/download/HStudio.apk',
+      cloudflareUrl: 'https://github.com/AIgniteLUO/hermes-studio/releases/latest/download/HStudio.apk',
       online: true,
     },
     googlePlay: { url: '', online: false },

@@ -10,15 +10,15 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/EKKOLearnAI/hermes-studio/releases/latest">下载 Hermes Studio 桌面版</a>
+  <a href="https://github.com/AIgniteLUO/hermes-studio/releases/latest">下载 Hermes Studio 桌面版</a>
   ·
-  <a href="https://hermes-studio.ai/#/docs/getting-started">使用文档</a>
+  <a href="https://github.com/AIgniteLUO/hermes-studio#readme">使用文档</a>
   ·
   <code>npm install -g hermes-web-ui && hermes-web-ui start</code>
 </p>
 
 <p align="center">
-  <img src="https://github.com/EKKOLearnAI/hermes-studio/blob/main/packages/client/src/assets/image.gif" alt="Hermes Studio 演示" width="680"/>
+  <img src="https://github.com/AIgniteLUO/hermes-studio/blob/main/packages/client/src/assets/image.gif" alt="Hermes Studio 演示" width="680"/>
 </p>
 
 <p align="center">
@@ -26,13 +26,13 @@
 </p>
 
 <p align="center">
-  <video src="https://github.com/EKKOLearnAI/hermes-studio/blob/main/packages/client/src/assets/video.mp4?raw=true" width="360" controls></video>
+  <video src="https://github.com/AIgniteLUO/hermes-studio/blob/main/packages/client/src/assets/video.mp4?raw=true" width="360" controls></video>
 </p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/hermes-web-ui"><img src="https://img.shields.io/npm/v/hermes-web-ui?style=flat-square&color=blue" alt="npm 版本"/></a>
-  <a href="https://github.com/EKKOLearnAI/hermes-studio/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/hermes-web-ui?style=flat-square" alt="许可证"/></a>
-  <a href="https://github.com/EKKOLearnAI/hermes-studio/stargazers"><img src="https://img.shields.io/github/stars/EKKOLearnAI/hermes-studio?style=flat-square" alt="Star"/></a>
+  <a href="https://github.com/AIgniteLUO/hermes-studio/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/hermes-web-ui?style=flat-square" alt="许可证"/></a>
+  <a href="https://github.com/AIgniteLUO/hermes-studio/stargazers"><img src="https://img.shields.io/github/stars/AIgniteLUO/hermes-studio?style=flat-square" alt="Star"/></a>
 </p>
 
 ## 核心能力
@@ -262,8 +262,7 @@ hermes-web-ui reset-default-login
 
 - Windows、macOS 和 Linux 原生 Electron 桌面壳
 - 内置 Studio 运行时，并自动启动本地服务
-- 桌面自动更新优先使用 Cloudflare 下载端点获取更新元数据和安装包
-- 如果 Cloudflare 更新源不可用，会回退到 GitHub Releases `latest` 资源
+- 桌面自动更新从 GitHub Releases `latest` 资源获取更新元数据和安装包
 - Windows 升级时会先尝试关闭已有 Hermes Studio 进程，再替换文件
 
 ---
@@ -272,7 +271,7 @@ hermes-web-ui reset-default-login
 
 ### 桌面应用（推荐）
 
-从 [GitHub Releases](https://github.com/EKKOLearnAI/hermes-studio/releases/latest)
+从 [GitHub Releases](https://github.com/AIgniteLUO/hermes-studio/releases/latest)
 下载最新的 **Hermes Studio** 桌面安装包。
 
 桌面版会发布 macOS、Windows 和 Linux 构建；适用时会区分不同 CPU 架构。
@@ -296,9 +295,8 @@ hermes-web-ui reset-default-login
 `hermes-studio web -h` 查看服务端 CLI 帮助。`hermes-studio-mcp` 默认暴露
 `api` 工具集；按任务选择 `browser`、`devices` 或 `use`，可以缩小 MCP 暴露面。
 
-桌面自动更新会优先读取 `https://download.ekkolearnai.com/latest`。
-如果该端点不可用，更新器会回退到
-`https://github.com/EKKOLearnAI/hermes-studio/releases/latest/download`。
+桌面自动更新从 GitHub Releases `latest` 资源读取更新元数据和安装包：
+`https://github.com/AIgniteLUO/hermes-studio/releases/latest/download`。
 
 ### npm 安装
 
@@ -315,7 +313,7 @@ hermes-web-ui start
 
 ```bash
 # 使用预构建镜像（推荐）
-WEBUI_IMAGE=ekkoye8888/hermes-web-ui docker compose up -d
+WEBUI_IMAGE=ghcr.io/aigniteluo/hermes-web-ui docker compose up -d
 
 # 或从源码构建
 docker compose up -d --build
@@ -348,8 +346,8 @@ Studio 启动后端聊天能力时，会优先使用包含 `run_agent.py` 的源
 | `PORT` | `8648` | Studio 服务监听端口。 |
 | `BIND_HOST` | `0.0.0.0` | Studio 服务绑定地址。如需 IPv6，可显式设置为 `::`。 |
 | `HERMES_LAN_ADVERTISE_URL` | 未设置 | App 局域网二维码使用的可访问 Studio 地址。Docker 中若通过 `localhost` 打开，请设置为宿主机局域网 URL，例如 `http://192.168.1.20:6060`。 |
-| `HERMES_APP_ENTITLEMENT_REQUIRED` | `true` | App 局域网 Relay 必须携带有效的云端签名。仅在临时兼容排查时设置为 `false`。 |
-| `HERMES_APP_ENTITLEMENT_PUBLIC_KEY` | 内置 | 可选的 RS256 App 签名 PEM 公钥覆盖。签名 issuer 为 `hermes-studio-server`，audience 为 `ekko-studio`。 |
+| `HERMES_APP_ENTITLEMENT_REQUIRED` | `false` | App 局域网 Relay 是否必须携带有效的 RS256 签名。设为 `true` 可强制校验自建签发方的 entitlement。 |
+| `HERMES_APP_ENTITLEMENT_PUBLIC_KEY` | 内置 | 可选的 RS256 App 签名 PEM 公钥覆盖。签名 issuer 为 `hermes-studio-server`，audience 为 `hermes-studio`。 |
 | `HERMES_WEB_UI_HOME` | `~/.hermes-web-ui` | Studio 数据目录，用于认证 Token、登录凭据、日志、数据库和默认上传目录。兼容支持 `HERMES_WEBUI_STATE_DIR` 作为别名。 |
 | `HERMES_WEBUI_STATE_DIR` | 未设置 | `HERMES_WEB_UI_HOME` 的兼容别名。 |
 | `HERMES_WEB_UI_DISABLE_MCP_AUTOINJECT` | 未设置 | 关闭启动时向 Hermes profile 配置自动注入托管的 `hermes-studio` MCP server。 |
@@ -386,7 +384,7 @@ Studio 启动后端聊天能力时，会优先使用包含 `run_agent.py` 的源
 | `HERMES_BRIDGE_TOOLSETS` | profile/默认值 | bridge 运行时的 toolset 覆盖。 |
 | `HERMES_BRIDGE_MAX_TURNS` | profile/默认值 | bridge 运行时的最大轮数覆盖。 |
 | `HERMES_BRIDGE_SUPPRESS_PLATFORM_HINT` | `cli` | 控制传给 Hermes Agent 的 bridge platform hint suppression。 |
-| `HERMES_OPENROUTER_APP_REFERER` | `https://hermes-studio.ai` | bridge 运行发送给 OpenRouter 的 attribution referer。 |
+| `HERMES_OPENROUTER_APP_REFERER` | `https://github.com/AIgniteLUO/hermes-studio` | bridge 运行发送给 OpenRouter 的 attribution referer。 |
 | `HERMES_OPENROUTER_APP_TITLE` | `Hermes Studio` | Bridge 运行发送给 OpenRouter 的 Attribution Title。 |
 | `HERMES_OPENROUTER_APP_CATEGORIES` | `cli-agent,personal-agent` | bridge 运行发送给 OpenRouter 的 attribution categories。 |
 | `HERMES_WEB_UI_MANAGED_GATEWAY` | 默认开启 | 控制 Studio 托管 Hermes Gateway 进程；设为 `0`、`false`、`no` 或 `off` 时改用 `hermes gateway start`。 |
@@ -437,7 +435,7 @@ Studio 启动后端聊天能力时，会优先使用包含 `run_agent.py` 的源
 ## 开发
 
 ```bash
-git clone https://github.com/EKKOLearnAI/hermes-studio.git
+git clone https://github.com/AIgniteLUO/hermes-studio.git
 cd hermes-studio
 npm install
 npm run dev

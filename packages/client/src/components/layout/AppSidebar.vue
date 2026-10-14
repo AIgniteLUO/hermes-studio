@@ -380,7 +380,7 @@ function handleUpdateClick() {
         <div class="version-links">
           <a
             class="sidebar-footer-link"
-            href="https://github.com/EKKOLearnAI/hermes-studio"
+            href="https://github.com/AIgniteLUO/hermes-studio"
             target="_blank"
             rel="noopener noreferrer"
             title="GitHub"
@@ -393,7 +393,7 @@ function handleUpdateClick() {
           </a>
           <a
             class="sidebar-footer-link"
-            href="https://hermes-studio.ai/"
+            href="https://github.com/AIgniteLUO/hermes-studio#readme"
             target="_blank"
             rel="noopener noreferrer"
             title="Website"

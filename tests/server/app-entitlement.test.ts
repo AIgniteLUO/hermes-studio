@@ -41,7 +41,7 @@ describe('App entitlement verification', () => {
       now,
     })).toEqual({
       issuer: APP_ENTITLEMENT_ISSUER,
-      audience: 'ekko-studio',
+      audience: 'hermes-studio',
       userId: 7001,
       deviceCode: 'app_phone_001',
       features: ['lan_access'],

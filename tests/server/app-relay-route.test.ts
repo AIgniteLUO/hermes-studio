@@ -10,6 +10,14 @@ vi.mock('../../packages/server/src/modules/studio/services/config/app-config', (
   writeAppConfig,
 }))
 
+// Every route resolves to the relay configured through HERMES_APP_RELAY_URL; this
+// build ships no vendor cloud relay URL.
+vi.mock('../../packages/server/src/modules/studio/public/config', () => ({
+  config: {
+    appRelay: { url: 'https://relay.example.test', entitlementRequired: false },
+  },
+}))
+
 describe('App Relay route configuration', () => {
   beforeEach(() => {
     readAppConfig.mockReset()
@@ -24,16 +32,17 @@ describe('App Relay route configuration', () => {
     )
 
     expect(await getAppRelayRoute()).toBe('official')
-    expect(appRelayUrlForRoute('official')).toBe('https://api.hermes-studio.ai')
+    expect(appRelayUrlForRoute('official')).toBe('https://relay.example.test')
+    expect(appRelayUrlForRoute('cloudflare')).toBe('https://relay.example.test')
   })
 
-  it('persists and maps the Cloudflare route', async () => {
+  it('persists the selected route while both routes keep using the configured relay', async () => {
     const { setAppRelayRoute, appRelayUrlForRoute } = await import(
       '../../packages/server/src/modules/studio/services/app-relay/route'
     )
 
     await setAppRelayRoute('cloudflare')
     expect(writeAppConfig).toHaveBeenCalledWith({ appRelayRoute: 'cloudflare' })
-    expect(appRelayUrlForRoute('cloudflare')).toBe('https://cn.hermes-studio.ai')
+    expect(appRelayUrlForRoute('cloudflare')).toBe('https://relay.example.test')
   })
 })

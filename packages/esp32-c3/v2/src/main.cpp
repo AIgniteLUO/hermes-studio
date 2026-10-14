@@ -118,7 +118,9 @@ constexpr uint32_t kMcuLoginTimeoutMs = 8000;
 constexpr uint32_t kMcuRemoteTlsHandshakeTimeoutSec = 5;
 constexpr uint32_t kMcuSocketReconnectMs = 3000;
 constexpr uint32_t kMcuSocketReconnectMaxMs = 30000;
-const char kRemoteDeviceLookupUrl[] = "https://api.hermes-studio.ai";
+// Self-hosted Studio relay origin for the global-agent device lookup. Empty means no
+// vendor cloud lookup: LAN discovery and an explicitly configured relay are used instead.
+const char kRemoteDeviceLookupUrl[] = "";
 constexpr int kMaxProfiles = 8;
 constexpr int kMaxMcuAudioQueue = 4;
 constexpr uint32_t kMcuInteractionIdleDelayMs = 3500;

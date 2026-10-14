@@ -27,7 +27,32 @@ describe('Studio version manifest client', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     await expect(fetchStudioVersionManifest()).resolves.toEqual(manifest)
-    expect(STUDIO_VERSION_MANIFEST_URL).toBe('https://api.hermes-studio.ai/api/studio/versions')
+    expect(STUDIO_VERSION_MANIFEST_URL).toBe('https://api.github.com/repos/AIgniteLUO/hermes-studio/releases')
+    expect(fetchMock).toHaveBeenCalledWith(STUDIO_VERSION_MANIFEST_URL, {
+      headers: { Accept: 'application/json' },
+    })
+  })
+
+  it('maps a GitHub Releases API response onto the Studio manifest shape', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ([
+        { tag_name: 'hermes-0.20.4-runtime' },
+        { tag_name: 'hermes-0.19.1-runtime' },
+        { tag_name: 'hermes-0.20.4-runtime' },
+        { tag_name: 'v0.7.34-1' },
+      ]),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const manifest = await fetchStudioVersionManifest()
+
+    expect(manifest.schema).toBe(1)
+    expect(manifest.hermes).toEqual(['0.20.4', '0.19.1'])
+    expect(manifest.mobile.channels.androidApk).toEqual({ githubUrl: '', cloudflareUrl: '', online: false })
+    expect(manifest.mobile.channels.googlePlay).toEqual({ url: '', online: false })
+    expect(manifest.mobile.channels.apple).toEqual({ testFlightUrl: '', appStoreUrl: '', online: false })
+    expect(manifest.mobile.channels.harmony).toEqual({ url: '', online: false })
     expect(fetchMock).toHaveBeenCalledWith(STUDIO_VERSION_MANIFEST_URL, {
       headers: { Accept: 'application/json' },
     })

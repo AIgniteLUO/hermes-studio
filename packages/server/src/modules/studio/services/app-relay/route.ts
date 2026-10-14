@@ -4,7 +4,6 @@ import { readAppConfig, writeAppConfig } from '../config/app-config'
 export type AppRelayRoute = 'official' | 'cloudflare'
 
 export const DEFAULT_APP_RELAY_ROUTE: AppRelayRoute = 'official'
-export const CLOUDFLARE_APP_RELAY_URL = 'https://cn.hermes-studio.ai'
 
 export function isAppRelayRoute(value: unknown): value is AppRelayRoute {
   return value === 'official' || value === 'cloudflare'
@@ -24,6 +23,8 @@ export async function setAppRelayRoute(route: AppRelayRoute): Promise<void> {
   await writeAppConfig({ appRelayRoute: route })
 }
 
-export function appRelayUrlForRoute(route: AppRelayRoute): string {
-  return route === 'cloudflare' ? CLOUDFLARE_APP_RELAY_URL : config.appRelay.url
+// This build has no vendor cloud relay: every route resolves to the relay configured
+// through HERMES_APP_RELAY_URL, so an unconfigured deployment stays offline.
+export function appRelayUrlForRoute(_route: AppRelayRoute): string {
+  return config.appRelay.url
 }

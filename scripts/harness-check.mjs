@@ -404,12 +404,11 @@ for (const phrase of [
 }
 
 for (const phrase of [
-  'https://download.ekkolearnai.com/latest',
-  'https://github.com/EKKOLearnAI/hermes-studio/releases/latest/download',
-  'checkForUpdatesWithFallback()',
+  'https://github.com/AIgniteLUO/hermes-studio/releases/latest/download',
+  'checkForUpdatesFromGitHub()',
 ]) {
   if (!desktopUpdater.includes(phrase)) {
-    fail(`desktop updater must check Cloudflare first and keep GitHub as fallback: ${phrase}`)
+    fail(`desktop updater must check the GitHub release feed: ${phrase}`)
   }
 }
 
@@ -419,7 +418,6 @@ if (desktopUpdater.includes('fetch(')) {
 
 for (const phrase of [
   'HERMES_DESKTOP_RUNTIME_URL',
-  'HERMES_DESKTOP_RUNTIME_BASE_URL',
   'runtime-manifest.json',
   'updateable Hermes source files',
   'repairMovedHermesRuntime',

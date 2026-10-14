@@ -17,7 +17,6 @@ export const changelog: ChangelogEntry[] = [
     version: '0.7.14',
     date: '2026-08-31',
     changes: [
-      'changelog.new_0_7_14_1',
       'changelog.new_0_7_14_2',
     ],
   },
@@ -36,16 +35,13 @@ export const changelog: ChangelogEntry[] = [
     changes: [
       'changelog.new_0_7_12_1',
       'changelog.new_0_7_12_2',
-      'changelog.new_0_7_12_3',
       'changelog.new_0_7_12_4',
-      'changelog.new_0_7_12_5',
     ],
   },
   {
     version: '0.7.11',
     date: '2026-08-30',
     changes: [
-      'changelog.new_0_7_11_1',
       'changelog.new_0_7_11_2',
       'changelog.new_0_7_11_3',
       'changelog.new_0_7_11_4',
@@ -56,7 +52,6 @@ export const changelog: ChangelogEntry[] = [
     version: '0.7.1',
     date: '2026-08-29',
     changes: [
-      'changelog.new_0_7_1_1',
       'changelog.new_0_7_1_2',
       'changelog.new_0_7_1_3',
     ],
@@ -66,8 +61,6 @@ export const changelog: ChangelogEntry[] = [
     date: '2026-08-29',
     changes: [
       'changelog.new_0_7_0_1',
-      'changelog.new_0_7_0_2',
-      'changelog.new_0_7_0_3',
       'changelog.new_0_7_0_4',
       'changelog.new_0_7_0_5',
       'changelog.new_0_7_0_6',

@@ -38,7 +38,7 @@
     "IMA-ADPCM voice uplink",
     "OLED status UI",
     "Selectable push-to-talk and local-VAD listening modes",
-    "Selectable Ekko and Hermes agent runtimes with isolated sessions",
+    "Hermes agent runtime with deterministic per-device sessions",
     "Sample-synchronized GB2312 subtitles during speech playback",
     "Version-isolated OTA updates",
     "Configurable connected standby with a three-minute default"

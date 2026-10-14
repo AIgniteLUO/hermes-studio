@@ -55,12 +55,11 @@ current response, and double click clears the session.
 
 ## Agent Runtime
 
-The device page can select Ekko or Hermes for MCU voice turns. Ekko is selected
-by default, including after upgrading from firmware that did not have this
-setting. The choice is stored in MCU preferences and sent with each voice turn.
-Ekko and Hermes use separate deterministic session IDs, so their histories,
-workspaces, and background tasks are never shared. Switching back to an agent
-continues only that agent's own MCU session.
+MCU voice turns run on the Hermes agent runtime. The device page keeps the agent
+setting stored in MCU preferences and sends `hermes` with each voice turn,
+including after upgrading from firmware that offered a choice between runtimes.
+Session IDs are deterministic per device and profile, so a device's histories,
+workspaces, and background tasks stay bound to its own MCU session.
 
 From the repository root, use:
 

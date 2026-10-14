@@ -1126,11 +1126,11 @@ void loadAudioPreferences() {
 }
 
 String mcuAgentRuntimeValue() {
-  return hermesAgentSelected ? String(F("hermes")) : String(F("ekko"));
+  return String(F("hermes"));
 }
 
 String mcuAgentRuntimeLabel() {
-  return hermesAgentSelected ? String(F("Hermes")) : String(F("Ekko"));
+  return String(F("Hermes"));
 }
 
 void saveMcuAgentRuntime(bool useHermes) {
@@ -2883,18 +2883,13 @@ void sendStatusPage() {
   html += F("</section>");
 
   html += F("<section class='card'><h2>Agent</h2><form method='post' action='/device/agent'>");
-  html += F("<div class='choice-grid'><label class='choice'><input type='radio' name='runtime' value='ekko'");
-  if (!hermesAgentSelected) html += F(" checked");
-  html += F("><span class='choice-card'><span class='choice-dot'></span><span class='choice-title'>Ekko</span>"
-            "<span class='choice-copy'>使用 Ekko Agent Runtime，支持工具调用和后台任务。</span>"
-            "<span class='choice-meta'>EKKO AGENT</span></span></label>");
-  html += F("<label class='choice'><input type='radio' name='runtime' value='hermes'");
+  html += F("<div class='choice-grid'><label class='choice'><input type='radio' name='runtime' value='hermes'");
   if (hermesAgentSelected) html += F(" checked");
   html += F("><span class='choice-card'><span class='choice-dot'></span><span class='choice-title'>Hermes</span>"
             "<span class='choice-copy'>使用 Hermes Agent Bridge，保留原有 MCU Agent 体验。</span>"
             "<span class='choice-meta'>HERMES AGENT</span></span></label></div>");
   html += F("<div class='btn-row'><button class='btn primary' type='submit'>保存 Agent</button></div>");
-  html += F("<p class='hint'>选择将在下一次语音交互生效；Ekko 与 Hermes 使用互不共享的独立会话。</p></form></section>");
+  html += F("<p class='hint'>选择将在下一次语音交互生效；MCU 会话按设备与档案隔离。</p></form></section>");
 
   html += F("<section class='card'><h2>音频</h2>");
   html += F("<form method='post' action='/device/audio'><div class='field'><span class='label'>播放音量 <output id='volume-output'>");
@@ -3142,7 +3137,7 @@ void handleDeviceVoiceMode() {
 void handleDeviceAgent() {
   String runtime = server.arg(F("runtime"));
   runtime.trim();
-  if (runtime != F("ekko") && runtime != F("hermes")) {
+  if (runtime != F("hermes")) {
     server.send(400, F("text/plain; charset=utf-8"), F("无效的 Agent"));
     return;
   }

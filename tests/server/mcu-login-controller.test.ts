@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { DEFAULT_MCU_AGENT_RUNTIME } from '../../packages/server/src/modules/studio/services/global-agent/mcu-agent-runtime'
 
 const { startOutboundRelayClientMock, stopOutboundRelayClientMock } = vi.hoisted(() => ({
   startOutboundRelayClientMock: vi.fn(),
@@ -252,5 +253,32 @@ describe('MCU login controller', () => {
     expect(ctx.status).toBe(403)
     expect(ctx.body).toEqual({ error: '非官方设备码' })
     expect(startOutboundRelayClientMock).not.toHaveBeenCalled()
+  })
+
+  it('binds MCU device sessions to the hermes runtime by default', async () => {
+    startOutboundRelayClientMock.mockReturnValue({ start: vi.fn() })
+    const { ctrl, users } = await loadModules()
+    users.createUser({
+      username: 'ops',
+      password: 'secret123',
+      role: 'admin',
+      profiles: ['default', 'research'],
+      defaultProfile: 'research',
+    })
+    const ctx = makeCtx({
+      token: 'relay-token',
+      url: 'https://relay.example.com/global-agent',
+      id: 'mcu-1',
+      account: 'ops',
+      password: 'secret123',
+    })
+
+    await ctrl.microcontrollerLogin(ctx)
+
+    expect(ctx.status).toBe(200)
+    expect(DEFAULT_MCU_AGENT_RUNTIME).toBe('hermes')
+    const mcuSessionId = `mcu-${ctx.body.relay.id}-research-${DEFAULT_MCU_AGENT_RUNTIME}`
+    expect(mcuSessionId).toBe('mcu-mcu-1-research-hermes')
+    expect(mcuSessionId).not.toContain('ekko')
   })
 })

@@ -1410,15 +1410,27 @@ grep "FAIL " /tmp/hermes-studio-final-test.log | sort -u
 
 - [ ] **Step 6: 终态 Ekko 残留扫描**
 
+**必须带 `-a`** —— macOS/BSD 的 `grep -r` 默认跳过二进制文件，会静默漏掉已提交的二进制产物（Task 11 的 review 正是靠这一点发现了内含 `https://api.hermes-studio.ai` 的预编译固件）：
+
 ```bash
-grep -ri "ekko" --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist .
+grep -rai "ekko" --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist .
 ```
 
 预期：只剩**白名单**：
-- `.github/ISSUE_TEMPLATE/config.yml` 中若仍有历史 issue 链接（可选保留）
-- `docs/PROVENANCE.md` 中的上游来源说明
-- 本 spec 与 plan 文档
-- `tests/server/*` 中被判定为 (b) 偶然字符串的项（如 `/Users/ekko/Desktop/...`）
+- `LICENSE`（Licensor 署名，不得改）
+- `docs/PROVENANCE.md`（上游来源说明）
+- `docs/superpowers/specs|plans/`（本项目记录）
+- `packages/skills/{apikey-image-gen,grok-image-to-video,hyperframes,markdown-viewer,minimax-image-to-video,remotion}/SKILL.md` 的 `author: Ekko`（Ruling #11 保留的真实作者署名）
+- `packages/server/src/modules/studio/public/runs/prompt.ts` 的 `/Users/ekko/Desktop/...`（示例路径里的 macOS 用户名）
+
+**同样跑一遍品牌域名**：
+
+```bash
+grep -rai "ekkolearnai\|ekkoye8888\|hermes-studio\.ai" --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist .
+grep -rl "EKKOLearnAI" --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist . | grep -v "^./LICENSE\|^./docs/PROVENANCE.md\|^./docs/superpowers/"
+```
+
+第二条预期无输出（上游仓库/域名引用已全部改指 `AIgniteLUO/hermes-studio`）。
 
 把与基线（Task 2 Step 3 记录的 `303` 文件 / `5128` 行）的对比写进 `docs/PROVENANCE.md`。
 

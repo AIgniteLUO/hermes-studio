@@ -37,13 +37,28 @@ vi.mock('../../packages/server/src/modules/studio/services/auth/token-auth', () 
   getToken: vi.fn(async () => 'test-token'),
 }))
 
+const { bridgeRequestMock, bridgeDestroyMock, createGroupPrimaryAgentBridgeMock } = vi.hoisted(() => ({
+  bridgeRequestMock: vi.fn(),
+  bridgeDestroyMock: vi.fn(),
+  createGroupPrimaryAgentBridgeMock: vi.fn(),
+}))
+
+vi.mock('../../packages/server/src/modules/studio/public/group-chat-agent-runtime', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../packages/server/src/modules/studio/public/group-chat-agent-runtime')>(),
+  createGroupPrimaryAgentBridge: createGroupPrimaryAgentBridgeMock,
+}))
+
 import { countTokens } from '../../packages/server/src/modules/studio/services/context-compressor'
 import { initAllHermesTables } from '../../packages/server/src/modules/studio/infrastructure/database/schemas'
 import { healthRoutes } from '../../packages/server/src/bootstrap/health'
 import { GroupChatServer } from '../../packages/server/src/modules/studio/sockets/group-chat'
 import { AgentClients, mentionMessageToStoredContextMessage } from '../../packages/server/src/modules/studio/services/group-chat/agent-clients'
 import { sortGroupMessagesCanonical } from '../../packages/server/src/modules/studio/services/group-chat/group-message-ordering'
-import { GroupRoomSummaryService, type GroupSummaryRunner } from '../../packages/server/src/modules/studio/services/group-chat/room-summary'
+import {
+  GROUP_SUMMARY_SYSTEM_PROMPT,
+  GroupRoomSummaryService,
+  type GroupSummaryRunner,
+} from '../../packages/server/src/modules/studio/services/group-chat/room-summary'
 
 function makeDb(): DatabaseSync {
   return new DatabaseSync(':memory:')
@@ -83,6 +98,11 @@ describe('group chat history windows', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    createGroupPrimaryAgentBridgeMock.mockImplementation(() => ({
+      request: bridgeRequestMock,
+      destroy: bridgeDestroyMock,
+    }))
+    bridgeDestroyMock.mockResolvedValue(undefined)
     dbMock.current = makeDb()
     initAllHermesTables()
     httpServer = createServer()
@@ -852,6 +872,111 @@ describe('group chat history windows', () => {
       summarizedTurnCount: 5,
       status: 'success',
     })
+  })
+
+  it('routes the bare group-chat summarizer through the Hermes bridge instead of the removed Ekko runtime', async () => {
+    const storage = groupServer.getStorage()
+    storage.saveRoom('room-1', 'Room 1', 'INVITE1', {
+      summaryProfile: 'default',
+      summaryProvider: 'openai',
+      summaryModel: 'test',
+      summaryApiMode: 'chat_completions',
+      summaryEveryTurns: 2,
+    })
+    storage.addMessage(makeMessage({ id: 'user-1', content: 'first pending', timestamp: 1 }) as any)
+    storage.addMessage(makeMessage({
+      id: 'agent-1',
+      role: 'assistant',
+      senderId: 'agent',
+      senderName: 'Agent',
+      content: 'public reply',
+      timestamp: 2,
+    }) as any)
+
+    bridgeRequestMock.mockResolvedValueOnce({
+      status: 'completed',
+      result: { final_response: 'hermes room summary' },
+    })
+
+    // Production shape: sockets/group-chat.ts builds the service with two
+    // arguments and never injects a runner, so the bare fallback is the real
+    // path for every rolling room summary.
+    const service = new GroupRoomSummaryService(storage, undefined)
+    await service.checkAfterMessage('room-1', 'agent-1')
+
+    expect(createGroupPrimaryAgentBridgeMock).toHaveBeenCalledTimes(1)
+    expect(bridgeRequestMock).toHaveBeenCalledTimes(1)
+    const [payload] = bridgeRequestMock.mock.calls[0]
+    expect(payload.action).toBe('chat')
+    expect(payload.worker_key).toBe('default:room-summary:room-1')
+    expect(payload.instructions).toBe(GROUP_SUMMARY_SYSTEM_PROMPT)
+    // A summarizer session must never detach background work.
+    expect(payload.background_delegation_enabled).toBe(false)
+
+    const serialized = JSON.stringify(bridgeRequestMock.mock.calls).toLowerCase()
+    expect(serialized).toContain('hermes')
+    expect(serialized).not.toContain('ekko')
+
+    expect(storage.getRoomSummary('room-1')).toMatchObject({
+      summary: 'hermes room summary',
+      summaryThroughMessageId: 'agent-1',
+      status: 'success',
+    })
+    expect(bridgeDestroyMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('normalizes a stored Ekko Agent value when mapping group chat history', () => {
+    const storage = groupServer.getStorage()
+    storage.saveRoom('room-1', 'Room 1', 'INVITE1')
+    const legacyAgent = storage.addRoomAgent('room-1', 'agent-legacy', 'default', 'Legacy Worker', '', 0, {
+      agent: 'ekko',
+    } as any)
+    storage.saveMessageAndRefreshRoom(makeMessage({
+      id: 'legacy-message',
+      senderId: legacyAgent.agentId,
+      senderName: legacyAgent.name,
+      senderType: 'agent',
+      senderAgentRecordId: legacyAgent.id,
+      content: 'legacy answer',
+      role: 'assistant',
+      timestamp: 1,
+    }) as any)
+
+    const [mapped] = storage.getRecentMessagesForUI('room-1')
+    expect(mapped.senderAgentType).toBe('hermes')
+  })
+
+  it('normalizes a stored Ekko Agent value on the Agent attachment write path', () => {
+    const saveMessageAndRefreshRoom = vi.fn((message: any) => ({ message, totalTokens: 3 }))
+    const server = Object.create(GroupChatServer.prototype) as any
+    server.storage = {
+      getRoom: vi.fn(() => ({ id: 'room-1' })),
+      getRoomAgentByAgentId: vi.fn(() => ({
+        id: 'agent-record-1',
+        agentId: 'agent-1',
+        name: 'Worker',
+        agent: 'ekko',
+      })),
+      saveMessageAndRefreshRoom,
+    }
+    server.nsp = { to: vi.fn(() => ({ emit: vi.fn() })) }
+
+    server.publishAgentAttachmentMessage({
+      roomId: 'room-1',
+      agentId: 'agent-1',
+      runId: 'run-1',
+      workspacePath: 'result.md',
+      attachment: {
+        type: 'file',
+        name: 'result.md',
+        path: '0123456789abcdef0123456789abcdef.md',
+        media_type: 'text/markdown',
+      },
+    })
+
+    expect(saveMessageAndRefreshRoom).toHaveBeenCalledWith(expect.objectContaining({
+      senderAgentType: 'hermes',
+    }))
   })
 
   it('continues oldest-first across multiple bounded summary batches', async () => {

@@ -622,7 +622,7 @@ class ChatStorage {
             ...(agent ? {
                 senderAgentRecordId: agent.id,
                 senderAvatar: agent.avatar || '',
-                senderAgentType: agent.agent,
+                senderAgentType: normalizeStoredGroupAgent(agent.agent),
                 senderAgentProfile: agent.profile || '',
                 senderAgentProvider: agent.provider || '',
                 senderAgentModel: agent.model || '',
@@ -3458,7 +3458,7 @@ export class GroupChatServer {
             senderType: 'agent',
             senderAgentRecordId: agent?.id || '',
             senderAvatar: agent?.avatar || snapshot?.avatar || '',
-            senderAgentType: agent?.agent || snapshot?.agent,
+            senderAgentType: normalizeStoredGroupAgent(agent?.agent || snapshot?.agent),
             senderAgentProfile: agent?.profile || snapshot?.profile || '',
             senderAgentProvider: agent?.provider || snapshot?.provider || '',
             senderAgentModel: agent?.model || snapshot?.model || '',

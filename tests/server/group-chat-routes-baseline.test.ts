@@ -1147,7 +1147,7 @@ describe('group chat REST route baseline', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        agent: 'ekko',
+        agent: 'codex',
         profile: 'research',
         provider: 'openai',
         model: 'gpt-test',
@@ -1155,6 +1155,7 @@ describe('group chat REST route baseline', () => {
       }),
     })
     expect(invalidApiMode.status).toBe(400)
+    expect(await invalidApiMode.json()).toMatchObject({ error: 'Invalid apiMode' })
 
     const invalidAgent = await fetch(`${baseUrl}/api/studio/group-chat/rooms/room-1/agents`, {
       method: 'POST',

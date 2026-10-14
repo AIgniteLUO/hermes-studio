@@ -584,6 +584,9 @@ export class GroupRoomSummaryService {
         timeout: Math.ceil(timeoutMs / 1000),
         ...(input.model ? { model: input.model } : {}),
         ...(input.provider ? { provider: input.provider } : {}),
+        // Creation fallback when this chat is the first Bridge operation for the
+        // cached AgentSession: a summarizer session must never detach work.
+        background_delegation_enabled: false,
       }, { timeoutMs: timeoutMs + 15_000 })
 
       if (result.status === 'error') {

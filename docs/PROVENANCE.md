@@ -191,3 +191,142 @@ Licensor 署名与许可条款。
 ## 上游跟踪
 
 **不跟踪**。本 fork 无 rebase / cherry-pick 上游的计划。
+
+## 移除硬件固件与 Global Agent（2026-10-15）
+
+移除三块内容：**（1）ESP32 固件工程**（`esp32/` 工程、`assets/mcu-prompts/*.pcm` 提示音、
+`services/voice/mcu/adpcm.ts` 编解码）、**（2）Global Agent**（`public/global-agent.ts`、
+`sockets/global-agent.ts`、`services/global-agent/**`、全部 `/api/studio/mcu/*` 与
+`/api/auth/mcu-login` 路由、`mcu_devices` 表）、**（3）实例间远程中继**
+（`services/global-agent/outbound-relay-client.ts`）。分句器
+（`mcu-speech-segmenter.ts`）在删除前已迁出为共享模块，网页语音对话
+（实时语音对话台）不受影响。`app-relay`（手机 App 连接）是独立能力，**未动**。
+
+### 实测数字
+
+| 项 | 改动前 | 改动后 |
+| --- | --- | --- |
+| 测试文件 | 20 failed / 522 passed / 2 skipped（544） | 0 failed / 533 passed / 2 skipped（535） |
+| 测试用例 | 31 failed / 4300 passed / 6 skipped（4337） | 0 failed / 4312 passed / 6 skipped（4318） |
+| 删除测试文件 | — | 9 个 / 3759 行（7 个 `mcu-*` 共 720 行，`global-agent-server.test.ts` 1889 行，`outbound-relay-client.test.ts` 1150 行） |
+
+改动前的 31 个失败中，2 个是 `tests/server/hermes-cli-discovery.test.ts` 与
+`tests/server/hermes-cli-selection-live.test.ts` 的 `Error: Test timed out in 5000ms.`
+（既有环境性超时，非本次回归），其余 29 个是悬空 import / 悬空断言。
+
+改动后共跑三次：
+
+- 第一次 **exit 0 全绿**（上表数字）。
+- 第二、三次各 `1 failed | 4311 passed | 6 skipped`，唯一失败都是
+  `tests/server/hermes-cli-selection-live.test.ts` 的 `Error: Test timed out in 5000ms.`
+  ——正是上文基线已列明的同款 CLI 子进程超时抖动（同一文件、同一 5000ms）。
+  该文件单独跑 3/3 全部通过，且自上游快照导入后未被修改过。
+
+按基线回归判据（失败数为 0，或 ≤3 且**全部**是白名单 3 个文件的 5000ms 超时），
+三次运行均判定**无回归**；上表记录的是全绿那次。
+
+### 终态残留扫描
+
+参照任务书的模式
+
+```
+grep -rn -a -E "\bMCU\b|\bmcu[A-Z]|Mcu[A-Z]|mcuDevices|global[-_ ]?agent|esp32" \
+  --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist .
+```
+
+**但该模式不可直接用**，两个方向都会出错：
+
+- 它会**多报**——裸 `-i mcu` 会命中 `cloneFromCurrent`、`createAgentPresetFromCurrent`
+  里的 `mCu` 子串（4 处已知假阳性），`package-lock.json` 的 integrity 哈希同理。
+- 它更会**漏报**——BSD/macOS 的 `grep` 对 ERE 中 `\b` 的支持不稳定，实测
+  `-E "\bmcu|esp32|global[-_ ]?agent"` 共 95 行，而**单独** `-E "global_agent"`
+  有 91 行，两者对同一批 `global_agent` 命中做集合差：**39 行被静默丢掉**，
+  其中包括 `packages/server/src/modules/studio/sockets/chat-run.ts`、
+  `controllers/sessions.ts`、`contracts/runs/session.ts`、`services/webhooks/*`
+  与 `scripts/generate-openapi.mjs` 等**全部服务端契约点**。该模式还会漏掉
+  `mcu-voice`、`mcu/audio` 这类 `mcu` 后不接大写字母的路径。若照抄该模式并以
+  「只剩白名单」收工，会漏掉真实残留。
+
+因此本次改用**逐字节遍历 + JS 正则**的等价扫描：`(?<![A-Za-z0-9_])mcu` 前瞻断言
+取代 `\b`，二进制文件按 `-a` 语义一并纳入（共扫描 1585 个文件，其中 38 个含 NUL 字节）。
+`-a` 不可省：macOS/BSD 的 `grep -r` 默认跳过二进制文件，v1.0.0 时期正是因此漏掉了
+一个内含 phone-home URL 的预编译固件。该等价扫描当场查出两处照抄模式**查不到**的
+真实残留（`stt-transcribe-controller.test.ts` 的悬空 `vi.doUnmock(.../public/mcu-voice)`、
+`docs/planning/tool-boundary-queue-insertion.md` 仍在描述 Global Agent 对话面），
+两处均已修复。
+
+**实测命中 148 行**（`mcu` 模式 33 行、`global-agent` 模式 115 行、`esp32` **0 行**），
+全部为**保留契约**、**同名巧合**或**二进制误报**，无一处指向已删除的实现：
+
+| 类别 | 行数 | 说明 |
+| --- | ---: | --- |
+| `packages/server/src` 保留契约 | 40 | 见下 |
+| `tests/` 保留契约与残留断言 | 88 | 见下 |
+| `scripts/` + `bin/` openapi/MCP schema | 6 | `global_agent` 作为已接受取值的 enum 与描述 |
+| `docs/` | 5 | `openapi.json` 4 行 + `server-module-boundaries.md` 1 行 |
+| 二进制资材误报 | 4 | 见下 |
+| `packages/desktop/package-lock.json` | 3 | 见下 |
+| 本地未跟踪数据库 | 2 | 见下 |
+
+**服务端 40 行** = 38 行命中 `global[-_ ]?agent` + 2 行 `audio-convert.ts` 错误文案。
+
+那 38 行里 **36 行含引号 `'global_agent'`**（共 41 处，部分行含多处）、1 行含引号
+`'global-agent'`（`contracts/runs/surface.ts` 的 `RUN_SURFACES`）、1 行是
+`controllers/sessions.ts:1412` 的 `'Global agent sessions cannot be archived'` 错误串。
+全部是**契约字面量**：类型联合成员
+（`contracts/runs/session.ts`、`sockets/chat-run.ts`、`coding-agents/services/*`）、
+`sessions.ts` 的 DB 读取过滤、`sockets/chat-run.ts` 与 `services/webhooks` 的
+**外部输入接受集**、以及 `RUN_SURFACES`（`contracts/runs/surface.ts`）的
+`'global-agent'` 成员。控制器裁定**保留**：它们能编译，服务的是存量数据与已发布
+客户端的输入契约。判据是**契约**，不是"DB 里已存有 Global Agent 会话行"——
+规范记录归属方从未产生过 Global Agent 数据（本次实测两个本地库的 `mcu_devices`
+表均为 **0 行**），若以"存量数据"为由保留，后续读者会误以为这批成员可以删除。
+
+另含 `services/voice/stt/audio-convert.ts:188,200` 两行——仅在**错误文案**中出现
+`MCU PCM`；该服务本身存活，其测试按同一字面量断言，故逐字保留。
+
+**测试 88 行**分三类：
+1. `'global_agent'` 作为**存量数据输入**驱动幸存的回退逻辑：
+   `session-list-item.test.ts:188,210`（Hermes 头像 / 空态回退）、
+   `message-list-scroll-position.test.ts:166,174`（同样的头像回退）、
+   `global-pending-actions.test.ts:113,477`（历史会话通知跳转）。
+   这些是**合法的历史数据守卫**，不是残留，删掉会真实减少覆盖面。
+2. `'global_agent'` 作为**契约取值**的断言：`sessions-controller`、
+   `chat-run-bridge-readiness`、`chat-run-api-controller`、`session-store-search`、
+   `run-chat-bridge-resume`、`run-chat-queued-item`、`run-chat-bridge-final-context`、
+   `handle-coding-agent-run`、`studio-agent-contracts`、`api-docs-controller`。
+3. **防回归断言与白名单文案**：`legacy-app-api.test.ts` 断言 MCU 别名不再被重写、
+   `hermes-schemas.test.ts` 断言 `mcu_devices` 表不再创建、
+   `stt-settings-controller` / `tts-synthesize-controller` 断言受保护路由表内不含
+   `/mcu/` 路径、`audio-convert.test.ts` 与 `doubao-stt-provider.test.ts` 的
+   用例标题/夹具文件名（`'mcu-wav'`、`queue_id: 'mcu-test-run'`）、
+   `app-relay-*` 的用例标题（"independent of the MCU relay"）。
+
+**二进制误报 4 行**——`icon.icns:184,523`、`icon.png:560`、
+`fonts/ZenMaruGothic-Bold.ttf:39775`。`strings -n 4` 过滤后三者**可打印字符串中的
+MCU 命中均为 0**，是原始字节恰好拼出 `mcu`/`McU`；三者自上游快照导入
+（`33559e7`）后未改动。
+
+**`packages/desktop/package-lock.json` 3 行**——第三方 npm 包 `global-agent@3.0.0`
+（`app-builder-lib` → `@electron/get` 的 dev/optional 传递依赖，提供 HTTP 代理支持），
+与本次移除的功能**同名但无关**。
+
+**本地未跟踪数据库 2 行**——`packages/server/data/hermes-web-ui.db` 与
+`packages/server/data/test-runtime/hermes-web-ui.db`（`.gitignore:24` 已忽略）中仍有
+历史运行留下的 `mcu_devices` 表定义，**均 0 行**。属本地开发产物，不在交付物内，
+未删除（避免破坏本地数据）。
+
+### 冒烟结论
+
+生产构建（`dist/server/index.js`，隔离 `HERMES_WEB_UI_HOME`）实测：首页 200、
+`/health` 200、`admin/123456` 登录 200、`GET /api/studio/sessions` 200、
+`GET /api/studio/stt/profile-status/missing-audio` 返回 **200 `{"url": null}`**
+（新的契约形态，不再 302 跳转到已删除的提示音）、`GET /api/devices/link-info` 与
+`/api/devices/peer-connections` 200；`/api/studio/mcu/*` 与 `/api/hermes/mcu/*`
+全部 404；Socket.IO `/global-agent` 命名空间返回 `Invalid namespace`，`/chat-run`
+返回 `Authentication failed`（命名空间存在）。`lsof -a -p <pid> -i` 显示该进程**只有**
+`TCP *:8648 (LISTEN)` 与两个 UDP 套接字（LAN 发现广播），**无任何出站 TCP 连接**。
+
+**未做的检查（如实记录）**：无 GUI 环境，**未做浏览器验证**。因此以下依赖真实
+麦克风 / 浏览器 / 手机的能力**未获确认**：输入框麦克风输入、实时语音对话台、
+消息与群聊朗读、语音设置页、手机 App 连接、局域网设备发现。

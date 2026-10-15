@@ -31,7 +31,7 @@
 | Area | What Hermes Studio does |
 | --- | --- |
 | Multi-agent runtime | Runs Hermes, Claude Code, Codex, and Pi with streaming responses, tool traces, generated-file previews, persistent sessions, and standalone desktop chat windows. |
-| Studio workspace | Provides shared chats, group chat, global-agent runs, workflows, files, voice, media, devices, themes, logs, usage, and App connectivity across agent runtimes. |
+| Studio workspace | Provides shared chats, group chat, workflows, files, voice, media, devices, themes, logs, usage, and App connectivity across agent runtimes. |
 | Agent control planes | Keeps Hermes profiles, providers, models, memory, skills, plugins, jobs, Kanban, channels, and runtime management in their owning agent module. |
 | Automation | Builds executable visual workflows and connects the four runtimes through schedules, approval gates, group-chat rooms, platform channels, and MCP servers. |
 | Workspace tools | Provides a file browser, web terminal, Desktop Agent Browser, voice input/output, coding-agent runners, device discovery, Journey graph, and performance views. |
@@ -48,7 +48,7 @@ four concrete runtimes grouped into two agent families:
 | Coding | Claude Code, Codex, Pi | Coding-agent installation, configuration, proxies, sessions, and process execution. |
 
 Studio owns capabilities shared by those families: single chat, group chat,
-global-agent orchestration, workflows, webhooks, sessions, files and uploads,
+workflows, webhooks, sessions, files and uploads,
 TTS/STT, media, pets, themes, devices, networking, logs, usage, authentication,
 and App connectivity. Studio-owned HTTP APIs use `/api/studio/*`; Hermes-owned
 control-plane APIs use `/api/hermes/*`. Already-released mobile App paths are
@@ -477,7 +477,7 @@ Browser / Desktop / App
           ▼
 Koa bootstrap (composition only)
           │
-          ├─ Studio platform ── chat, groups, global agent, workflows,
+          ├─ Studio platform ── chat, groups, workflows,
           │                    sessions, files, voice, devices, webhooks
           ├─ Hermes family ─── profiles, models, skills, memory, jobs,
           │                    Kanban, channels, terminal, Hermes bridge

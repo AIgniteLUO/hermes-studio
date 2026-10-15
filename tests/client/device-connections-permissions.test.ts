@@ -7,7 +7,6 @@ describe('Device connections permissions', () => {
     const sidebar = readFileSync('packages/client/src/components/layout/PageSidebarNav.vue', 'utf8')
     const panel = readFileSync('packages/client/src/components/hermes/connections/ConnectionsPanel.vue', 'utf8')
     const appRoutes = readFileSync('packages/server/src/modules/studio/routes/app-connections.ts', 'utf8')
-    const mcuRoutes = readFileSync('packages/server/src/modules/studio/routes/mcu-devices.ts', 'utf8')
     const deviceRoutes = readFileSync('packages/server/src/modules/studio/routes/devices.ts', 'utf8')
 
     const connectionsRoute = router.slice(
@@ -19,7 +18,6 @@ describe('Device connections permissions', () => {
     expect(panel).toContain('value === \'devices\' && isSuperAdmin.value')
     expect(panel).toContain('<NTabPane v-if="isSuperAdmin" name="devices"')
     expect(appRoutes).not.toContain('requireSuperAdmin')
-    expect(mcuRoutes).not.toContain('requireSuperAdmin')
     expect(deviceRoutes).toContain('deviceRoutes.use(requireSuperAdmin)')
   })
 })

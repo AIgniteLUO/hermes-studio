@@ -5,7 +5,7 @@ separates Studio-owned capabilities from the two agent families while
 preserving request/response semantics and persisted data. Studio-owned HTTP
 operations use `/api/studio/*`; Hermes-owned operations use `/api/hermes/*`.
 Old server source trees are not retained. The only old Studio URL aliases are
-the centralized compatibility mappings for already-released App and MCU firmware versions in
+the centralized compatibility mappings for already-released App versions in
 `modules/studio/middleware/legacy-app-api.ts`.
 
 All server TypeScript source lives under `modules/` or `bootstrap/`, except the
@@ -76,7 +76,7 @@ packages/server/src/
       middleware/
         auth.ts
         errors.ts
-        legacy-app-api.ts          # temporary released App and MCU firmware URL mapping only
+        legacy-app-api.ts          # temporary released App URL mapping only
         request-context.ts
       http/
         body.ts
@@ -87,7 +87,6 @@ packages/server/src/
         update.ts
         health.ts
         devices.ts
-        mcu-devices.ts
         upload.ts                   # /api/studio/uploads
         app-upload.ts               # /api/studio/app-uploads/*
         files.ts                    # /api/studio/files/*
@@ -102,7 +101,6 @@ packages/server/src/
         chat-webhooks.ts            # cross-agent event delivery; /api/studio/webhooks/*
         workflows.ts
         group-chat.ts
-        global-agent.ts
         pets.ts
         logs.ts
         voice.ts
@@ -111,7 +109,6 @@ packages/server/src/
         update.ts
         health.ts
         devices.ts
-        mcu-devices.ts
         upload.ts
         app-upload.ts
         files.ts
@@ -127,7 +124,6 @@ packages/server/src/
         chat-webhooks.ts
         workflows.ts
         group-chat.ts
-        global-agent.ts
         pets.ts
         logs.ts
         voice.ts
@@ -162,7 +158,6 @@ packages/server/src/
           version-preview-manager.ts
         workflow/
         group-chat/
-        global-agent/
         pets/
         voice/
           stt/
@@ -185,7 +180,6 @@ packages/server/src/
       sockets/
         chat-run.ts
         group-chat.ts
-        global-agent.ts
         pets.ts
 
     hermes/                        # Hermes Agent-owned API and behavior
@@ -298,7 +292,7 @@ registry. Studio orchestration never imports a concrete agent module.
 | --- | --- | --- |
 | Studio update and Version Preview | Studio | Upgrades/restarts `hermes-web-ui`, not Hermes Agent. |
 | Auth, users, devices, files, app connections, relay, social messages | Studio | Product/platform capabilities shared across agents. |
-| Single Chat (Chat Run), Workflow, Group Chat, Global Agent | Studio | Cross-agent run and orchestration surfaces; dispatch through agent contracts. |
+| Single Chat (Chat Run), Workflow, Group Chat | Studio | Cross-agent run and orchestration surfaces; dispatch through agent contracts. |
 | Pets/Petdex and aggregate logs | Studio | Stored or presented as Studio product state. |
 | Common config, credentials, provider contracts, voice, run/session/usage helpers | Studio | Shared capabilities exposed through `studio/public` or `studio/contracts`. |
 | Studio SQLite tables and repositories | Studio | Application state owned by the Web UI. |
@@ -313,8 +307,8 @@ registry. Studio orchestration never imports a concrete agent module.
 
 If a feature can dispatch multiple agents, that alone does not make its data
 and business rules common. Ownership follows the state, command, and rules that
-the feature controls. Kanban is therefore Hermes; Single Chat, Group Chat,
-Workflow, and Global Agent are Studio orchestration. Hermes session history is
+the feature controls. Kanban is therefore Hermes; Single Chat, Group Chat, and
+Workflow are Studio orchestration. Hermes session history is
 still exposed through a Hermes adapter, but Studio owns the chat-run lifecycle.
 
 ## Allowed Dependency Matrix
@@ -355,7 +349,7 @@ Preserve behavior while moving ownership:
    repository/adapter, socket, Client API, and focused tests.
 5. Do not add compatibility re-exports or legacy source trees. Old HTTP aliases
    are allowed only in `modules/studio/middleware/legacy-app-api.ts` for released
-   App and MCU firmware versions; current clients must migrate to canonical URLs in the same change.
+   App versions; current clients must migrate to canonical URLs in the same change.
 
 ## Mechanical Harness
 

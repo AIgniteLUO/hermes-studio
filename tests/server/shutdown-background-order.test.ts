@@ -4,7 +4,6 @@ const closeDbMock = vi.hoisted(() => vi.fn())
 const stopPreviewRuntimeMock = vi.hoisted(() => vi.fn(async () => {}))
 const shutdownManagedGatewaysMock = vi.hoisted(() => vi.fn(async () => ({ stopped: 0 })))
 const forceStopManagedGatewaysMock = vi.hoisted(() => vi.fn())
-const stopOutboundRelayClientMock = vi.hoisted(() => vi.fn())
 const codingAgentShutdownMock = vi.hoisted(() => vi.fn())
 const shutdownLocalSttRuntimeMock = vi.hoisted(() => vi.fn(async () => {}))
 
@@ -16,9 +15,6 @@ vi.mock('../../packages/server/src/modules/hermes/services/gateway/runner', () =
 }))
 vi.mock('../../packages/server/src/modules/studio/services/voice/stt/local-model-manager', () => ({
   shutdownLocalSttRuntime: shutdownLocalSttRuntimeMock,
-}))
-vi.mock('../../packages/server/src/modules/studio/public/global-agent', () => ({
-  stopOutboundRelayClient: stopOutboundRelayClientMock,
 }))
 vi.mock('../../packages/server/src/modules/coding-agents/services/runtime/run-manager', () => ({
   codingAgentRunManager: { shutdown: codingAgentShutdownMock },

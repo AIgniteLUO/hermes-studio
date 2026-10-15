@@ -128,28 +128,26 @@ describe('chat store per-session reasoning effort', () => {
   })
 
   it('loads reasoning effort from the server session summary', async () => {
-    sessionsApi.fetchSessions.mockImplementation(async (source?: string) => source === 'global_agent'
-      ? []
-      : [{
-          id: 'server-session',
-          source: 'cli',
-          model: 'gpt-5.5',
-          title: 'server session',
-          started_at: 1,
-          ended_at: null,
-          message_count: 0,
-          tool_call_count: 0,
-          input_tokens: 0,
-          output_tokens: 0,
-          cache_read_tokens: 0,
-          cache_write_tokens: 0,
-          reasoning_tokens: 0,
-          billing_provider: null,
-          estimated_cost_usd: 0,
-          actual_cost_usd: null,
-          cost_status: '',
-          reasoning_effort: 'medium',
-        }])
+    sessionsApi.fetchSessions.mockResolvedValue([{
+      id: 'server-session',
+      source: 'cli',
+      model: 'gpt-5.5',
+      title: 'server session',
+      started_at: 1,
+      ended_at: null,
+      message_count: 0,
+      tool_call_count: 0,
+      input_tokens: 0,
+      output_tokens: 0,
+      cache_read_tokens: 0,
+      cache_write_tokens: 0,
+      reasoning_tokens: 0,
+      billing_provider: null,
+      estimated_cost_usd: 0,
+      actual_cost_usd: null,
+      cost_status: '',
+      reasoning_effort: 'medium',
+    }])
     const store = useChatStore()
 
     await store.refreshSessionListOnly('default')

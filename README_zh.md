@@ -39,7 +39,7 @@
 | 模块 | Hermes Studio 能做什么 |
 |---|---|
 | 多 Agent 运行时 | 运行 Hermes、Claude Code、Codex 和 Pi，支持流式回复、工具调用轨迹、生成文件预览、持久化会话和桌面独立聊天窗口。 |
-| Studio 工作区 | 为不同 Agent 运行时提供统一的单聊、群聊、Global Agent、工作流、文件、语音、媒体、设备、主题、日志、用量和 App 连接能力。 |
+| Studio 工作区 | 为不同 Agent 运行时提供统一的单聊、群聊、工作流、文件、语音、媒体、设备、主题、日志、用量和 App 连接能力。 |
 | Agent 控制面 | 将 Hermes 的 Profile、Provider、模型、记忆、技能、插件、任务、Kanban、渠道和运行时管理保留在对应的 Agent 模块内。 |
 | 自动化 | 构建可执行的可视化工作流，通过定时任务、审批节点、群聊房间、平台渠道和 MCP Server 连接四种运行时。 |
 | 工作区工具 | 提供文件浏览器、Web 终端、桌面 Agent 浏览器、语音输入输出、Coding Agent、设备发现、学习轨迹和性能视图。 |
@@ -55,7 +55,7 @@ Hermes Studio 是所有 Agent 共用的产品平台，不是第五种 Agent。�
 | Hermes | Hermes | Profile、Provider、模型、技能、插件、记忆、任务、Kanban、渠道、MCP、终端和 Hermes Runtime 集成。 |
 | Coding | Claude Code、Codex、Pi | Coding Agent 的安装、配置、代理、会话和进程执行。 |
 
-Studio 负责两个 Family 共用的能力：单聊、群聊、Global Agent 编排、工作流、
+Studio 负责两个 Family 共用的能力：单聊、群聊、工作流、
 Webhook、会话、文件与上传、TTS/STT、媒体、宠物、主题、设备、网络、日志、
 用量、认证和 App 连接。Studio 所有的 HTTP API 使用 `/api/studio/*`，
 Hermes 控制面 API 使用 `/api/hermes/*`。已经发布的旧版移动 App 路径由
@@ -477,7 +477,7 @@ npm run build   # 构建输出到 dist/
           ▼
 Koa Bootstrap（仅负责组装）
           │
-          ├─ Studio 平台 ── 单聊、群聊、Global Agent、工作流、
+          ├─ Studio 平台 ── 单聊、群聊、工作流、
           │                 会话、文件、语音、设备、Webhook
           ├─ Hermes Family ─ Profile、模型、技能、记忆、任务、
           │                  Kanban、渠道、终端、Hermes Bridge

@@ -1039,7 +1039,7 @@ function makeSocket(url, options) {
   }
   state.allSockets = state.allSockets || []
   state.allSockets.push(socket)
-  if (String(url).endsWith('/chat-run') || String(url).endsWith('/global-agent')) {
+  if (String(url).endsWith('/chat-run')) {
     state.sockets.push(socket)
     state.latest = socket
   }

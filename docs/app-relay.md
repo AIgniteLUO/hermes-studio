@@ -1,8 +1,7 @@
 # App connection relay
 
 App Relay lets the mobile App reach a Hermes Studio instance without exposing
-the Studio HTTP server to the Internet. It is independent from the MCU
-`/global-agent` connection.
+the Studio HTTP server to the Internet.
 
 This build ships no vendor cloud relay. Every relay route resolves to the
 self-hosted relay configured through `HERMES_APP_RELAY_URL`; with that variable

@@ -110,7 +110,6 @@ describe('stt transcribe controller', () => {
     vi.doUnmock('../../packages/server/src/modules/studio/public/config')
     vi.doUnmock('../../packages/server/src/modules/studio/services/voice/stt/audio-convert')
     vi.doUnmock('../../packages/server/src/modules/studio/services/voice/stt')
-    vi.doUnmock('../../packages/server/src/modules/studio/public/mcu-voice')
     vi.resetModules()
   })
 
@@ -264,18 +263,18 @@ describe('stt transcribe controller', () => {
     })
   })
 
-  it('redirects to the bundled missing-STT prompt audio when profile STT is unconfigured', async () => {
+  it('reports the unconfigured STT state with a null prompt-audio URL instead of redirecting', async () => {
     const { ctrl } = await initControllerAndStore()
     const ctx = makeJsonCtx({ id: 7, username: 'han', role: 'admin' }, '', undefined)
 
     await ctrl.missingProfileAudio(ctx)
 
-    expect(ctx.status).toBe(302)
-    expect(ctx.headers.Location).toBe('/api/studio/mcu/audio/missing-stt-24k.s16le.pcm')
+    expect(ctx.status).toBe(200)
+    expect(ctx.headers.Location).toBeUndefined()
     expect(ctx.headers['X-Hermes-STT-Configured']).toBe('false')
-    expect(ctx.body).toEqual({
-      url: '/api/studio/mcu/audio/missing-stt-24k.s16le.pcm',
-    })
+    expect(ctx.headers['X-Hermes-STT-Reason']).toBe('active_stt_provider_missing')
+    expect(ctx.body).toEqual({ url: null })
+    expect(JSON.stringify(ctx.body)).not.toContain('/api/studio/mcu/audio')
   })
 
   it('returns 204 from missing-STT prompt audio when profile STT is configured', async () => {
@@ -471,194 +470,6 @@ describe('stt transcribe controller', () => {
     expect(String(url)).toBe('https://openspeech.bytedance.com/api/v3/auc/bigmodel/submit')
     expect(getHeader(init.headers, 'X-Api-Key')).toBe('server-secret')
     expect(getHeader(init.headers, 'X-Api-Key')).not.toContain('attacker-secret')
-  })
-
-  it('passes MCU WAV audio to Doubao without ffmpeg normalization', async () => {
-    const startMcuVoiceChatTurn = vi.fn()
-    const audioConvertMock = {
-      transcodeToWav: vi.fn(async (audio: Buffer) => ({
-        audio: Buffer.concat([Buffer.from('converted:'), audio]),
-        mimeType: 'audio/wav',
-        fileName: 'audio.wav',
-      })),
-    }
-    tempDir = mkdtempSync(join(tmpdir(), 'hermes-mcu-stt-test-'))
-    vi.doMock('../../packages/server/src/modules/studio/public/config', () => ({
-      config: { appHome: tempDir },
-    }))
-    vi.doMock('../../packages/server/src/modules/studio/services/voice/stt/audio-convert', () => audioConvertMock)
-    vi.doMock('../../packages/server/src/modules/studio/public/mcu-voice', () => ({
-      emitMcuVoiceEvent: vi.fn(),
-      startMcuVoiceChatTurn,
-    }))
-
-    mockFetch
-      .mockResolvedValueOnce({
-        ...jsonResponse({}),
-        headers: new Headers({ 'X-Api-Status-Code': '20000000' }),
-      })
-      .mockResolvedValueOnce({
-        ...jsonResponse({ result: { text: '你好' } }),
-        headers: new Headers({ 'X-Api-Status-Code': '20000000' }),
-      })
-
-    const { ctrl, store } = await initControllerAndStore()
-    store.saveSttProviderSetting('default', 'doubao', {
-      settings: {
-        baseUrl: 'https://openspeech.bytedance.com/api/v3/auc/bigmodel',
-        model: 'volc.seedasr.auc',
-      },
-      secrets: {
-        apiKey: 'server-secret',
-      },
-    })
-    store.saveActiveSttProvider('default', 'doubao')
-
-    const wav = Buffer.from('raw-mcu-wav')
-    const ctx = makeRawAudioCtx(
-      { id: 7, username: 'han', role: 'admin' },
-      wav,
-      {
-        'content-type': 'audio/wav',
-        authorization: 'Bearer user-token',
-        'x-hermes-mcu-interaction-id': 'voice-1',
-        'x-hermes-mcu-device-id': 'device-1',
-        'x-hermes-mcu-agent-runtime': 'hermes',
-      },
-    )
-
-    await ctrl.mcuVoiceTurn(ctx)
-
-    expect(ctx.status).toBe(200)
-    expect(ctx.body).toMatchObject({ ok: true, accepted: true, interactionId: 'voice-1' })
-    await waitForMockCalls(mockFetch, 2)
-    await waitForMockCalls(startMcuVoiceChatTurn, 1)
-    expect(audioConvertMock.transcodeToWav).not.toHaveBeenCalled()
-    expect(mockFetch).toHaveBeenCalledTimes(2)
-    const [, init] = mockFetch.mock.calls[0] as [string | URL, RequestInit]
-    expect(JSON.parse(String(init.body)).audio).toEqual({
-      format: 'wav',
-      data: wav.toString('base64'),
-    })
-    expect(startMcuVoiceChatTurn).toHaveBeenCalledWith({
-      userToken: 'user-token',
-      profile: 'default',
-      interactionId: 'voice-1',
-      transcript: '你好',
-      clientId: 'device-1',
-      agentRuntime: 'hermes',
-    })
-  })
-
-  it('queues a separate prompt audio when MCU STT transcription fails after upload', async () => {
-    const emitMcuEvent = vi.fn()
-    vi.doMock('../../packages/server/src/modules/studio/public/mcu-voice', () => ({
-      emitMcuVoiceEvent: emitMcuEvent,
-      startMcuVoiceChatTurn: vi.fn(),
-    }))
-    vi.doMock('../../packages/server/src/modules/studio/services/voice/stt', async (importOriginal) => ({
-      ...await importOriginal<typeof import('../../packages/server/src/modules/studio/services/voice/stt')>(),
-      transcribeWithProvider: vi.fn(async () => {
-        throw new Error('provider unavailable')
-      }),
-    }))
-
-    const { ctrl, store } = await initControllerAndStore()
-    store.saveSttProviderSetting('default', 'openai', {
-      settings: {
-        baseUrl: 'https://api.openai.com/v1/audio/transcriptions',
-        model: 'gpt-4o-transcribe',
-      },
-      secrets: { apiKey: 'server-secret' },
-    })
-    store.saveActiveSttProvider('default', 'openai')
-
-    const ctx = makeRawAudioCtx(
-      { id: 7, username: 'han', role: 'admin' },
-      Buffer.from('raw-mcu-wav'),
-      {
-        'content-type': 'audio/wav',
-        authorization: 'Bearer user-token',
-        'x-hermes-mcu-interaction-id': 'voice-1',
-        'x-hermes-mcu-device-id': 'device-1',
-      },
-    )
-
-    await ctrl.mcuVoiceTurn(ctx)
-
-    expect(ctx.status).toBe(200)
-    expect(ctx.body).toMatchObject({ ok: true, accepted: true, interactionId: 'voice-1' })
-    await waitForMockCalls(emitMcuEvent, 3)
-    expect(emitMcuEvent).toHaveBeenCalledWith({
-      type: 'audio.enqueue',
-      interactionId: 'voice-1',
-      segmentId: 'voice-1-stt-failed',
-      text: '当前语音转文字失败了，请配置下语音转文字再使用哦',
-      url: '/api/studio/mcu/audio/stt-failed-24k.s16le.pcm',
-      mimeType: 'audio/x-pcm',
-      format: 's16le',
-      sampleRate: 24000,
-      channels: 1,
-    }, { clientId: 'device-1' })
-  })
-
-  it('silently completes an MCU turn when the provider detects no speech', async () => {
-    const emitMcuEvent = vi.fn()
-    vi.doMock('../../packages/server/src/modules/studio/public/mcu-voice', () => ({
-      emitMcuVoiceEvent: emitMcuEvent,
-      startMcuVoiceChatTurn: vi.fn(),
-    }))
-    vi.doMock('../../packages/server/src/modules/studio/services/voice/stt', async (importOriginal) => {
-      const original = await importOriginal<typeof import('../../packages/server/src/modules/studio/services/voice/stt')>()
-      const { SttNoSpeechDetectedError } = await import('../../packages/server/src/modules/studio/services/voice/stt/types')
-      return {
-        ...original,
-        transcribeWithProvider: vi.fn(async () => {
-          throw new SttNoSpeechDetectedError('no speech detected')
-        }),
-      }
-    })
-
-    const { ctrl, store } = await initControllerAndStore()
-    store.saveSttProviderSetting('default', 'openai', {
-      settings: {
-        baseUrl: 'https://api.openai.com/v1/audio/transcriptions',
-        model: 'gpt-4o-transcribe',
-      },
-      secrets: { apiKey: 'server-secret' },
-    })
-    store.saveActiveSttProvider('default', 'openai')
-
-    const ctx = makeRawAudioCtx(
-      { id: 7, username: 'han', role: 'admin' },
-      Buffer.from('raw-mcu-wav'),
-      {
-        'content-type': 'audio/wav',
-        authorization: 'Bearer user-token',
-        'x-hermes-mcu-interaction-id': 'voice-1',
-        'x-hermes-mcu-device-id': 'device-1',
-      },
-    )
-
-    await ctrl.mcuVoiceTurn(ctx)
-
-    expect(ctx.status).toBe(200)
-    expect(ctx.body).toMatchObject({ ok: true, accepted: true, interactionId: 'voice-1' })
-    await waitForMockCalls(emitMcuEvent, 2)
-    expect(emitMcuEvent).toHaveBeenCalledWith({
-      type: 'interaction.status',
-      interactionId: 'voice-1',
-      status: 'completed',
-      text: '',
-    }, { clientId: 'device-1' })
-    expect(emitMcuEvent).not.toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'audio.enqueue' }),
-      expect.anything(),
-    )
-    expect(emitMcuEvent).not.toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'failed' }),
-      expect.anything(),
-    )
   })
 
   it.each([

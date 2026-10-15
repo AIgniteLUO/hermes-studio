@@ -19,15 +19,16 @@ describe('legacy App API compatibility', () => {
       .toBe('/api/studio/files/download?path=%2Ftmp%2Fa.png&profile=default')
   })
 
-  it('keeps released MCU firmware on voice, audio, and OTA endpoints', () => {
-    expect(canonicalLegacyAppPath('/api/hermes/mcu/voice-turn'))
-      .toBe('/api/studio/mcu/voice-turn')
-    expect(canonicalLegacyAppPath('/api/hermes/mcu/audio/token-invalid-24k.s16le.pcm'))
-      .toBe('/api/studio/mcu/audio/token-invalid-24k.s16le.pcm')
-    expect(canonicalLegacyAppPath('/api/hermes/mcu/firmware/v1/manifest'))
-      .toBe('/api/studio/mcu/firmware/v1/manifest')
-    expect(canonicalLegacyAppPath('/api/hermes/mcu/firmware.bin'))
-      .toBe('/api/studio/mcu/firmware.bin')
+  it('no longer rewrites MCU firmware, voice, or audio aliases whose routes were retired', () => {
+    for (const path of [
+      '/api/hermes/mcu/voice-turn',
+      '/api/hermes/mcu/audio/token-invalid-24k.s16le.pcm',
+      '/api/hermes/mcu/firmware/v1/manifest',
+      '/api/hermes/mcu/firmware.bin',
+    ]) {
+      expect(canonicalLegacyAppPath(path)).toBeNull()
+    }
+    expect(LEGACY_APP_API_PREFIXES.some(([legacy]) => legacy.includes('/mcu'))).toBe(false)
   })
 
   it('does not rewrite capabilities still owned by Hermes', () => {

@@ -21,7 +21,7 @@ describe('Hermes schema initialization', () => {
   })
 
   it('initializes all tables with correct schemas', async () => {
-    const { initAllHermesTables, USAGE_TABLE, SESSIONS_TABLE, SESSION_CATEGORIES_TABLE, MESSAGES_TABLE, GC_ROOMS_TABLE, GC_MESSAGES_TABLE, GC_ROOM_AGENTS_TABLE, USERS_TABLE, USER_PROFILES_TABLE, SOCIAL_MESSAGE_ACCOUNTS_TABLE, SOCIAL_MESSAGE_RUNTIME_STATES_TABLE, DEVICES_TABLE, MCU_DEVICES_TABLE } =
+    const { initAllHermesTables, USAGE_TABLE, SESSIONS_TABLE, SESSION_CATEGORIES_TABLE, MESSAGES_TABLE, GC_ROOMS_TABLE, GC_MESSAGES_TABLE, GC_ROOM_AGENTS_TABLE, USERS_TABLE, USER_PROFILES_TABLE, SOCIAL_MESSAGE_ACCOUNTS_TABLE, SOCIAL_MESSAGE_RUNTIME_STATES_TABLE, DEVICES_TABLE } =
       await import('../../packages/server/src/modules/studio/infrastructure/database/schemas')
 
     expect(() => initAllHermesTables()).not.toThrow()
@@ -40,7 +40,8 @@ describe('Hermes schema initialization', () => {
     expect(tables.map(t => t.name)).toContain(SOCIAL_MESSAGE_ACCOUNTS_TABLE)
     expect(tables.map(t => t.name)).toContain(SOCIAL_MESSAGE_RUNTIME_STATES_TABLE)
     expect(tables.map(t => t.name)).toContain(DEVICES_TABLE)
-    expect(tables.map(t => t.name)).toContain(MCU_DEVICES_TABLE)
+    // The MCU device registry table was retired with the hardware firmware support.
+    expect(tables.map(t => t.name)).not.toContain('mcu_devices')
 
     // Verify USAGE_TABLE structure
     const usageCols = db.prepare(`PRAGMA table_info("${USAGE_TABLE}")`).all() as Array<{ name: string }>
@@ -96,13 +97,6 @@ describe('Hermes schema initialization', () => {
     expect(deviceCols.some(c => c.name === 'id')).toBe(true)
     expect(deviceCols.some(c => c.name === 'status')).toBe(true)
     expect(deviceCols.some(c => c.name === 'device_public_key')).toBe(true)
-
-    const mcuDeviceCols = db.prepare(`PRAGMA table_info("${MCU_DEVICES_TABLE}")`).all() as Array<{ name: string }>
-    expect(mcuDeviceCols.some(c => c.name === 'id')).toBe(true)
-    expect(mcuDeviceCols.some(c => c.name === 'name')).toBe(true)
-    expect(mcuDeviceCols.some(c => c.name === 'device_code')).toBe(true)
-    expect(mcuDeviceCols.some(c => c.name === 'is_official')).toBe(true)
-    expect(mcuDeviceCols.some(c => c.name === 'created_at')).toBe(true)
   })
 
   it('preserves existing data when adding safe schema columns', async () => {

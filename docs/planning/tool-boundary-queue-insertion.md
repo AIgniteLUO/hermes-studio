@@ -82,9 +82,9 @@ conversation.
 - Never issue another model request after a strict runtime reaches the selected
   tool boundary.
 - Submit the dequeued message through the normal run path as a new user turn.
-- Support Hermes Agent, including its Global Agent chat
-  surface, through one capability-based server contract. Support Claude Code,
-  Codex, and Pi through immediate process interruption and native resume.
+- Support Hermes Agent through one capability-based server contract. Support
+  Claude Code, Codex, and Pi through immediate process interruption and native
+  resume.
 - Keep explicit hard stop behavior available while a boundary stop is waiting.
 - Preserve already-detached background delegations unless the user explicitly
   requests a hard stop.

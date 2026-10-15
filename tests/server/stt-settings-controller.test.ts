@@ -374,7 +374,6 @@ describe('stt routes', () => {
     const deleteBaseUrlPreset = vi.fn(async (ctx: any) => { ctx.body = { route: 'deleteBaseUrlPreset' } })
     const profileStatus = vi.fn(async (ctx: any) => { ctx.body = { route: 'profileStatus' } })
     const missingProfileAudio = vi.fn(async (ctx: any) => { ctx.body = { route: 'missingProfileAudio' } })
-    const mcuVoiceTurn = vi.fn(async (ctx: any) => { ctx.body = { route: 'mcuVoiceTurn' } })
     const transcribe = vi.fn(async (ctx: any) => { ctx.body = { route: 'transcribe' } })
     const transcribeVoiceProxy = vi.fn(async (ctx: any) => { ctx.body = { route: 'transcribeVoiceProxy' } })
     const startLocalStream = vi.fn()
@@ -391,7 +390,6 @@ describe('stt routes', () => {
       deleteBaseUrlPreset,
       profileStatus,
       missingProfileAudio,
-      mcuVoiceTurn,
       transcribe,
       transcribeVoiceProxy,
       startLocalStream,
@@ -410,7 +408,6 @@ describe('stt routes', () => {
       '/api/studio/voice/proxy/:profile/v1/audio/transcriptions',
       '/api/studio/stt/profile-status',
       '/api/studio/stt/profile-status/missing-audio',
-      '/api/studio/mcu/voice-turn',
       '/api/studio/stt/settings/active',
       '/api/studio/stt/settings/:provider',
       '/api/studio/stt/settings/:provider',
@@ -422,6 +419,7 @@ describe('stt routes', () => {
       '/api/studio/stt/local-stream/:sessionId',
       '/api/studio/stt/transcribe',
     ]))
+    expect(protectedPaths.filter((path: string) => path.includes('/mcu/'))).toEqual([])
 
     const transcribeLayer: any = sttProtectedRoutes.stack.find((entry: any) => entry.path === '/api/studio/stt/transcribe')
     const ctx: any = { request: { body: {} }, body: null }

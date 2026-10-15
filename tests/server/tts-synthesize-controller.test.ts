@@ -886,14 +886,12 @@ describe('tts routes', () => {
     const deleteBaseUrlPreset = vi.fn(async (ctx: any) => { ctx.body = { route: 'deleteBaseUrlPreset' } })
     const deleteSecret = vi.fn(async (ctx: any) => { ctx.body = { route: 'deleteSecret' } })
     const probeProvider = vi.fn(async (ctx: any) => { ctx.body = { route: 'probeProvider' } })
-    const mcuAudio = vi.fn(async (ctx: any) => { ctx.body = { route: 'mcuAudio' } })
     const synthesizeVoiceProxy = vi.fn(async (ctx: any) => { ctx.body = { route: 'synthesizeVoiceProxy' } })
     const synthesizeVoiceProxyOpenAi = vi.fn(async (ctx: any) => { ctx.body = { route: 'synthesizeVoiceProxyOpenAi' } })
 
     vi.doMock('../../packages/server/src/modules/studio/controllers/tts', () => ({
       generate,
       openaiProxy,
-      mcuAudio,
       synthesize,
       listSettings,
       saveSettings,
@@ -910,11 +908,11 @@ describe('tts routes', () => {
     const paths = ttsRoutes.stack.map((entry: any) => entry.path)
     const protectedPaths = ttsProtectedRoutes.stack.map((entry: any) => entry.path)
 
-    expect(paths).toEqual(expect.arrayContaining([
+    expect(paths).toEqual([
       '/api/studio/tts',
       '/api/tts/proxy/audio/speech',
-      '/api/studio/mcu/audio/:file',
-    ]))
+    ])
+    expect(protectedPaths.filter((path: string) => path.includes('/mcu/'))).toEqual([])
     expect(paths).not.toContain('/api/studio/tts/synthesize')
     expect(protectedPaths).toEqual(expect.arrayContaining([
       '/api/studio/tts/settings',

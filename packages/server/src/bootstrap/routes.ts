@@ -1,7 +1,6 @@
 import type { Context, Next } from 'koa'
 import './hermes-ops-adapter'
 import './agent-log-adapter'
-import './mcu-voice-adapter'
 import './workflow-runtime-adapter'
 import './chat-agent-runtime-adapter'
 import './group-chat-agent-runtime-adapter'
@@ -23,7 +22,6 @@ import {
 import { uploadRoutes } from '../modules/studio/routes/upload'
 import { appUploadRoutes } from '../modules/studio/routes/app-upload'
 import { authPublicRoutes, authProtectedRoutes } from '../modules/studio/routes/auth'
-import { mcuDeviceRoutes } from '../modules/studio/routes/mcu-devices'
 
 import { sessionRoutes } from '../modules/studio/routes/sessions'
 import { profileRoutes } from '../modules/hermes/routes/profiles'
@@ -50,7 +48,6 @@ import { kanbanRoutes } from '../modules/hermes/routes/kanban'
 import { workflowRoutes } from '../modules/studio/routes/workflows'
 import { ttsRoutes, ttsProtectedRoutes } from '../modules/studio/routes/tts'
 import { sttProtectedRoutes } from '../modules/studio/routes/stt'
-import { mcuFirmwareRoutes } from '../modules/studio/routes/mcu-firmware'
 import { mediaRoutes } from '../modules/studio/routes/media'
 import { groupChatPublicRoutes, groupChatRoutes } from '../modules/studio/routes/group-chat'
 import { chatRunRoutes } from '../modules/studio/routes/chat-run'
@@ -91,7 +88,6 @@ export function registerRoutes(app: any, authMiddleware: Array<(ctx: Context, ne
   // --- Protected routes (auth required) ---
   app.use(authProtectedRoutes.routes())
   app.use(deviceRoutes.routes())
-  app.use(mcuDeviceRoutes.routes())
   app.use(appConnectionRoutes.routes())
   app.use(uploadRoutes.routes())
   app.use(appUploadRoutes.routes())
@@ -129,7 +125,6 @@ export function registerRoutes(app: any, authMiddleware: Array<(ctx: Context, ne
   app.use(workflowRoutes.routes())
   app.use(ttsProtectedRoutes.routes())
   app.use(sttProtectedRoutes.routes())
-  app.use(mcuFirmwareRoutes.routes())
   app.use(mediaRoutes.routes())
   app.use(performanceMonitorRoutes.routes())
   app.use(journeyRoutes.routes())

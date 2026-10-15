@@ -3,7 +3,6 @@ import { forceStopManagedGateways, shutdownManagedGateways } from '../modules/he
 import { closeDb } from '../modules/studio/infrastructure/database'
 import { logger } from '../modules/studio/public/logging'
 import { shutdownLocalSttRuntime } from '../modules/studio/services/voice/stt/local-model-manager'
-import { stopOutboundRelayClient } from '../modules/studio/public/global-agent'
 import { stopAppRelayClient } from '../modules/studio/services/app-relay/client'
 import { stopChatWebhookDispatcher } from '../modules/studio/services/webhooks'
 import { shutdownSocialMessageRuntimes } from '../modules/studio/services/social-messages'
@@ -159,7 +158,6 @@ export function createShutdownHandler(
           logger.info('Leaving agent bridge running across Web UI shutdown')
         }
 
-        await runShutdownStep('Outbound relay clients', () => stopOutboundRelayClient())
         await runShutdownStep('App relay clients', () => stopAppRelayClient())
 
         // Disconnect Socket.IO before HTTP server to prevent hanging, and wait

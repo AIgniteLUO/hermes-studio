@@ -35,7 +35,6 @@ import {
   stopLanDiscoveryResponder,
 } from './lan-discovery'
 import { getLanPeerSocketManager, getLanPeerSocketPath } from './lan-peer'
-import { startGlobalAgentServer } from '../modules/studio/public/global-agent'
 import { startLocalAppRelayServer } from '../modules/studio/services/app-relay/server'
 import {
   hasPendingCloudAppConnectionRevocations,
@@ -587,7 +586,6 @@ export async function bootstrap() {
   petStateSocketServer = new PetStateSocketServer(activeGroupChatServer.getIO())
   petStateSocketServer.init()
 
-  startGlobalAgentServer(activeGroupChatServer.getIO(), { localBaseUrl: loopbackBaseUrl })
   console.log('[bootstrap] global agent server ready')
 
   // Session deleter — periodically drain pending session deletes

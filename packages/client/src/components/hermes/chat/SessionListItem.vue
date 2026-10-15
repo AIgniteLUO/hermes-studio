@@ -47,7 +47,6 @@ const profileHasModels = computed(() => {
 const profileModelsMissing = computed(() =>
   appStore.profileModelGroups.length > 0 && !profileHasModels.value,
 )
-const isGlobalAgentSession = computed(() => props.session.source === 'global_agent')
 const sessionAgentLogo = computed(() => chatSessionAgentAvatar(props.session))
 
 let longPressTimer: ReturnType<typeof setTimeout> | null = null
@@ -166,24 +165,6 @@ onUnmounted(() => {
         </span>
       </span>
     </div>
-    <svg
-      v-if="isGlobalAgentSession"
-      class="session-item-global-icon"
-      :aria-label="t('sidebar.globalAgent')"
-      :title="t('sidebar.globalAgent')"
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.8"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <rect x="7" y="7" width="10" height="10" rx="2" />
-      <path d="M9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4" />
-      <path d="M10 10h4v4h-4z" />
-    </svg>
     <NPopconfirm v-if="canDelete && !selectable" @positive-click="emit('delete')">
       <template #trigger>
         <button class="session-item-delete" @click.stop.prevent>
@@ -308,14 +289,6 @@ onUnmounted(() => {
   flex: 0 0 auto;
   font-size: 11px;
   color: var(--text-muted);
-}
-
-.session-item-global-icon {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  color: #d6a019;
-  pointer-events: none;
 }
 
 .session-item-delete {

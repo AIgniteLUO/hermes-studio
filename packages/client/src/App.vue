@@ -94,8 +94,6 @@ const usesPageSidebar = computed(() =>
     "hermes.models",
     "hermes.history",
     "hermes.historySession",
-    "hermes.globalAgent",
-    "hermes.globalAgentSession",
     "hermes.groupChat",
     "hermes.groupChatRoom",
     "hermes.workflow",

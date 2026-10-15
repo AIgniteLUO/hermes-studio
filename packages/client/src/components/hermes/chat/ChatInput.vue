@@ -228,7 +228,7 @@ let bundlesLoadRequest: Promise<void> | null = null
 let bundlesLoadRequestKey = ''
 const isBridgeSession = computed(() => {
   const session = chatStore.activeSession
-  if (!session) return chatStore.runtimeMode !== 'global_agent'
+  if (!session) return true
   return session.source === 'cli'
 })
 const isCodingAgentSession = computed(() => {

@@ -75,7 +75,7 @@ describe('chat workspace diff turn association', () => {
     vi.clearAllMocks()
     localStorage.clear()
     setActivePinia(createPinia())
-    sessionApi.fetchSessions.mockResolvedValueOnce([summary()]).mockResolvedValueOnce([])
+    sessionApi.fetchSessions.mockResolvedValueOnce([summary()])
     sessionApi.fetchSessionMessagesPage.mockReset()
     chatApi.resumePayload = {
       isWorking: false,

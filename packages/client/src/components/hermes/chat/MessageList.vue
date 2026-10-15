@@ -296,7 +296,7 @@ const canInsertQueuedMessages = computed(() => {
   if (!session) return false;
   const agent = session.codingAgentId || session.agent;
   if (agent === "codex" || agent === "pi" || agent === "claude" || agent === "claude-code") return true;
-  return !session.source || session.source === "cli" || session.source === "global_agent";
+  return !session.source || session.source === "cli";
 });
 const visibleApproval = computed(() => chatStore.activePendingApproval);
 const visibleClarify = computed(() => chatStore.activePendingClarify);

@@ -24,8 +24,8 @@ export interface StartRunRequest {
   provider?: string
   model_groups?: Array<{ provider: string; models: string[] }>
   queue_id?: string
-  source?: 'api_server' | 'cli' | 'coding_agent' | 'global_agent' | 'workflow' | 'group_chat'
-  session_source?: 'global_agent' | 'workflow' | 'group_chat'
+  source?: 'api_server' | 'cli' | 'coding_agent' | 'workflow' | 'group_chat'
+  session_source?: 'workflow' | 'group_chat'
   coding_agent_id?: ChatCodingAgentId
   agent_id?: ChatCodingAgentId
   mode?: 'scoped' | 'global'
@@ -202,8 +202,6 @@ export interface ResumeSessionPayload {
 let chatRunSocket: Socket | null = null
 let globalListenersRegistered = false
 let chatRunSocketProfile: string | null = null
-export type ChatRunTransport = 'chat-run' | 'global-agent'
-let chatRunSocketTransport: ChatRunTransport = 'chat-run'
 
 const TRANSIENT_DISCONNECT_REASONS = new Set<string>([
   'transport close',
@@ -558,7 +556,7 @@ function globalSessionSettingsUpdatedHandler(event: RunEvent): void {
   for (const handler of sessionSettingsUpdatedHandlers) handler(event)
 }
 
-function globalAgentEventHandler(event: RunEvent): void {
+function globalSocketAgentEventHandler(event: RunEvent): void {
   const sid = event.session_id
   if (!sid) return
 
@@ -732,9 +730,8 @@ export function respondClarify(
   sessionId: string,
   clarifyId: string,
   response: string,
-  transport: ChatRunTransport = 'chat-run',
 ): void {
-  const socket = connectChatRun(null, transport)
+  const socket = connectChatRun()
   socket.emit('clarify.respond', {
     session_id: sessionId,
     clarify_id: clarifyId,
@@ -746,9 +743,8 @@ export function respondToolApproval(
   sessionId: string,
   approvalId: string,
   choice: 'once' | 'session' | 'always' | 'deny',
-  transport: ChatRunTransport = 'chat-run',
 ): void {
-  const socket = connectChatRun(null, transport)
+  const socket = connectChatRun()
   socket.emit('approval.respond', {
     session_id: sessionId,
     approval_id: approvalId,
@@ -756,16 +752,14 @@ export function respondToolApproval(
   })
 }
 
-export function getChatRunSocket(transport?: ChatRunTransport): Socket | null {
-  if (transport && chatRunSocketTransport !== transport) return null
+export function getChatRunSocket(): Socket | null {
   return chatRunSocket
 }
 
-export function connectChatRun(requestedProfile?: string | null, transport: ChatRunTransport = 'chat-run'): Socket {
+export function connectChatRun(requestedProfile?: string | null): Socket {
   const normalizedRequestedProfile = requestedProfile?.trim() || null
   if (
     chatRunSocket?.connected &&
-    chatRunSocketTransport === transport &&
     (!normalizedRequestedProfile || chatRunSocketProfile === normalizedRequestedProfile)
   ) {
     return chatRunSocket
@@ -795,10 +789,8 @@ export function connectChatRun(requestedProfile?: string | null, transport: Chat
     profile = normalizedRequestedProfile || localStorage.getItem('hermes_active_profile_name') || 'default'
   }
   chatRunSocketProfile = profile
-  chatRunSocketTransport = transport
 
-  const namespace = transport === 'global-agent' ? '/global-agent' : '/chat-run'
-  chatRunSocket = io(`${baseUrl}${namespace}`, {
+  chatRunSocket = io(`${baseUrl}/chat-run`, {
     auth: { token },
     query: { profile },
     transports: ['websocket', 'polling'],
@@ -819,7 +811,7 @@ export function connectChatRun(requestedProfile?: string | null, transport: Chat
     chatRunSocket.on('thinking.delta', globalThinkingDeltaHandler)
     chatRunSocket.on('reasoning.available', globalReasoningAvailableHandler)
     chatRunSocket.on('moa.reference', globalReasoningDeltaHandler)
-    chatRunSocket.on('moa.aggregating', globalAgentEventHandler)
+    chatRunSocket.on('moa.aggregating', globalSocketAgentEventHandler)
 
     // Tool events
     chatRunSocket.on('tool.started', globalToolStartedHandler)
@@ -855,7 +847,7 @@ export function connectChatRun(requestedProfile?: string | null, transport: Chat
 
     // Usage events
     chatRunSocket.on('usage.updated', globalUsageUpdatedHandler)
-    chatRunSocket.on('agent.event', globalAgentEventHandler)
+    chatRunSocket.on('agent.event', globalSocketAgentEventHandler)
     chatRunSocket.on('run.reattach_failed', globalRunReattachFailedHandler)
     chatRunSocket.on('session.command', globalSessionCommandHandler)
     chatRunSocket.on('session.title.updated', globalSessionTitleUpdatedHandler)
@@ -873,7 +865,6 @@ export function disconnectChatRun(): void {
     chatRunSocket.disconnect()
     chatRunSocket = null
     chatRunSocketProfile = null
-    chatRunSocketTransport = 'chat-run'
     globalListenersRegistered = false
     sessionEventHandlers.clear()
   }
@@ -902,9 +893,8 @@ export function resumeSession(
   sessionId: string,
   onResumed: (data: ResumeSessionPayload) => void,
   profile?: string | null,
-  transport: ChatRunTransport = 'chat-run',
 ): Socket {
-  const socket = connectChatRun(profile, transport)
+  const socket = connectChatRun(profile)
 
   const handleResumed = (data: ResumeSessionPayload) => {
     if (data?.session_id !== sessionId) return
@@ -925,7 +915,6 @@ export function startRunViaSocket(
   onStarted?: (runId: string) => void,
   options?: {
     onReconnectResume?: (data: ResumeSessionPayload) => void
-    transport?: ChatRunTransport
   },
 ): { abort: () => void } {
   const sid = body.session_id
@@ -934,7 +923,7 @@ export function startRunViaSocket(
   }
 
   let closed = false
-  const socket = connectChatRun(body.profile, options?.transport)
+  const socket = connectChatRun(body.profile)
   if (sessionEventHandlers.has(sid)) {
     socket.emit('run', body)
     return {

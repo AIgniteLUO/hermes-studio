@@ -57,16 +57,6 @@ const router = createRouter({
       component: () => import('@/views/hermes/HistoryView.vue'),
     },
     {
-      path: '/hermes/global-agent',
-      name: 'hermes.globalAgent',
-      component: () => import('@/views/hermes/GlobalAgentView.vue'),
-    },
-    {
-      path: '/hermes/global-agent/session/:sessionId',
-      name: 'hermes.globalAgentSession',
-      component: () => import('@/views/hermes/GlobalAgentView.vue'),
-    },
-    {
       path: '/hermes/jobs',
       name: 'hermes.jobs',
       component: () => import('@/views/hermes/JobsView.vue'),

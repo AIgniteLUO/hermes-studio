@@ -152,7 +152,7 @@ function pendingSoundActionKeys(): string[] {
 function pendingActions(suppressVisibleSources = true): GlobalPendingAction[] {
   const actions: GlobalPendingAction[] = []
   const profile = profilesStore.activeProfileName || 'default'
-  const visibleChatSessionId = suppressVisibleSources && ['hermes.chat', 'hermes.session', 'hermes.globalAgent', 'hermes.globalAgentSession'].includes(String(route.name || ''))
+  const visibleChatSessionId = suppressVisibleSources && ['hermes.chat', 'hermes.session'].includes(String(route.name || ''))
     ? chatStore.activeSessionId
     : null
   const visibleGroupRoomId = suppressVisibleSources && route.name === 'hermes.groupChatRoom' ? groupChatStore.currentRoomId : null
@@ -305,9 +305,8 @@ async function submitWorkflowApproval(action: Extract<GlobalPendingAction, { kin
 function openPendingSource(action: GlobalPendingAction) {
   if (action.kind === 'chat-approval' || action.kind === 'chat-clarify') {
     const sessionId = action.pending.sessionId
-    const session = chatStore.sessions.find(item => item.id === sessionId)
     void router.push({
-      name: session?.source === 'global_agent' ? 'hermes.globalAgentSession' : 'hermes.session',
+      name: 'hermes.session',
       params: { sessionId },
     })
     return
@@ -334,10 +333,7 @@ function pendingSourceClickUrl(action: GlobalPendingAction): string {
   const profileQuery = `?profile=${encodeURIComponent(action.profile)}`
   if (action.kind === 'chat-approval' || action.kind === 'chat-clarify') {
     const sessionId = encodeURIComponent(action.pending.sessionId)
-    const session = chatStore.sessions.find(item => item.id === action.pending.sessionId)
-    return session?.source === 'global_agent'
-      ? `/hermes/global-agent/session/${sessionId}${profileQuery}`
-      : `/hermes/session/${sessionId}${profileQuery}`
+    return `/hermes/session/${sessionId}${profileQuery}`
   }
   if (action.kind === 'group-approval' || action.kind === 'group-clarify') {
     return `/hermes/group-chat/room/${encodeURIComponent(action.pending.roomId)}${profileQuery}`

@@ -170,7 +170,7 @@ function closeRealtimeVoice() {
 
 function sessionHref(sessionId: string) {
   return router.resolve({
-    name: chatStore.runtimeMode === "global_agent" ? "hermes.globalAgentSession" : "hermes.session",
+    name: "hermes.session",
     params: { sessionId },
   }).href;
 }
@@ -344,7 +344,7 @@ async function handleSessionClick(
   }
   chatStore.clearSessionCompletedUnread(sessionId);
   await router.push({
-    name: chatStore.runtimeMode === "global_agent" ? "hermes.globalAgentSession" : "hermes.session",
+    name: "hermes.session",
     params: { sessionId },
   });
   if (chatStore.activeSessionId !== sessionId) {
@@ -1262,7 +1262,7 @@ async function confirmNewChat() {
   }
   
   await router.push({
-    name: chatStore.runtimeMode === "global_agent" ? "hermes.globalAgentSession" : "hermes.session",
+    name: "hermes.session",
     params: { sessionId: session.id },
   });
   showNewChatModal.value = false;
@@ -1274,7 +1274,7 @@ function sessionProfile(sessionId: string): string | null {
 
 function buildSessionUrl(sessionId: string, profile?: string | null): string {
   const href = router.resolve({
-    name: chatStore.runtimeMode === "global_agent" ? "hermes.globalAgentSession" : "hermes.session",
+    name: "hermes.session",
     params: { sessionId },
     query: profile ? { profile } : undefined,
   }).href;
@@ -1498,11 +1498,8 @@ const contextMenuOptions = computed(() => {
     label: t(contextSessionPinned.value ? "chat.unpin" : "chat.pin"),
     key: "pin",
   },
-  { label: t("chat.rename"), key: "rename" }]
-
-  if (contextSession.value?.source !== "global_agent") {
-    options.push({ label: t("chat.archiveSession"), key: "archive" })
-  }
+  { label: t("chat.rename"), key: "rename" },
+  { label: t("chat.archiveSession"), key: "archive" }]
 
   options.push({ label: t("chat.setWorkspace"), key: "workspace" })
 
@@ -1989,7 +1986,7 @@ async function handleSessionModelCustomSubmit() {
     >
       <div v-if="showSessions" class="page-sidebar-top">
         <PageSidebarNav
-          :active="contentMode === 'connections' ? 'connections' : contentMode === 'agents' ? 'agents' : contentMode === 'models' ? 'models' : chatStore.runtimeMode === 'global_agent' ? 'global' : 'chat'"
+          :active="contentMode === 'connections' ? 'connections' : contentMode === 'agents' ? 'agents' : contentMode === 'models' ? 'models' : 'chat'"
           :primary-label="t('chat.newChat')"
           @primary="openNewChatModal"
         />

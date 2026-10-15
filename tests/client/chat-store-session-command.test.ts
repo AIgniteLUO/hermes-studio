@@ -627,7 +627,7 @@ describe('chat store session.command fanout', () => {
       workspace: '/repo',
     })
     expect(store.activeSessionId).toBe('branch-1')
-    expect(chatApi.resumeSession).toHaveBeenCalledWith('branch-1', expect.any(Function), 'default', 'chat-run')
+    expect(chatApi.resumeSession).toHaveBeenCalledWith('branch-1', expect.any(Function), 'default')
 
     await store.switchSession('session-1')
     expect(store.activeSessionId).toBe('session-1')

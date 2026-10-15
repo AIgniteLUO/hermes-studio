@@ -1,6 +1,6 @@
 // 流式文本分句器：把 LLM 的增量输出切成适合 TTS 朗读的句段，
 // 并剥离 Markdown、代码块、HTML、emoji 等不适合朗读的内容。
-// 供网页端实时语音对话台使用（原先位于 mcu-interaction.ts，随硬件能力移除而迁出）。
+// 供网页端实时语音对话台使用。
 
 export interface SpeechSegmenter {
   pushDelta: (delta: string) => string[]

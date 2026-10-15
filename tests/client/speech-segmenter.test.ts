@@ -37,7 +37,7 @@ describe('speech segmenter', () => {
     ])
   })
 
-  it('filters streaming markdown tables with the same readable text rules as MCU playback', () => {
+  it('filters streaming markdown tables with the same readable text rules as spoken playback', () => {
     const segmenter = createSpeechSegmenter({ emitOnSentenceEnd: true })
 
     expect(segmenter.pushDelta([

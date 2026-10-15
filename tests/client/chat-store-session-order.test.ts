@@ -87,7 +87,6 @@ describe('chat session ordering', () => {
         makeSession('older-active-session', { started_at: 100, last_active: 900 }),
         makeSession('new-session-with-stale-last-active', { started_at: 1000, last_active: 200 }),
       ] as any)
-      .mockResolvedValueOnce([])
 
     const store = useChatStore()
     await store.loadSessions()
@@ -105,11 +104,9 @@ describe('chat session ordering', () => {
         makeSession('active-session', { started_at: 1000, last_active: 1000 }),
         makeSession('archive-me', { started_at: 900, last_active: 900 }),
       ] as any)
-      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
         makeSession('active-session', { started_at: 1000, last_active: 1000 }),
       ] as any)
-      .mockResolvedValueOnce([])
     vi.mocked(archiveSession).mockResolvedValueOnce(true)
 
     const store = useChatStore()
@@ -126,7 +123,6 @@ describe('chat session ordering', () => {
       .mockResolvedValueOnce([
         makeSession('archive-me', { started_at: 1000, last_active: 1000 }),
       ] as any)
-      .mockResolvedValueOnce([])
     vi.mocked(archiveSession).mockResolvedValueOnce(true)
 
     const store = useChatStore()
@@ -151,12 +147,10 @@ describe('chat session ordering', () => {
     const first = store.loadSessions(null, 'session-a')
     const second = store.loadSessions(null, 'session-b')
 
-    pending[2]([makeSession('session-b', { started_at: 2000, last_active: 2000 })])
-    pending[3]([])
+    pending[1]([makeSession('session-b', { started_at: 2000, last_active: 2000 })])
     await second
 
     pending[0]([makeSession('session-a', { started_at: 1000, last_active: 1000 })])
-    pending[1]([])
     await first
 
     expect(store.sessions.map(session => session.id)).toEqual(['session-b'])
@@ -175,7 +169,6 @@ describe('chat session ordering', () => {
     expect(store.activeSessionId).toBe(newSession.id)
 
     pending[0]([makeSession('session-a', { started_at: 1000, last_active: 1000 })])
-    pending[1]([])
     await load
 
     expect(store.sessions.map(session => session.id)).toEqual([newSession.id, 'session-a'])
@@ -198,7 +191,6 @@ describe('chat session ordering', () => {
       .mockResolvedValueOnce([
         { ...makeSession('research-session', { started_at: 1000 }), profile: 'research' },
       ] as any)
-      .mockResolvedValueOnce([])
 
     const store = useChatStore()
     const localSession = store.newChat({ profile: 'default' })
@@ -216,7 +208,6 @@ describe('chat session ordering', () => {
         makeSession('session-a', { started_at: 2000 }),
         makeSession('session-b', { started_at: 1000 }),
       ] as any)
-      .mockResolvedValueOnce([])
 
     const store = useChatStore()
     await store.loadSessions()
@@ -231,7 +222,6 @@ describe('chat session ordering', () => {
       makeSession('session-a', { started_at: 2000 }),
       makeSession('session-b', { started_at: 1000 }),
     ])
-    pending[1]([])
     await load
 
     expect(store.activeSessionId).toBe('session-b')

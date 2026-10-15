@@ -108,6 +108,8 @@ describe('GlobalPendingActions', () => {
     const wrapper = mount(GlobalPendingActions)
     await nextTick()
 
+    // Legacy source persisted before the Global Agent runtime was removed:
+    // it must degrade to the standard session route, not a deleted one.
     chatState.sessions = [{ id: 'session-b', title: '/secret/path', source: 'global_agent' }]
     chatState.pendingApprovals = new Map([['session-b', {
       sessionId: 'session-b', approvalId: 'approval-b', description: 'rm -rf /tmp/private', command: 'rm -rf /tmp/private', choices: ['once'],
@@ -141,7 +143,7 @@ describe('GlobalPendingActions', () => {
 
     const systemCalls = systemNotificationMock.showSystemNotification.mock.calls as any[][]
     const chatPayload = systemCalls.find(([payload]) => payload.tag.includes('chat-approval'))?.[0]
-    expect(chatPayload?.clickUrl).toBe('/hermes/global-agent/session/session-b?profile=default')
+    expect(chatPayload?.clickUrl).toBe('/hermes/session/session-b?profile=default')
 
     const groupPayload = systemCalls.find(([payload]) => payload.tag.includes('group-approval'))?.[0]
     expect(groupPayload?.clickUrl).toBe('/hermes/group-chat/room/room-b?profile=default')
@@ -471,7 +473,7 @@ describe('GlobalPendingActions', () => {
     expect(chatState.respondApprovalFor).toHaveBeenCalledWith('session-b', 'approval-b', 'once')
   })
 
-  it('opens a global-agent session from its notification title', async () => {
+  it('opens a legacy global-agent session at the standard session route from its notification title', async () => {
     chatState.sessions = [{ id: 'global-session', title: 'Global session', source: 'global_agent' }]
     chatState.pendingApprovals = new Map([['global-session', {
       sessionId: 'global-session', approvalId: 'approval-global', description: 'Run command', command: 'pwd', choices: ['once'],
@@ -483,7 +485,7 @@ describe('GlobalPendingActions', () => {
     const title = await render(created[0].options.title)
     await title.get('button').trigger('click')
     expect(routerPush).toHaveBeenCalledWith({
-      name: 'hermes.globalAgentSession',
+      name: 'hermes.session',
       params: { sessionId: 'global-session' },
     })
   })

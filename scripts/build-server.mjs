@@ -56,33 +56,3 @@ cpSync(
   { recursive: true },
 )
 
-const firmwareOutDir = resolve(rootDir, 'dist/mcu')
-const legacyFirmwareOutPath = resolve(firmwareOutDir, 'firmware.bin')
-for (const firmwareVersion of ['v1', 'v2']) {
-  const firmwareBuildSrc = resolve(rootDir, `packages/esp32-c3/${firmwareVersion}/.pio/build/esp32-c3-devkitm-1/firmware.bin`)
-  const firmwareReleaseSrc = resolve(rootDir, `packages/esp32-c3/release/${firmwareVersion}/firmware.bin`)
-  const firmwareVersionedOutDir = resolve(firmwareOutDir, firmwareVersion)
-  const firmwareOutPath = resolve(firmwareVersionedOutDir, 'firmware.bin')
-  let firmwareSrc = ''
-  let sourceLabel = ''
-
-  if (existsSync(firmwareBuildSrc)) {
-    mkdirSync(dirname(firmwareReleaseSrc), { recursive: true })
-    cpSync(firmwareBuildSrc, firmwareReleaseSrc)
-    firmwareSrc = firmwareBuildSrc
-    sourceLabel = 'PlatformIO build output'
-  } else if (existsSync(firmwareReleaseSrc)) {
-    firmwareSrc = firmwareReleaseSrc
-    sourceLabel = 'release artifact'
-  }
-
-  if (!firmwareSrc) {
-    console.warn(`[build-server] ESP32-C3 ${firmwareVersion} firmware not found, skipped dist/mcu/${firmwareVersion}/firmware.bin`)
-    continue
-  }
-
-  mkdirSync(firmwareVersionedOutDir, { recursive: true })
-  cpSync(firmwareSrc, firmwareOutPath)
-  if (firmwareVersion === 'v1') cpSync(firmwareSrc, legacyFirmwareOutPath)
-  console.log(`[build-server] ESP32-C3 ${firmwareVersion} firmware copied from ${sourceLabel}`)
-}

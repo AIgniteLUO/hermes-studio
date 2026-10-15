@@ -29,7 +29,6 @@ const requiredPaths = [
   'sidebar.connections',
   'connections.title',
   'connections.tabs.app',
-  'connections.tabs.mcu',
   'connections.tabs.devices',
   'connections.app.subtitle',
   'connections.app.scanToAdd',
@@ -65,8 +64,6 @@ const requiredPaths = [
   'connections.app.deleteFailed',
   'connections.app.empty',
   'connections.app.loadFailed',
-  'mcuDevices.subtitle',
-  'mcuDevices.refresh',
   'devices.subtitle',
 ]
 

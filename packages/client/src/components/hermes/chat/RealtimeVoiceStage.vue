@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { createMcuSpeechSegmenter } from '@/api/studio/mcu-interaction'
+import { createSpeechSegmenter } from '@/api/studio/speech-segmenter'
 import {
   cancelLocalSttStream,
   finishLocalSttStream,
@@ -132,7 +132,7 @@ const synthesisControllers = new Set<AbortController>()
 const synthesisJobs: SpeechSynthesisJob[] = []
 const processedAssistantText = new Map<string, string>()
 const processedToolMessageIds = new Set<string>()
-const speechSegmenter = createMcuSpeechSegmenter({ emitOnSentenceEnd: true })
+const speechSegmenter = createSpeechSegmenter({ emitOnSentenceEnd: true })
 
 const currentTranscript = computed(() => {
   const liveTranscript = normalizeText([

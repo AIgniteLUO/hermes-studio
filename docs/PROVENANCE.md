@@ -15,9 +15,12 @@
 - 删除已提交的 ESP32 预编译固件（其中包含指向原作者服务器的 phone-home URL），并把
   `packages/esp32-c3/release/` 加入 `.gitignore`。原因：`scripts/build-server.mjs` 会把
   本地 `pio run` 产物写回该目录，而 `.gitignore` 此前只忽略 `.pio/`，一次常规
-  `git add -A` 就会把新编译的二进制重新提交进来。发布流程不再打包固件，需要固件时先
-  `pio run -d packages/esp32-c3/v1`（或 `v2`）再 `npm run build`，构建会自动拾取
-  `.pio` 产物；找不到固件时构建只会打印 warning 并跳过，不会失败
+  `git add -A` 就会把新编译的二进制重新提交进来。
+  **（历史记录）** 当时需要固件时先 `pio run -d packages/esp32-c3/v1`
+  （或 `v2`）再 `npm run build`，构建会自动拾取 `.pio` 产物；找不到固件时构建只打印 warning
+  并跳过，不会失败。以上仅记录当时状态——该链路已于 2026-10-15 随 ESP32 固件工程整体删除
+  （见下文「移除硬件固件与 Global Agent」），`packages/esp32-c3/`、`package.json` 的 `mcu:*`
+  脚本与 `.gitignore` 的 `packages/esp32-c3/release/` 条目如今都不存在
 - 替换 Ekko 品牌标识与域名
 - server 服务层与 sockets 收敛：清除 bootstrap / sockets / services / controllers / repositories 中的
   Ekko 分支，`npx tsc --noEmit -p packages/server/tsconfig.json` 由 53 个报错收敛到 exit 0
@@ -105,9 +108,10 @@
 | `npm run verify:sharp-runtime` | exit 0（`verified Sharp 0.35.3 with libvips 8.18.3`） |
 | `npx vitest run` | 见下 |
 
-`npm run build` 在本地没有 ESP32 固件时只打印
+**（历史记录）** 当时的 `npm run build` 在本地没有 ESP32 固件时只打印
 `ESP32-C3 v1/v2 firmware not found, skipped dist/mcu/.../firmware.bin` 警告并继续，
-不影响 exit code。
+不影响 exit code。该固件兜底逻辑已随 ESP32 固件工程一并删除（见下文「移除硬件固件与
+Global Agent」），**当前构建中不存在这段代码，也不会再打印该字符串**。
 
 ### 全量测试
 
@@ -227,25 +231,32 @@ Licensor 署名与许可条款。
 
 ### 终态残留扫描
 
-参照任务书的模式
+任务书给定的模式是
 
 ```
-grep -rn -a -E "\bMCU\b|\bmcu[A-Z]|Mcu[A-Z]|mcuDevices|global[-_ ]?agent|esp32" \
+grep -rai "mcu\|esp32\|global-agent\|globalAgent\|global_agent" .
+```
+
+**该模式不能直接照抄**，两个方向都会出错：
+
+- 它会**多报**——`-i` 之下的裸 `mcu` 会命中 `cloneFromCurrent`、
+  `createAgentPresetFromCurrent` 里的 `mCu` 子串（4 处已知假阳性），
+  `package-lock.json` 的 integrity 哈希同理；需要左侧边界断言压掉。
+- 它更会**漏报**——`global-agent|globalAgent|global_agent` 三个分支里没有以空格分隔的
+  变体，`Global Agent` 这类写法匹配不到；而若把 `mcu` 收窄成 `\bmcu[A-Z]`（要求 `mcu` 后
+  跟大写字母），`mcu-voice`、`mcu/audio` 这类连字符 / 斜杠路径又会被漏掉。若照抄该模式并以
+  「只剩白名单」收工，会漏掉真实残留。
+
+可复现的等价写法是
+
+```
+grep -rn -a -i -E "(^|[^A-Za-z0-9_])mcu|esp32|global[-_ ]?agent" \
   --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist .
 ```
 
-**但该模式不可直接用**，两个方向都会出错：
-
-- 它会**多报**——裸 `-i mcu` 会命中 `cloneFromCurrent`、`createAgentPresetFromCurrent`
-  里的 `mCu` 子串（4 处已知假阳性），`package-lock.json` 的 integrity 哈希同理。
-- 它更会**漏报**——BSD/macOS 的 `grep` 对 ERE 中 `\b` 的支持不稳定，实测
-  `-E "\bmcu|esp32|global[-_ ]?agent"` 共 95 行，而**单独** `-E "global_agent"`
-  有 91 行，两者对同一批 `global_agent` 命中做集合差：**39 行被静默丢掉**，
-  其中包括 `packages/server/src/modules/studio/sockets/chat-run.ts`、
-  `controllers/sessions.ts`、`contracts/runs/session.ts`、`services/webhooks/*`
-  与 `scripts/generate-openapi.mjs` 等**全部服务端契约点**。该模式还会漏掉
-  `mcu-voice`、`mcu/audio` 这类 `mcu` 后不接大写字母的路径。若照抄该模式并以
-  「只剩白名单」收工，会漏掉真实残留。
+即：`-i` 覆盖 `MCU` / `Global Agent` 等大小写变体；`global[-_ ]?agent` 同时覆盖连字符、
+下划线与空格三种分隔符；`mcu` 后不限定字符（否则 `mcu-voice` 之类的路径会漏）；左侧用
+`(^|[^A-Za-z0-9_])` 排除 `mCu` 类假阳性。
 
 因此本次改用**逐字节遍历 + JS 正则**的等价扫描：`(?<![A-Za-z0-9_])mcu` 前瞻断言
 取代 `\b`，二进制文件按 `-a` 语义一并纳入（共扫描 1585 个文件，其中 38 个含 NUL 字节）。
@@ -254,6 +265,13 @@ grep -rn -a -E "\bMCU\b|\bmcu[A-Z]|Mcu[A-Z]|mcuDevices|global[-_ ]?agent|esp32" 
 真实残留（`stt-transcribe-controller.test.ts` 的悬空 `vi.doUnmock(.../public/mcu-voice)`、
 `docs/planning/tool-boundary-queue-insertion.md` 仍在描述 Global Agent 对话面），
 两处均已修复。
+
+**注意：残留扫描可以被「改名」满足，干净不等于不存在。** 本次扫描干净的一部分原因，是同一
+提交里做了重命名与注释改写，而不是证明了字符串确实不存在——`packages/client/src/api/studio/chat.ts:559`
+把 `globalAgentEventHandler` 改名为 `globalSocketAgentEventHandler`（该文件中 `global-` 前缀在
+别处表示「模块级 handler」，新名字反而更容易误读），`packages/client/src/api/studio/speech-segmenter.ts:1-3`
+的头部注释也删去了指明其来源 `mcu-interaction.ts` 的半句。真实 provenance 至此只保留在 git
+历史里，因此残留扫描不能单独作为「已删除实现不存在」的证据，判据必须回到契约与代码路径本身。
 
 **实测命中 148 行**（`mcu` 模式 33 行、`global-agent` 模式 115 行、`esp32` **0 行**），
 全部为**保留契约**、**同名巧合**或**二进制误报**，无一处指向已删除的实现：
@@ -268,7 +286,8 @@ grep -rn -a -E "\bMCU\b|\bmcu[A-Z]|Mcu[A-Z]|mcuDevices|global[-_ ]?agent|esp32" 
 | `packages/desktop/package-lock.json` | 3 | 见下 |
 | 本地未跟踪数据库 | 2 | 见下 |
 
-**服务端 40 行** = 38 行命中 `global[-_ ]?agent` + 2 行 `audio-convert.ts` 错误文案。
+**服务端 40 行** = 38 行命中 `global[-_ ]?agent` + 2 行 `audio-convert.ts` 错误文案
+（后者已改写，见下）。
 
 那 38 行里 **36 行含引号 `'global_agent'`**（共 41 处，部分行含多处）、1 行含引号
 `'global-agent'`（`contracts/runs/surface.ts` 的 `RUN_SURFACES`）、1 行是
@@ -283,7 +302,14 @@ grep -rn -a -E "\bMCU\b|\bmcu[A-Z]|Mcu[A-Z]|mcuDevices|global[-_ ]?agent|esp32" 
 表均为 **0 行**），若以"存量数据"为由保留，后续读者会误以为这批成员可以删除。
 
 另含 `services/voice/stt/audio-convert.ts:188,200` 两行——仅在**错误文案**中出现
-`MCU PCM`；该服务本身存活，其测试按同一字面量断言，故逐字保留。
+`MCU PCM`；该服务本身存活，原做法是按同一字面量逐字保留。
+
+> **同日后续修复（整支 review 的 Fix 4）**：这两处文案**用户可见**——经
+> `local-model-manager.ts` → `controllers/stt.ts` 以 502 `{ error }` 返回给客户端，
+> 因此已改写为 device PCM 措辞（该 PCM 由设备上传的音频解码而来），不再含 `MCU`；
+> `tests/server/audio-convert.test.ts` 的三处引用（用例标题与断言）同步更新。
+> 按同一等价扫描复核：`packages/server/src` 由 40 降为 **38**、`tests/` 由 88 降为
+> **85**，其余类别不变，合计 148 → **143**。上表与下文分述记录的都是改动前的当日实测值。
 
 **测试 88 行**分三类：
 1. `'global_agent'` 作为**存量数据输入**驱动幸存的回退逻辑：
@@ -298,9 +324,9 @@ grep -rn -a -E "\bMCU\b|\bmcu[A-Z]|Mcu[A-Z]|mcuDevices|global[-_ ]?agent|esp32" 
 3. **防回归断言与白名单文案**：`legacy-app-api.test.ts` 断言 MCU 别名不再被重写、
    `hermes-schemas.test.ts` 断言 `mcu_devices` 表不再创建、
    `stt-settings-controller` / `tts-synthesize-controller` 断言受保护路由表内不含
-   `/mcu/` 路径、`audio-convert.test.ts` 与 `doubao-stt-provider.test.ts` 的
-   用例标题/夹具文件名（`'mcu-wav'`、`queue_id: 'mcu-test-run'`）、
-   `app-relay-*` 的用例标题（"independent of the MCU relay"）。
+   `/mcu/` 路径、`doubao-stt-provider.test.ts` 的夹具文件名（`'mcu-wav'`、
+   `queue_id: 'mcu-test-run'`）、`app-relay-*` 的用例标题（"independent of the MCU relay"）；
+   `audio-convert.test.ts` 的用例标题/断言原属此类，已随上文「同日后续修复」改写、不再命中。
 
 **二进制误报 4 行**——`icon.icns:184,523`、`icon.png:560`、
 `fonts/ZenMaruGothic-Bold.ttf:39775`。`strings -n 4` 过滤后三者**可打印字符串中的

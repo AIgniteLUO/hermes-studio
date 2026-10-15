@@ -9,7 +9,6 @@ export interface SpeechSegmenter {
 }
 
 export interface SpeechSegmenterOptions {
-  maxChars?: number
   emitOnSentenceEnd?: boolean
 }
 

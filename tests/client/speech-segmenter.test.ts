@@ -3,15 +3,15 @@ import { createSpeechSegmenter, normalizeSpeechText } from '@/api/studio/speech-
 
 describe('speech segmenter', () => {
   it('segments assistant output for speech without tool content', () => {
-    const segmenter = createSpeechSegmenter({ maxChars: 24 })
+    const segmenter = createSpeechSegmenter()
 
     expect(segmenter.pushDelta('你好，')).toEqual([])
     expect(segmenter.pushDelta('我开始处理了。\n下一步')).toEqual(['你好，我开始处理了。'])
     expect(segmenter.flush()).toBe('下一步')
   })
 
-  it('keeps unfinished paragraphs together and ignores max character soft splits', () => {
-    const segmenter = createSpeechSegmenter({ maxChars: 24 })
+  it('keeps unfinished paragraphs together until a paragraph boundary', () => {
+    const segmenter = createSpeechSegmenter()
 
     expect(segmenter.pushDelta('第一段没结束\n')).toEqual([])
     expect(segmenter.pushDelta('第二段结束了。\n')).toEqual(['第一段没结束 第二段结束了。'])

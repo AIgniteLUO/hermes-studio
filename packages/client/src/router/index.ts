@@ -57,6 +57,10 @@ const router = createRouter({
       component: () => import('@/views/hermes/HistoryView.vue'),
     },
     {
+      path: '/hermes/global-agent/:pathMatch(.*)*',
+      redirect: { name: 'hermes.chat' },
+    },
+    {
       path: '/hermes/jobs',
       name: 'hermes.jobs',
       component: () => import('@/views/hermes/JobsView.vue'),

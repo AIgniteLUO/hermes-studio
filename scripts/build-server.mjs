@@ -1,7 +1,7 @@
 import * as esbuild from 'esbuild'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { chmodSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'fs'
+import { chmodSync, cpSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'fs'
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = JSON.parse(readFileSync(resolve(rootDir, 'package.json'), 'utf-8'))
@@ -37,11 +37,6 @@ for (const fileName of readdirSync(bridgeSrcDir)) {
   }
 }
 chmodSync(resolve(bridgeOutDir, 'hermes_bridge.py'), 0o755)
-
-const serverAssetsSrcDir = resolve(rootDir, 'packages/server/src/assets')
-if (existsSync(serverAssetsSrcDir)) {
-  cpSync(serverAssetsSrcDir, resolve(serverOutDir, 'assets'), { recursive: true })
-}
 
 cpSync(
   resolve(rootDir, 'docs/openapi.json'),

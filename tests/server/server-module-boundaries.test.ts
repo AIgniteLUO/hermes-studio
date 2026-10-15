@@ -100,8 +100,8 @@ describe('server module boundary harness', () => {
       "routes.get('/api/hermes/jobs', controller)",
     )).toBeNull()
     expect(legacyAppAliasFailure(
-      'modules/studio/routes/usage.ts',
-      "routes.get('/api/hermes/usage', controller)",
+      'modules/studio/routes/logs.ts',
+      "routes.get('/api/hermes/logs', controller)",
     )).toContain('keep released-client aliases in modules/studio/middleware/legacy-app-api.ts')
   })
 

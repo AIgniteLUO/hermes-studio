@@ -185,7 +185,7 @@ async function decodeAudioForPcm(input: Buffer, mimeType: string): Promise<Decod
       : ''
 
   if (!kind) {
-    throw new Error(`unsupported audio format for MCU PCM decode: ${mimeType || 'unknown content type'}`)
+    throw new Error(`unsupported audio format for device PCM decode: ${mimeType || 'unknown content type'}`)
   }
 
   try {
@@ -197,7 +197,7 @@ async function decodeAudioForPcm(input: Buffer, mimeType: string): Promise<Decod
     return decoded
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`MCU PCM decode failed for ${kind}: ${message}`)
+    throw new Error(`device PCM decode failed for ${kind}: ${message}`)
   }
 }
 

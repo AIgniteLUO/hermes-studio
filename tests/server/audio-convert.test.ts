@@ -27,7 +27,7 @@ function wavS16le(samples: number[], sampleRate: number, channels = 1): Buffer {
 }
 
 describe('audio-convert', () => {
-  it('decodes WAV to MCU PCM without ffmpeg', async () => {
+  it('decodes WAV to device PCM without ffmpeg', async () => {
     const wav = wavS16le([0, 16384, -16384, 0], 8000)
 
     const result = await transcodeToPcmS16le(wav, 'audio/wav', { sampleRate: 16000 })
@@ -37,9 +37,9 @@ describe('audio-convert', () => {
     expect(result.audio.length).toBe(16)
   })
 
-  it('rejects unsupported MCU PCM decode formats', async () => {
+  it('rejects unsupported device PCM decode formats', async () => {
     await expect(
       transcodeToPcmS16le(Buffer.from('not audio'), 'audio/ogg', { sampleRate: 16000 }),
-    ).rejects.toThrow('unsupported audio format for MCU PCM decode')
+    ).rejects.toThrow('unsupported audio format for device PCM decode')
   })
 })

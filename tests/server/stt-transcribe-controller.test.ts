@@ -77,13 +77,6 @@ function getHeader(headers: RequestInit['headers'] | undefined, name: string): s
   return typeof match?.[1] === 'string' ? match[1] : undefined
 }
 
-async function waitForMockCalls(mock: { mock: { calls: unknown[] } }, count: number): Promise<void> {
-  const startedAt = Date.now()
-  while (mock.mock.calls.length < count && Date.now() - startedAt < 1000) {
-    await new Promise(resolve => setTimeout(resolve, 5))
-  }
-}
-
 describe('stt transcribe controller', () => {
   let db: any = null
   let tempDir: string | null = null
@@ -152,23 +145,6 @@ describe('stt transcribe controller', () => {
       set: vi.fn((name: string, value: string) => { headers[name] = value }),
       get: vi.fn(() => ''),
       headers,
-    } as any
-  }
-
-  function makeRawAudioCtx(user: any | null, audio: Buffer, headers: Record<string, string> = {}) {
-    const normalizedHeaders = Object.fromEntries(
-      Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value]),
-    )
-    return {
-      state: user ? { user } : {},
-      request: {},
-      req: Readable.from([audio]),
-      query: {},
-      params: {},
-      status: 200,
-      body: null,
-      set: vi.fn(),
-      get: vi.fn((header: string) => normalizedHeaders[header.toLowerCase()] || ''),
     } as any
   }
 

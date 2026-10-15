@@ -34,7 +34,6 @@ const LEGACY_STUDIO_API_PREFIXES = [
   '/api/hermes/files',
   '/api/hermes/usage',
   '/api/hermes/logs',
-  '/api/hermes/mcu',
   '/api/hermes/stt',
   '/api/hermes/tts',
 ]

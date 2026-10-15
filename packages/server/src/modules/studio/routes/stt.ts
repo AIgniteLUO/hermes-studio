@@ -10,7 +10,6 @@ sttProtectedRoutes.post('/api/studio/stt/local-model/download', localModelCtrl.d
 sttProtectedRoutes.post('/api/studio/voice/proxy/:profile/v1/audio/transcriptions', ctrl.transcribeVoiceProxy)
 sttProtectedRoutes.get('/api/studio/stt/profile-status', ctrl.profileStatus)
 sttProtectedRoutes.get('/api/studio/stt/profile-status/missing-audio', ctrl.missingProfileAudio)
-sttProtectedRoutes.post('/api/studio/mcu/voice-turn', ctrl.mcuVoiceTurn)
 sttProtectedRoutes.put('/api/studio/stt/settings/active', ctrl.saveActiveProvider)
 sttProtectedRoutes.put('/api/studio/stt/settings/:provider', ctrl.saveSettings)
 sttProtectedRoutes.delete('/api/studio/stt/settings/:provider', ctrl.deleteProvider)

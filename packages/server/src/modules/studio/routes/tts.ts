@@ -6,7 +6,6 @@ export const ttsProtectedRoutes = new Router()
 
 ttsRoutes.post('/api/studio/tts', ctrl.generate)
 ttsRoutes.post('/api/tts/proxy/audio/speech', ctrl.openaiProxy)
-ttsRoutes.get('/api/studio/mcu/audio/:file', ctrl.mcuAudio)
 
 ttsProtectedRoutes.get('/api/studio/tts/settings', ctrl.listSettings)
 ttsProtectedRoutes.post('/api/studio/voice/proxy/:profile/v1/tts', ctrl.synthesizeVoiceProxy)

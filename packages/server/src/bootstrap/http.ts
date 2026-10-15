@@ -586,8 +586,6 @@ export async function bootstrap() {
   petStateSocketServer = new PetStateSocketServer(activeGroupChatServer.getIO())
   petStateSocketServer.init()
 
-  console.log('[bootstrap] global agent server ready')
-
   // Session deleter — periodically drain pending session deletes
   const { SessionDeleter } = await import('../modules/hermes/services/history/session-deleter')
   const sessionDeleter = SessionDeleter.getInstance()

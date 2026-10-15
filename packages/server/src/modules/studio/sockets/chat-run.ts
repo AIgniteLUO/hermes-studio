@@ -1961,7 +1961,6 @@ export class ChatRunSocket {
       ok: true,
       action: 'clear',
       clearHistory: true,
-      source: 'mcu',
       deleted,
       memory_cleared: hadMemoryState,
     })

@@ -839,7 +839,7 @@ describe('bridge run final context usage', () => {
     expect(instructions).not.toContain('mcp__hermes-studio__')
   })
 
-  it('creates global-agent bridge sessions with source global_agent', async () => {
+  it('creates bridge sessions with the requested cli source', async () => {
     getSessionMock.mockReturnValue(undefined)
     addMessageMock.mockReturnValue(42)
     const emit = vi.fn()
@@ -864,7 +864,7 @@ describe('bridge run final context usage', () => {
     await handleBridgeRun(
       nsp,
       socket,
-      { input: 'hello', session_id: 'session-1', source: 'global_agent' },
+      { input: 'hello', session_id: 'session-1', source: 'cli' },
       'default',
       sessionMap,
       bridge,
@@ -875,10 +875,10 @@ describe('bridge run final context usage', () => {
 
     expect(createSessionMock).toHaveBeenCalledWith(expect.objectContaining({
       id: 'session-1',
-      source: 'global_agent',
+      source: 'cli',
       workspace: '/tmp/hermes-bridge-final-context/default/workspace',
     }))
-    expect(state.source).toBe('global_agent')
+    expect(state.source).toBe('cli')
   })
 
   it('passes the workflow workspace through to bridge runs', async () => {
@@ -986,9 +986,8 @@ describe('bridge run final context usage', () => {
     }))
   })
 
-  it.each(['cli', 'global_agent'] as const)(
-    'does not evaluate standing goals after a workflow run when a %s continuation is queued',
-    async (nextSource) => {
+  it('does not evaluate standing goals after a workflow run when a cli continuation is queued', async () => {
+    const nextSource = 'cli'
       const emit = vi.fn()
       const nsp = makeNamespace(emit)
       const socket = makeSocket()
@@ -1044,12 +1043,10 @@ describe('bridge run final context usage', () => {
         output: 'workflow node complete',
       }))
       expect(emit).not.toHaveBeenCalledWith('run.failed', expect.anything())
-    },
-  )
+  })
 
-  it.each(['cli', 'global_agent'] as const)(
-    'evaluates standing goals for a completed %s run even when a workflow continuation is queued',
-    async (runSource) => {
+  it('evaluates standing goals for a completed cli run even when a workflow continuation is queued', async () => {
+    const runSource = 'cli'
       const emit = vi.fn()
       const nsp = makeNamespace(emit)
       const socket = makeSocket()
@@ -1113,8 +1110,7 @@ describe('bridge run final context usage', () => {
       ])
       expect(state.source).toBe('workflow')
       expect(dequeueNextQueuedRun).toHaveBeenCalledWith(socket, 'ordinary-session')
-    },
-  )
+  })
 
   it('evaluates active goals after a successful bridge run and queues continuation prompts', async () => {
     const emit = vi.fn()
@@ -1538,8 +1534,7 @@ describe('bridge run final context usage', () => {
       expect(emit).toHaveBeenCalledWith('run.completed', expect.objectContaining({
         workspace_run_change: change,
       }))
-    },
-  )
+  })
 
   it('persists the visible plan command instead of the expanded skill prompt', async () => {
     const emit = vi.fn()

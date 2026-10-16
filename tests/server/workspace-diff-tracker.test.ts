@@ -38,7 +38,6 @@ describe('workspace diff tracker', () => {
     root = mkdtempSync(join(tmpdir(), 'hermes-workspace-diff-'))
     state.appHome = join(root, 'home')
     state.db = new DatabaseSync(join(root, 'diffs.db'))
-    await import('../../packages/server/src/bootstrap/coding-agent-adapters')
     const { initAllHermesTables } = await import('../../packages/server/src/modules/studio/infrastructure/database/schemas')
     initAllHermesTables()
 
@@ -136,76 +135,6 @@ describe('workspace diff tracker', () => {
         files: [expect.objectContaining({ path: 'changed.txt' })],
       }),
     ])
-  })
-
-  it('persists the exact final assistant row id through the coding-agent completion path', async () => {
-    const { startWorkspaceRunCheckpoint } = await import('../../packages/server/src/modules/studio/services/chat-run/workspace-diff-tracker')
-    const { CodingAgentRunManager } = await import('../../packages/server/src/modules/coding-agents/services/runtime/run-manager')
-    const manager = new CodingAgentRunManager()
-    const emitted: Array<{ event: string; payload: any }> = []
-    ;(manager as any).emitToChat = (_sessionId: string, event: string, payload: any) => {
-      emitted.push({ event, payload })
-    }
-    ;(manager as any).markChatRunCompleted = () => {}
-    ;(manager as any).refreshCodingAgentUsage = async () => {}
-
-    manager.start({
-      agentSessionId: 'runner-turn-1',
-      agentId: 'claude-code',
-      profile: 'default',
-      provider: 'test-provider',
-      model: 'test-model',
-      sessionId: 'session-runner-turn',
-      command: 'claude',
-      args: [],
-      shellCommand: 'claude',
-      workspaceDir: repo,
-      state: { messages: [], isWorking: false, events: [], queue: [] },
-    })
-    startWorkspaceRunCheckpoint({
-      sessionId: 'session-runner-turn',
-      runId: 'runner-turn-1',
-      workspace: repo,
-    })
-    writeFileSync(join(repo, 'changed.txt'), 'runner update\n')
-
-    manager.handleResponseEvent('runner-turn-1', {
-      type: 'response.created',
-      data: { response: { id: 'response-runner-turn', status: 'in_progress' } },
-    })
-    manager.handleResponseEvent('runner-turn-1', {
-      type: 'response.output_text.delta',
-      data: { delta: 'Implemented the change.' },
-    })
-    manager.handleResponseEvent('runner-turn-1', {
-      type: 'response.completed',
-      data: {
-        response: {
-          id: 'response-runner-turn',
-          status: 'completed',
-          output: [{ type: 'message', content: [{ type: 'output_text', text: 'Implemented the change.' }] }],
-          model: 'test-model',
-          usage: { input_tokens: 10, output_tokens: 4 },
-        },
-      },
-    })
-    await new Promise(resolve => setTimeout(resolve, 0))
-
-    const assistant = state.db?.prepare(`
-      SELECT id FROM messages
-      WHERE session_id = ? AND role = 'assistant'
-      ORDER BY id DESC LIMIT 1
-    `).get('session-runner-turn') as { id: number } | undefined
-    const persistedChange = state.db?.prepare(`
-      SELECT assistant_message_id FROM workspace_run_changes
-      WHERE session_id = ?
-      ORDER BY created_at DESC LIMIT 1
-    `).get('session-runner-turn') as { assistant_message_id: string } | undefined
-
-    expect(assistant).toBeTruthy()
-    expect(persistedChange?.assistant_message_id).toBe(String(assistant?.id))
-    expect(emitted.some(item => item.event === 'workspace.diff.completed')).toBe(true)
-    manager.shutdown()
   })
 
   it('records added, modified, and deleted files in non-git workspaces', async () => {

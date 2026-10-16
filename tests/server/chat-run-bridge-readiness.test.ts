@@ -506,49 +506,6 @@ describe('ChatRunSocket bridge readiness gating', () => {
     })
   })
 
-  it('routes global coding-agent runs through the coding-agent path while preserving session source', async () => {
-    handleCodingAgentRunMock.mockResolvedValueOnce({ runId: 'coding-run-1', messageId: 42 })
-    const { ChatRunSocket } = await import('../../packages/server/src/modules/studio/sockets/chat-run')
-    const { handlers, io, socket } = makeServerHarness()
-    const server = new ChatRunSocket(io as any)
-
-    ;(server as any).onConnection(socket)
-    await handlers.get('run')?.({
-      input: 'hello',
-      session_id: 'session-1',
-      source: 'coding_agent',
-      session_source: 'global_agent',
-      coding_agent_id: 'codex',
-      queue_id: 'phone-message-1',
-    })
-
-    expect(ensureReadyMock).not.toHaveBeenCalled()
-    expect(handleCodingAgentRunMock).toHaveBeenCalledWith(
-      expect.anything(),
-      socket,
-      expect.objectContaining({
-        source: 'coding_agent',
-        session_source: 'global_agent',
-        coding_agent_id: 'codex',
-      }),
-      'default',
-      expect.any(Map),
-    )
-    expect(socket.to).toHaveBeenCalledWith('session:session-1')
-    expect(socket.to.mock.results[0].value.emit).toHaveBeenCalledWith('run.peer_user_message', {
-      event: 'run.peer_user_message',
-      session_id: 'session-1',
-      message: {
-        id: 'phone-message-1',
-        role: 'user',
-        content: 'hello',
-        timestamp: expect.any(Number),
-        queued: false,
-      },
-    })
-    expect(handleBridgeRunMock).not.toHaveBeenCalled()
-  })
-
   it('continues with remaining queued bridge runs when readiness fails before a dequeued run starts', async () => {
     ensureReadyMock
       .mockResolvedValueOnce({
@@ -752,39 +709,6 @@ describe('ChatRunSocket bridge readiness gating', () => {
       events: [],
     }))
     expect((server as any).bridgeResumePolls.size).toBe(0)
-  })
-
-  it('does not query Hermes bridge status when resuming a coding agent session', async () => {
-    getSessionMock.mockImplementation((sessionId?: string) => sessionId
-      ? { id: sessionId, profile: 'default', source: 'coding_agent', model: 'codex', provider: 'codex' }
-      : undefined)
-    loadSessionStateFromDbMock.mockResolvedValueOnce({
-      messages: [],
-      isWorking: false,
-      isAborting: false,
-      runId: undefined,
-      activeRunMarker: undefined,
-      profile: 'default',
-      source: 'coding_agent',
-      events: [],
-      queue: [],
-    })
-    const { ChatRunSocket } = await import('../../packages/server/src/modules/studio/sockets/chat-run')
-    const { emitted, handlers, io, socket } = makeServerHarness()
-    const server = new ChatRunSocket(io as any)
-
-    ;(server as any).onConnection(socket)
-    await handlers.get('resume')?.({ session_id: 'session-1' })
-
-    expect(ensureReadyMock).not.toHaveBeenCalled()
-    expect(bridgeMock.statusIfLoaded).not.toHaveBeenCalled()
-    expect(resumeBridgeRunMock).not.toHaveBeenCalled()
-    expect(emitted.some(({ event }) => event === 'run.reattach_failed')).toBe(false)
-    expect(socket.emit).toHaveBeenCalledWith('resumed', expect.objectContaining({
-      session_id: 'session-1',
-      isWorking: false,
-      events: [],
-    }))
   })
 
   it('reattaches workflow bridge runs with the workflow source preserved', async () => {

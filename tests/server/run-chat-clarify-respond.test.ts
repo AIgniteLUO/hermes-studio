@@ -92,27 +92,6 @@ describe('ChatRunSocket clarify responses', { timeout: 15_000 }, () => {
     bridgeMock.statusIfLoaded.mockResolvedValue({ ok: true, exists: false, running: false, loaded: false })
   })
 
-  it('routes clarification responses to the active coding-agent run without calling the Hermes bridge', async () => {
-    codingAgentRunManagerMock.resolveClarification.mockReturnValueOnce({ handled: true, resolved: true })
-    const { ChatRunSocket } = await import('../../packages/server/src/modules/studio/sockets/chat-run')
-    const { handlers, io, socket } = createSocketHarness()
-    const server = new ChatRunSocket(io as any)
-
-    ;(server as any).onConnection(socket)
-    await handlers.get('clarify.respond')?.({
-      session_id: 'session-1',
-      clarify_id: 'coding-agent-clarify-1',
-      response: 'B',
-    })
-
-    expect(codingAgentRunManagerMock.resolveClarification).toHaveBeenCalledWith(
-      'session-1',
-      'coding-agent-clarify-1',
-      'B',
-    )
-    expect(bridgeMock.clarifyRespond).not.toHaveBeenCalled()
-  })
-
   it('forwards clarify.respond events to the bridge and emits clarify.resolved', async () => {
     bridgeMock.clarifyRespond.mockResolvedValue({ ok: true, resolved: true })
     const { ChatRunSocket } = await import('../../packages/server/src/modules/studio/sockets/chat-run')

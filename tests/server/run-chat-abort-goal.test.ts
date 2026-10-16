@@ -65,43 +65,6 @@ describe('run chat abort goal handling', () => {
     calcAndUpdateUsageMock.mockResolvedValue({ inputTokens: 0, outputTokens: 0 })
   })
 
-  it('stops an active coding-agent run while legacy background task records are still tracked', async () => {
-    const { handleAbort } = await import('../../packages/server/src/modules/studio/services/chat-run/abort')
-    const { emit, nsp, socket } = makeHarness()
-    const state = {
-      messages: [],
-      isWorking: true,
-      isAborting: false,
-      events: [],
-      queue: [],
-      source: 'coding_agent',
-      backgroundTasks: {
-        'legacy-child': {
-          runtime: 'ekko',
-          subagent_id: 'legacy-child',
-          status: 'running',
-          goal: 'Run validation',
-        },
-      },
-    } as any
-    const sessionMap = new Map([['session-1', state]])
-
-    await handleAbort(
-      nsp as any,
-      socket as any,
-      'session-1',
-      sessionMap,
-      { interrupt: vi.fn() },
-      vi.fn(),
-    )
-
-    expect(codingAgentRunManagerMock.stop).toHaveBeenCalledWith('session-1', { reportClosed: false })
-    expect(emit).toHaveBeenCalledWith('abort.completed', expect.objectContaining({
-      session_id: 'session-1',
-      synced: true,
-    }))
-  })
-
   it('pauses an active goal and clears hidden goal continuations when aborting a CLI run', async () => {
     const { handleAbort } = await import('../../packages/server/src/modules/studio/services/chat-run/abort')
     const { emit, nsp, socket } = makeHarness()
@@ -232,73 +195,4 @@ describe('run chat abort goal handling', () => {
   })
 
 
-  it('stops a workflow-scoped coding-agent run instead of misrouting abort through the bridge', async () => {
-    const { handleAbort } = await import('../../packages/server/src/modules/studio/services/chat-run/abort')
-    const { emit, nsp, socket } = makeHarness()
-    codingAgentRunManagerMock.hasSession.mockReturnValue(true)
-    codingAgentRunManagerMock.stop.mockReturnValue(true)
-    const state = {
-      messages: [],
-      isWorking: true,
-      isAborting: false,
-      events: [],
-      queue: [],
-      runId: 'coding-run-1',
-      profile: 'default',
-      source: 'workflow',
-    } as any
-    const sessionMap = new Map([['session-1', state]])
-    const bridge = {
-      interrupt: vi.fn().mockRejectedValue(new Error('unknown session: session-1')),
-      goalPause: vi.fn(),
-    }
-    const runQueuedItem = vi.fn()
-
-    await handleAbort(nsp as any, socket as any, 'session-1', sessionMap, bridge, runQueuedItem)
-
-    expect(bridge.interrupt).not.toHaveBeenCalled()
-    expect(bridge.goalPause).not.toHaveBeenCalled()
-    expect(codingAgentRunManagerMock.stop).toHaveBeenCalledWith('session-1', { reportClosed: false })
-    expect(updateSessionMock).toHaveBeenCalledWith('session-1', expect.objectContaining({
-      ended_at: expect.any(Number),
-      end_reason: 'abort',
-    }))
-    expect(flushResponseRunToDbMock).toHaveBeenCalledWith(expect.objectContaining({
-      source: 'workflow',
-    }), 'session-1')
-    expect(flushBridgePendingToDbMock).not.toHaveBeenCalled()
-    expect(codingAgentRunManagerMock.stop).toHaveBeenCalledWith('session-1', { reportClosed: false })
-    expect(state.isWorking).toBe(false)
-    expect(state.isAborting).toBe(false)
-    expect(emit).toHaveBeenCalledWith('abort.completed', expect.objectContaining({
-      session_id: 'session-1',
-      run_id: 'coding-run-1',
-      synced: true,
-    }))
-  })
-
-  it('stops a coding-agent run even when chat-run state was not marked working', async () => {
-    const { handleAbort } = await import('../../packages/server/src/modules/studio/services/chat-run/abort')
-    const { emit, nsp, socket } = makeHarness()
-    const sessionMap = new Map()
-    codingAgentRunManagerMock.hasSession.mockReturnValue(true)
-    codingAgentRunManagerMock.stop.mockReturnValue(true)
-    const runQueuedItem = vi.fn()
-
-    await handleAbort(nsp as any, socket as any, 'session-1', sessionMap as any, {}, runQueuedItem)
-
-    expect(codingAgentRunManagerMock.stop).toHaveBeenCalledWith('session-1', { reportClosed: false })
-    expect(sessionMap.get('session-1')).toEqual(expect.objectContaining({
-      isWorking: false,
-      isAborting: false,
-      source: 'coding_agent',
-    }))
-    expect(flushResponseRunToDbMock).toHaveBeenCalledWith(expect.objectContaining({
-      source: 'coding_agent',
-    }), 'session-1')
-    expect(emit).toHaveBeenCalledWith('abort.completed', expect.objectContaining({
-      session_id: 'session-1',
-      synced: true,
-    }))
-  })
 })

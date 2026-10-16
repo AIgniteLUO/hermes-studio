@@ -836,7 +836,7 @@ describe('Group Chat member/agent identity sync', () => {
         id: 'agent-row-1',
         roomId: 'room-1',
         agentId: 'runtime-agent-id',
-        agent: 'codex',
+        agent: 'hermes',
         profile: 'default',
         name: 'Worker',
         avatar: 'worker.png',
@@ -845,7 +845,7 @@ describe('Group Chat member/agent identity sync', () => {
         id: 'agent-row-1',
         roomId: 'room-1',
         agentId: 'runtime-agent-id',
-        agent: 'codex',
+        agent: 'hermes',
         profile: 'default',
         name: 'Worker',
         avatar: 'worker.png',
@@ -881,7 +881,7 @@ describe('Group Chat member/agent identity sync', () => {
       agentId: 'agent-row-1',
       runId: 'run-1',
       agentName: 'Worker',
-      agent: 'codex',
+      agent: 'hermes',
       avatar: 'worker.png',
       status: 'replying',
     })
@@ -898,7 +898,7 @@ describe('Group Chat member/agent identity sync', () => {
           agentId: 'agent-row-1',
           runId: 'run-1',
           agentName: 'Worker',
-          agent: 'codex',
+          agent: 'hermes',
           avatar: '',
           status: 'replying',
           agentSessionId: 'session-1',
@@ -933,7 +933,7 @@ describe('Group Chat member/agent identity sync', () => {
     })
   })
 
-  it('accepts side-channel events for the persisted non-Hermes runtime session', () => {
+  it('accepts side-channel events for a runtime-configured group agent session', () => {
     const broadcastEmit = vi.fn()
     const agentMember = {
       id: 'agent-socket-1',
@@ -956,7 +956,7 @@ describe('Group Chat member/agent identity sync', () => {
         id: 'row-codex-1',
         roomId: 'room-1',
         agentId: 'agent-codex-1',
-        agent: 'codex',
+        agent: 'hermes',
         profile: 'default',
         provider: 'deepseek',
         model: 'deepseek-v4-flash',
@@ -967,7 +967,7 @@ describe('Group Chat member/agent identity sync', () => {
     server.nsp = { to: vi.fn(() => ({ emit: broadcastEmit })) }
     const socket = { id: 'agent-socket-1' }
     const sessionId = groupBridgeSessionId('room-1', 'default', 'codex-agent', 'seed-1', {
-      agent: 'codex',
+      agent: 'hermes',
       provider: 'deepseek',
       model: 'deepseek-v4-flash',
       reasoningEffort: '',

@@ -434,19 +434,17 @@ describe('group chat baseline behavior', () => {
       ownerName: 'Guest',
       targetOrigin: 'http://127.0.0.1:8648',
       agent: relayStore.normalizeRemoteGroupAgentDescriptor({
-        agent: 'pi',
+        agent: 'hermes',
         profile: 'default',
         provider: 'openai',
         model: 'pi-remote-model',
-        apiMode: 'codex_responses',
         name: 'Remote Pi',
       }),
       now: 1_000,
     })
     expect(created.request.agent).toMatchObject({
-      agent: 'pi',
+      agent: 'hermes',
       model: 'pi-remote-model',
-      apiMode: 'codex_responses',
       name: 'Remote Pi',
     })
 
@@ -514,11 +512,10 @@ describe('group chat baseline behavior', () => {
       now: 1_000,
     })
     const agent = relayStore.normalizeRemoteGroupAgentDescriptor({
-      agent: 'pi',
+      agent: 'hermes',
       profile: 'default',
       provider: 'openai',
       model: 'gpt-test',
-      apiMode: 'codex_responses',
       name: 'Remote Pi',
     })
 
@@ -537,7 +534,7 @@ describe('group chat baseline behavior', () => {
       1_100,
     )).toMatchObject({
       status: 'pending',
-      agent: { agent: 'pi', name: 'Remote Pi', apiMode: 'codex_responses' },
+      agent: { agent: 'hermes', name: 'Remote Pi' },
     })
     expect(relayStore.submitGroupAgentPairingHandoff(
       draft.id,
@@ -577,11 +574,10 @@ describe('group chat baseline behavior', () => {
       ownerName: 'Relay Guest',
       targetOrigin: 'http://127.0.0.1:8648',
       agent: relayStore.normalizeRemoteGroupAgentDescriptor({
-        agent: 'pi',
+        agent: 'hermes',
         profile: 'default',
         provider: 'openai',
         model: 'pi-relay-model',
-        apiMode: 'codex_responses',
         name: 'Remote Relay Agent',
       }),
     })
@@ -648,9 +644,8 @@ describe('group chat baseline behavior', () => {
       roomName: 'Relay Room',
       inviteCode: 'RELAY1',
       agent: {
-        agent: 'pi',
+        agent: 'hermes',
         model: 'pi-relay-model',
-        apiMode: 'codex_responses',
         name: 'Remote Relay Agent',
       },
     })
@@ -660,7 +655,7 @@ describe('group chat baseline behavior', () => {
     )?.status).toBe('consumed')
     expect(storage.getRoomAgents('room-relay')).toEqual([
       expect.objectContaining({
-        agent: 'pi',
+        agent: 'hermes',
         model: 'pi-relay-model',
         name: 'Remote Relay Agent',
         executorType: 'remote',
@@ -855,11 +850,10 @@ describe('group chat baseline behavior', () => {
     await interactionReply
 
     const nameConflict = await emitAck<any>(intendedTarget as any, 'agent.config.update', {
-      agent: 'codex',
+      agent: 'hermes',
       profile: 'default',
       provider: 'openai',
       model: 'gpt-test',
-      apiMode: 'codex_responses',
       reasoningEffort: 'high',
       name: 'Relay Guest',
       description: '',
@@ -881,7 +875,7 @@ describe('group chat baseline behavior', () => {
       mentions: [{ type: 'agent', participantId: executor.agentId }],
     })
     const queuedUpdate = await emitAck<any>(intendedTarget as any, 'agent.config.update', {
-      agent: 'codex', profile: 'default', provider: 'openai', model: 'should-not-apply',
+      agent: 'hermes', profile: 'default', provider: 'openai', model: 'should-not-apply',
       apiMode: 'codex_responses', reasoningEffort: 'high', name: 'Queued Mutation', description: '', avatar: '',
     })
     expect(queuedUpdate).toMatchObject({ code: 'GROUP_AGENT_BUSY' })
@@ -896,11 +890,10 @@ describe('group chat baseline behavior', () => {
     await queuedReply
 
     const updated = await emitAck<any>(intendedTarget as any, 'agent.config.update', {
-      agent: 'codex',
+      agent: 'hermes',
       profile: 'default',
       provider: 'openai',
       model: 'gpt-updated',
-      apiMode: 'codex_responses',
       reasoningEffort: 'high',
       name: 'Updated Relay Agent',
       description: 'Updated locally',
@@ -909,19 +902,19 @@ describe('group chat baseline behavior', () => {
     expect(updated).toMatchObject({
       ok: true,
       agent: {
-        agent: 'codex',
+        agent: 'hermes',
         model: 'gpt-updated',
         name: 'Updated Relay Agent',
       },
     })
     expect(storage.getRoomAgents('room-relay')[0]).toMatchObject({
-      agent: 'codex',
+      agent: 'hermes',
       model: 'gpt-updated',
       name: 'Updated Relay Agent',
       ownerMemberId: 'guest-relay',
     })
     expect(groupServer.agentClients.getAgent('room-relay', readyPayload.agent.agentId)).toMatchObject({
-      agent: 'codex',
+      agent: 'hermes',
       model: 'gpt-updated',
       name: 'Updated Relay Agent',
     })
@@ -1154,7 +1147,7 @@ describe('group chat baseline behavior', () => {
       'Historical worker',
       0,
       {
-        agent: 'codex',
+        agent: 'hermes',
         avatar,
         executorType: 'remote',
         connectorId: 'connector-secret',
@@ -1192,7 +1185,7 @@ describe('group chat baseline behavior', () => {
       }),
     ]))
     expect(history.filter(message => message.senderAvatar === avatar)).toHaveLength(1)
-    expect(history.filter(message => message.senderAgentType === 'codex')).toHaveLength(1)
+    expect(history.filter(message => message.senderAgentType === 'hermes')).toHaveLength(1)
     expect(harness.db.prepare(
       'SELECT removedAt, connectorId, remoteOrigin FROM gc_room_agents WHERE id = ?',
     ).get(worker.id)).toMatchObject({

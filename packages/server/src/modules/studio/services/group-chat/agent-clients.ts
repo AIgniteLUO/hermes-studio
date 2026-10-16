@@ -1894,13 +1894,12 @@ export function groupBridgeSessionId(
     sessionSeed: string,
     runtimeConfig: GroupAgentSessionConfig = {},
 ): string {
-    const agent = String(runtimeConfig.agent || 'hermes').trim()
+    const agent = 'hermes'
     const provider = String(runtimeConfig.provider || '').trim()
     const model = String(runtimeConfig.model || '').trim()
-    const apiMode = agent === 'hermes' ? '' : String(runtimeConfig.apiMode || '').trim()
     const reasoningEffort = String(runtimeConfig.reasoningEffort || '').trim()
-    const runtimeKey = agent !== 'hermes' || provider || model || apiMode || reasoningEffort
-        ? `_${agent}_${provider}_${model}_${apiMode}_${reasoningEffort}`
+    const runtimeKey = provider || model || reasoningEffort
+        ? `_${agent}_${provider}_${model}_${reasoningEffort}`
         : ''
     const rawKey = `gc_${roomId}_${profile}_${name}_${sessionSeed || '0'}${runtimeKey}`
     const safePrefix = rawKey.replace(/[^a-zA-Z0-9_-]/g, '_')

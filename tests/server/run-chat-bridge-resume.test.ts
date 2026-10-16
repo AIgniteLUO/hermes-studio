@@ -217,9 +217,8 @@ describe('resumeBridgeRun', () => {
     expect(sessionMap.get('session-resume').isWorking).toBe(true)
   })
 
-  it.each(['cli', 'global_agent'] as const)(
-    'preserves standing-goal evaluation and continuation source for a resumed %s run when a workflow continuation is queued',
-    async (runSource) => {
+  it('preserves standing-goal evaluation and continuation source for a resumed cli run when a workflow continuation is queued', async () => {
+    const runSource = 'cli'
       const { resumeBridgeRun } = await import('../../packages/server/src/modules/studio/services/chat-run/handle-bridge-run')
       const { nsp } = createNamespace()
       const socket = { id: 'socket-1', connected: true, emit: vi.fn() }

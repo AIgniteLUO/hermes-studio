@@ -41,6 +41,6 @@ describe('Agent Manager routing', () => {
     expect(chatPanel).toContain('fetchAgentAvailabilitySnapshot()')
     expect(chatPanel).toContain('agentInstallationState(status, "hermes") === "not-installed"')
     expect(chatPanel).not.toContain('fetchRuntimeVersionStatus({ probeRuntime: false')
-    expect(chatPanel).toContain('router.push({ name: "hermes.agentManager", query: { runtime: "install" } })')
+    expect(chatPanel).toContain('router.push({ name: "hermes.settings", query: { tab: "runtime" } })')
   })
 })

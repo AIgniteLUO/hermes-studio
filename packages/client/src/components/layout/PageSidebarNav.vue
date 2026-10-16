@@ -6,7 +6,7 @@ import { useRouter } from 'vue-router'
 import { isStoredSuperAdmin } from '@/api/client'
 import { useSessionSearch } from '@/composables/useSessionSearch'
 
-type ActiveSection = 'chat' | 'history' | 'connections' | 'agents' | 'models' | 'group' | 'workflow'
+type ActiveSection = 'chat' | 'history' | 'models' | 'group' | 'workflow'
 
 const props = defineProps<{
   active: ActiveSection
@@ -20,7 +20,6 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const router = useRouter()
 const { openSessionSearch } = useSessionSearch()
-const canManageAgents = computed(() => isStoredSuperAdmin())
 
 const primaryText = computed(() => props.primaryLabel || t('chat.newChat'))
 
@@ -32,16 +31,6 @@ function openChat() {
 function openHistory() {
   if (props.active === 'history') return
   void router.push({ name: 'hermes.history' })
-}
-
-function openConnections() {
-  if (props.active === 'connections') return
-  void router.push({ name: 'hermes.connections' })
-}
-
-function openAgentManager() {
-  if (props.active === 'agents') return
-  void router.push({ name: 'hermes.agentManager' })
 }
 
 function openModels() {
@@ -59,10 +48,6 @@ function openWorkflow() {
   void router.push({ name: 'hermes.workflow' })
 }
 
-function openApiRelay() {
-  if (typeof window === 'undefined') return
-  window.open('https://apikey.fun/register?aff=LIBAPI', '_blank', 'noopener,noreferrer')
-}
 </script>
 
 <template>
@@ -102,56 +87,6 @@ function openApiRelay() {
       </button>
       <button
         class="page-sidebar-tab"
-        :class="{ active: active === 'connections' }"
-        type="button"
-        :aria-current="active === 'connections' ? 'page' : undefined"
-        @click="openConnections"
-      >
-        <svg
-          width="15"
-          height="15"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <circle cx="18" cy="5" r="2.5" />
-          <circle cx="6" cy="12" r="2.5" />
-          <circle cx="18" cy="19" r="2.5" />
-          <path d="m8.2 10.7 7.6-4.4M8.2 13.3l7.6 4.4" />
-        </svg>
-        <span>{{ t('sidebar.connections') }}</span>
-      </button>
-      <button
-        v-if="canManageAgents"
-        class="page-sidebar-tab"
-        :class="{ active: active === 'agents' }"
-        type="button"
-        :aria-current="active === 'agents' ? 'page' : undefined"
-        @click="openAgentManager"
-      >
-        <svg
-          width="17"
-          height="17"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M12 8V4H8" />
-          <rect x="4" y="8" width="16" height="12" rx="3" />
-          <path d="M2 14h2M20 14h2M9 13v2M15 13v2" />
-        </svg>
-        <span>{{ t('sidebar.agentManager') }}</span>
-      </button>
-      <button
-        class="page-sidebar-tab"
         :class="{ active: active === 'models' }"
         type="button"
         :aria-current="active === 'models' ? 'page' : undefined"
@@ -172,21 +107,6 @@ function openApiRelay() {
           <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" />
         </svg>
         <span>{{ t('sidebar.models') }}</span>
-      </button>
-      <button class="page-sidebar-tab" type="button" @click="openApiRelay">
-        <svg
-          width="15"
-          height="15"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-        >
-          <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-          <polyline points="15 3 21 3 21 9" />
-          <line x1="10" y1="14" x2="21" y2="3" />
-        </svg>
-        <span>{{ t('sidebar.apiRelay') }}</span>
       </button>
     </div>
     <div class="conversation-switch conversation-switch--four" role="tablist" aria-label="Conversation type">

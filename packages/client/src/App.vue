@@ -89,8 +89,6 @@ const usesPageSidebar = computed(() =>
   [
     "hermes.chat",
     "hermes.session",
-    "hermes.connections",
-    "hermes.agentManager",
     "hermes.models",
     "hermes.history",
     "hermes.historySession",

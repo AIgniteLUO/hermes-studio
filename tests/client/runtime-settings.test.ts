@@ -37,7 +37,7 @@ vi.mock('naive-ui', () => ({
   useMessage: () => message,
 }))
 
-import VersionManagementModal from '@/components/layout/VersionManagementModal.vue'
+import RuntimeSettings from '@/components/hermes/settings/RuntimeSettings.vue'
 import { useRuntimeRestartPrompt } from '@/composables/useRuntimeRestartPrompt'
 
 function runtimeStatus() {
@@ -74,7 +74,7 @@ function runtimeStatus() {
   }
 }
 
-describe('VersionManagementModal Runtime storage selector', () => {
+describe('RuntimeSettings storage selector', () => {
   beforeEach(() => {
     useRuntimeRestartPrompt().clearRuntimeRestart()
     for (const mock of Object.values(api)) mock.mockReset()
@@ -88,7 +88,7 @@ describe('VersionManagementModal Runtime storage selector', () => {
   })
 
   it('explains how to update Hermes Runtime from the command line', async () => {
-    const wrapper = mount(VersionManagementModal, { props: { show: false } })
+    const wrapper = mount(RuntimeSettings)
     await wrapper.setProps({ show: true })
     await flushPromises()
 
@@ -99,7 +99,7 @@ describe('VersionManagementModal Runtime storage selector', () => {
   })
 
   it('shows the installed Hermes Agent version instead of the Runtime package version', async () => {
-    const wrapper = mount(VersionManagementModal, { props: { show: false } })
+    const wrapper = mount(RuntimeSettings)
     await wrapper.setProps({ show: true })
     await flushPromises()
 
@@ -129,7 +129,7 @@ describe('VersionManagementModal Runtime storage selector', () => {
     const status = runtimeStatus()
     status.hermes.remoteVersions = ['0.20.4', '0.20.0']
     api.fetchRuntimeVersionStatus.mockResolvedValue(status)
-    const wrapper = mount(VersionManagementModal, { props: { show: false } })
+    const wrapper = mount(RuntimeSettings)
 
     await wrapper.setProps({ show: true })
     await flushPromises()
@@ -153,7 +153,7 @@ describe('VersionManagementModal Runtime storage selector', () => {
       },
     }
     api.fetchRuntimeVersionStatus.mockResolvedValue(status)
-    const wrapper = mount(VersionManagementModal, { props: { show: false } })
+    const wrapper = mount(RuntimeSettings)
 
     await wrapper.setProps({ show: true })
     await flushPromises()
@@ -178,7 +178,7 @@ describe('VersionManagementModal Runtime storage selector', () => {
     status.hermes.agentRoot = '/Users/test/.hermes/hermes-agent'
     status.hermes.dataDirectory = '/Users/test/.hermes'
     api.fetchRuntimeVersionStatus.mockResolvedValue(status)
-    const wrapper = mount(VersionManagementModal, { props: { show: false } })
+    const wrapper = mount(RuntimeSettings)
 
     await wrapper.setProps({ show: true })
     await flushPromises()
@@ -204,7 +204,7 @@ describe('VersionManagementModal Runtime storage selector', () => {
     status.hermes.activationError = 'Selected Runtime 0.20.0 is missing node/node.exe.'
     status.webui.remoteVersions = ['0.6.32']
     api.fetchRuntimeVersionStatus.mockResolvedValue(status)
-    const wrapper = mount(VersionManagementModal, { props: { show: false } })
+    const wrapper = mount(RuntimeSettings)
     await wrapper.setProps({ show: true })
     await flushPromises()
 
@@ -216,7 +216,7 @@ describe('VersionManagementModal Runtime storage selector', () => {
 
   it('opens the desktop picker and schedules migration to the selected directory', async () => {
     selectRuntimeDirectory.mockResolvedValue('/Volumes/HermesRuntime')
-    const wrapper = mount(VersionManagementModal, { props: { show: false } })
+    const wrapper = mount(RuntimeSettings)
     await wrapper.setProps({ show: true })
     await flushPromises()
 
@@ -230,7 +230,7 @@ describe('VersionManagementModal Runtime storage selector', () => {
 
   it('does not schedule migration when the desktop picker is canceled', async () => {
     selectRuntimeDirectory.mockResolvedValue(null)
-    const wrapper = mount(VersionManagementModal, { props: { show: false } })
+    const wrapper = mount(RuntimeSettings)
     await wrapper.setProps({ show: true })
     await flushPromises()
 
@@ -244,7 +244,7 @@ describe('VersionManagementModal Runtime storage selector', () => {
     const status = runtimeStatus()
     status.hermes.storageDirectory = '/Volumes/HermesRuntime'
     api.fetchRuntimeVersionStatus.mockResolvedValue(status)
-    const wrapper = mount(VersionManagementModal, { props: { show: false } })
+    const wrapper = mount(RuntimeSettings)
     await wrapper.setProps({ show: true })
     await flushPromises()
 
@@ -266,7 +266,7 @@ describe('VersionManagementModal Runtime storage selector', () => {
     }]
     api.fetchRuntimeVersionStatus.mockResolvedValue(status)
     api.activateRuntimeVersion.mockResolvedValue({ success: true, active: {} })
-    const wrapper = mount(VersionManagementModal, { props: { show: false } })
+    const wrapper = mount(RuntimeSettings)
     await wrapper.setProps({ show: true })
     await flushPromises()
 

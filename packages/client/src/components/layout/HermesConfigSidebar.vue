@@ -257,7 +257,7 @@ onUnmounted(() => {
     <footer class="hermes-config-footer">
       <RouteLinkItem
         class="hermes-config-nav-item hermes-config-return"
-        :to="{ name: 'hermes.agentManager' }"
+        :to="{ name: 'hermes.chat' }"
       >
         <svg
           width="17"

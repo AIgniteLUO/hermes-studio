@@ -97,29 +97,6 @@ describe('client style system', () => {
     expect(pageSidebarNav).toContain('inset 0 0 0 1px $border-color')
   })
 
-  it('keeps the agent manager page aligned with the app main surface', () => {
-    const agentManagerView = readClientFile('views/hermes/AgentManagerView.vue')
-    const chatPanel = readClientFile('components/hermes/chat/ChatPanel.vue')
-
-    expect(agentManagerView).toMatch(
-      /\.agent-manager-panel\s*\{[^}]*height: 100%;[^}]*background: \$bg-main-surface;/s,
-    )
-    expect(agentManagerView).not.toContain('class="agent-manager-sidebar"')
-    expect(agentManagerView).not.toContain('.sidebar-summary')
-    expect(agentManagerView).not.toContain('.agent-manager-main')
-    expect(chatPanel).toContain('<AgentManagerPanel')
-    expect(chatPanel).toContain(':sidebar-collapsed="!showSessions"')
-    expect(agentManagerView).not.toContain('min-height: 72px;')
-    expect(agentManagerView).not.toContain('padding: 14px 24px;')
-    expect(agentManagerView).not.toContain("<p>{{ t('agentManager.subtitle') }}</p>")
-    expect(agentManagerView).toContain('<rect x="14" y="14" width="7" height="7" />')
-    expect(agentManagerView).toMatch(
-      /\.coding-agent-grid\s*\{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/s,
-    )
-    expect(agentManagerView).not.toContain('class="cli-path"')
-    expect(agentManagerView).not.toContain('class="source-panel"')
-  })
-
   it('makes current theme surfaces translucent over custom backgrounds', () => {
     const variables = readClientFile('styles/variables.scss')
     const app = readClientFile('App.vue')
@@ -139,7 +116,6 @@ describe('client style system', () => {
     expect(customBackgroundStyles).toContain(':deep(.chat-panel > .chat-main)')
     expect(customBackgroundStyles).toContain(':deep(.group-chat-panel > .chat-main)')
     expect(customBackgroundStyles).toContain(':deep(.virtual-message-list)')
-    expect(customBackgroundStyles).toContain(':deep(.agent-manager-panel)')
     expect(customBackgroundStyles).toMatch(
       /:deep\(\.workflow-view\),[\s\S]*:deep\(\.petdex-view\)\s*\{\s*background-color: transparent;/,
     )

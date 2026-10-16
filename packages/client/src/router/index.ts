@@ -162,10 +162,7 @@ const router = createRouter({
     },
     {
       path: '/social-messages',
-      redirect: {
-        name: 'hermes.connections',
-        query: { view: 'messages' },
-      },
+      redirect: { name: 'hermes.chat' },
     },
     {
       path: '/hermes/terminal',
@@ -175,27 +172,19 @@ const router = createRouter({
     },
     {
       path: '/hermes/connections',
-      name: 'hermes.connections',
-      component: () => import('@/views/hermes/ChatView.vue'),
+      redirect: { name: 'hermes.chat' },
     },
     {
       path: '/hermes/devices',
-      name: 'hermes.devices',
-      redirect: to => ({
-        name: 'hermes.connections',
-        query: { ...to.query, tab: 'devices' },
-      }),
-      meta: { requiresSuperAdmin: true },
+      redirect: { name: 'hermes.chat' },
     },
     {
       path: '/studio/agents',
-      name: 'hermes.agentManager',
-      component: () => import('@/views/hermes/ChatView.vue'),
-      meta: { requiresSuperAdmin: true },
+      redirect: { name: 'hermes.chat' },
     },
     {
       path: '/hermes/agents',
-      redirect: { name: 'hermes.agentManager' },
+      redirect: { name: 'hermes.chat' },
     },
     {
       path: '/hermes/group-chat',
@@ -228,7 +217,7 @@ const router = createRouter({
     },
     {
       path: '/hermes/coding-agents',
-      redirect: { name: 'hermes.agentManager' },
+      redirect: { name: 'hermes.chat' },
     },
     {
       path: '/hermes/version-preview',

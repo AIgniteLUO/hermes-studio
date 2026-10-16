@@ -67,7 +67,7 @@ import {
 
 const props = withDefaults(defineProps<{
   standalone?: boolean;
-  contentMode?: "chat" | "connections" | "agents" | "models";
+  contentMode?: "chat" | "models";
   initialComposerText?: string;
   composerPersistDraft?: boolean;
 }>(), {
@@ -78,8 +78,6 @@ const props = withDefaults(defineProps<{
 });
 
 const FilesPanel = defineAsyncComponent(async () => (await import('./FilesPanel.vue')).default);
-const ConnectionsPanel = defineAsyncComponent(async () => (await import('@/components/hermes/connections/ConnectionsPanel.vue')).default);
-const AgentManagerPanel = defineAsyncComponent(async () => (await import('@/views/hermes/AgentManagerView.vue')).default);
 const ModelsPanel = defineAsyncComponent(async () => (await import('@/views/hermes/ModelsView.vue')).default);
 const WorkspaceDiffPreview = defineAsyncComponent(async () => (await import('@/components/hermes/files/WorkspaceDiffPreview.vue')).default);
 const DesktopBrowserPanel = defineAsyncComponent(async () => (await import('./DesktopBrowserPanel.vue')).default);
@@ -1209,27 +1207,6 @@ async function confirmNewChat() {
     }
   }
 
-  if (isNewChatExternalCodingAgent.value) {
-    newChatLoading.value = true;
-    try {
-      const agentId = newChatAgent.value as CodingAgentId;
-      const status = await fetchCodingAgentsStatus();
-      const tool = status.tools.find((item) => item.id === agentId);
-      if (!tool?.installed) {
-        const fallbackName = agentId === "codex" ? "Codex" : agentId === "pi" ? "Pi" : "Claude";
-        message.warning(t("codingAgents.installRequired", { agent: tool?.name || fallbackName }));
-        showNewChatModal.value = false;
-        await router.push({ name: "hermes.agentManager" });
-        return;
-      }
-    } catch {
-      message.error(t("codingAgents.loadFailed"));
-      return;
-    } finally {
-      newChatLoading.value = false;
-    }
-  }
-
   const group = selectedNewChatProviderGroup.value;
   const source = newChatAgent.value === "hermes" ? "cli" : "coding_agent";
   const codingAgentMode = effectiveNewChatAgentMode.value;
@@ -1986,7 +1963,7 @@ async function handleSessionModelCustomSubmit() {
     >
       <div v-if="showSessions" class="page-sidebar-top">
         <PageSidebarNav
-          :active="contentMode === 'connections' ? 'connections' : contentMode === 'agents' ? 'agents' : contentMode === 'models' ? 'models' : 'chat'"
+          :active="contentMode === 'models' ? 'models' : 'chat'"
           :primary-label="t('chat.newChat')"
           @primary="openNewChatModal"
         />
@@ -2762,18 +2739,8 @@ async function handleSessionModelCustomSubmit() {
       class="chat-main"
       :class="{ 'chat-main--sidebar-collapsed': currentMode !== 'chat' || !showSessions }"
     >
-      <ConnectionsPanel
-        v-if="contentMode === 'connections'"
-        :sidebar-collapsed="!showSessions"
-        @toggle-sidebar="showSessions = !showSessions"
-      />
-      <AgentManagerPanel
-        v-else-if="contentMode === 'agents'"
-        :sidebar-collapsed="!showSessions"
-        @toggle-sidebar="showSessions = !showSessions"
-      />
       <ModelsPanel
-        v-else-if="contentMode === 'models'"
+        v-if="contentMode === 'models'"
         :sidebar-collapsed="!showSessions"
         @toggle-sidebar="showSessions = !showSessions"
       />

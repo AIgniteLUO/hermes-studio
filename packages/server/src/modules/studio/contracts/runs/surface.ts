@@ -1,4 +1,4 @@
-export const RUN_SURFACES = ['chat', 'workflow', 'group-chat', 'global-agent', 'api'] as const
+export const RUN_SURFACES = ['chat', 'workflow', 'group-chat', 'api'] as const
 export const RUN_MODES = ['scoped', 'global'] as const
 
 export type RunSurface = typeof RUN_SURFACES[number]

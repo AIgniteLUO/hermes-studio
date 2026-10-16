@@ -33,9 +33,6 @@ describe('server module boundary harness', () => {
 
   it('enforces the acyclic domain dependency matrix', () => {
     expect(forbiddenDomainDependency('studio', 'hermes')).toBe(true)
-    expect(forbiddenDomainDependency('studio', 'coding-agents')).toBe(true)
-    expect(forbiddenDomainDependency('hermes', 'coding-agents')).toBe(true)
-    expect(forbiddenDomainDependency('coding-agents', 'hermes')).toBe(true)
     expect(forbiddenDomainDependency('hermes', 'studio')).toBe(false)
     expect(forbiddenDomainDependency('hermes', 'hermes')).toBe(false)
     expect(forbiddenDomainDependency('bootstrap', 'studio')).toBe(false)
@@ -53,12 +50,6 @@ describe('server module boundary harness', () => {
     )).toEqual([
       'modules/hermes/services/run.ts must use Studio contracts/public APIs, not Studio internal path modules/studio/services/config/service.ts',
     ])
-    expect(validateTargetDependency(
-      'modules/coding-agents/services/run.ts',
-      'modules/studio/services/config/service.ts',
-    )).toEqual([
-      'modules/coding-agents/services/run.ts must use Studio contracts/public APIs, not Studio internal path modules/studio/services/config/service.ts',
-    ])
   })
 
   it('keeps routes out of services and agent modules apart', () => {
@@ -68,8 +59,8 @@ describe('server module boundary harness', () => {
     )[0]).toContain('must delegate through controllers')
     expect(validateTargetDependency(
       'modules/hermes/controllers/chat.ts',
-      'modules/coding-agents/public/runner.ts',
-    )[0]).toContain('must not depend')
+      'modules/hermes/public/runner.ts',
+    )).toEqual([])
   })
 
   it('keeps file, download, preview, and upload capabilities in Studio', () => {

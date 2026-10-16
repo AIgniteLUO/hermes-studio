@@ -1,11 +1,8 @@
-import { codingAgentRunManager } from '../modules/coding-agents/services/runtime/run-manager'
 import { forceStopManagedGateways, shutdownManagedGateways } from '../modules/hermes/services/gateway/runner'
 import { closeDb } from '../modules/studio/infrastructure/database'
 import { logger } from '../modules/studio/public/logging'
 import { shutdownLocalSttRuntime } from '../modules/studio/services/voice/stt/local-model-manager'
-import { stopAppRelayClient } from '../modules/studio/services/app-relay/client'
 import { stopChatWebhookDispatcher } from '../modules/studio/services/webhooks'
-import { shutdownSocialMessageRuntimes } from '../modules/studio/services/social-messages'
 import { stopPreviewRuntime } from './update'
 
 const DEFAULT_SHUTDOWN_FORCE_EXIT_MS = 10_000
@@ -106,11 +103,6 @@ export function createShutdownHandler(
             logger.warn(err, 'Failed to force-stop agent bridge during shutdown timeout')
           }
         }
-        try {
-          codingAgentRunManager.shutdown()
-        } catch (err) {
-          logger.warn(err, 'Failed to force-stop coding agent processes during shutdown timeout')
-        }
         process.exit(exitCode)
       }, getShutdownForceExitMs())
 
@@ -131,18 +123,12 @@ export function createShutdownHandler(
 
         await runShutdownStep('Preview runtime', stopPreviewRuntime)
         await runShutdownStep('Local STT runtime', shutdownLocalSttRuntime)
-        await runShutdownStep('Social message runtimes', shutdownSocialMessageRuntimes)
 
         // Stop accepting/routing chat work before stopping the bridge. This
         // lets ChatRunSocket release claimed background completions while the
         // broker is still reachable.
         if (chatRunServer) await runShutdownStep('ChatRunSocket', () => chatRunServer.close())
         await runShutdownStep('Chat webhook dispatcher', () => stopChatWebhookDispatcher())
-
-        // These runtimes own the most likely long-lived descendants (PTYs,
-        // watchers, exec jobs, and coding agents), so begin their teardown
-        // before waiting on relays and network servers.
-        await runShutdownStep('Coding agent hidden sessions', () => codingAgentRunManager.shutdown())
 
         for (const step of additionalSteps) {
           await runShutdownStep(step.name, step.close)
@@ -158,7 +144,6 @@ export function createShutdownHandler(
           logger.info('Leaving agent bridge running across Web UI shutdown')
         }
 
-        await runShutdownStep('App relay clients', () => stopAppRelayClient())
 
         // Disconnect Socket.IO before HTTP server to prevent hanging, and wait
         // for adapter/namespace cleanup instead of racing process.exit().

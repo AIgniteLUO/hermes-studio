@@ -28,21 +28,8 @@ import { HermesSkillInjector } from '../modules/hermes/services/skills/injector'
 import { cleanupBundledMcpServer } from '../modules/hermes/services/mcp/studio-mcp-cleanup'
 import { ensureProfileGatewaysRunning } from '../modules/hermes/services/gateway/autostart'
 import { refreshConfiguredProviderModelCatalogsInBackground } from '../modules/hermes/services/providers/model-catalog-cache'
-import {
-  scanLanDevices,
-  selectLanIPv4Address,
-  startLanDiscoveryResponder,
-  stopLanDiscoveryResponder,
-} from './lan-discovery'
-import { getLanPeerSocketManager, getLanPeerSocketPath } from './lan-peer'
-import { startLocalAppRelayServer } from '../modules/studio/services/app-relay/server'
-import {
-  hasPendingCloudAppConnectionRevocations,
-  listAppConnections,
-} from '../modules/studio/repositories/app-connections-store'
-import { ensureAppRelayHostClient } from '../modules/studio/services/app-relay/connection'
+import { selectLanIPv4Address } from './lan-address'
 import { WorkflowSocketServer } from '../modules/studio/sockets/workflow'
-import { PetStateSocketServer } from '../modules/studio/sockets/pet-state'
 import { logger } from '../modules/studio/public/logging'
 import { createStaticCompressionMiddleware } from '../modules/studio/middleware/static-compression'
 import { getStaticCacheControl, SPA_ENTRY_CACHE_CONTROL } from '../modules/studio/middleware/static-cache'
@@ -54,13 +41,7 @@ import {
   writeBadUpgradeRequest,
 } from '../modules/studio/middleware/security'
 import type { AdditionalShutdownStep, ShutdownHandler } from './lifecycle'
-import { createCodexProxyRequestBodyParser, createRequestBodyParser } from '../modules/studio/middleware/request-body-parser'
-import {
-  getCodingAgentsStatus,
-  migratePersistedPiRuntimeMcpConfigs,
-  restorePersistedPiProxyTargets,
-} from './coding-agents'
-import { isAuthorizedCodexProxyRequest } from '../modules/coding-agents/services/codex/proxy'
+import { createRequestBodyParser } from '../modules/studio/middleware/request-body-parser'
 import {
   configurePreferredHermesRuntime,
   readLockedDesktopHermesSelection,
@@ -83,7 +64,6 @@ const servers: any[] = []
 let groupChatServer: GroupChatServer | null = null
 let chatRunServer: any = null
 let workflowSocketServer: WorkflowSocketServer | null = null
-let petStateSocketServer: PetStateSocketServer | null = null
 let groupAgentRelayServer: GroupAgentRelayServer | null = null
 let agentBridgeManager: any = null
 let desktopShutdownHandler: ShutdownHandler | null = null
@@ -305,24 +285,6 @@ async function startRuntimeServicesAfterListen(hermesAvailable: boolean): Promis
   }
 }
 
-function startLanDiscovery(): void {
-  const discoverySocket = startLanDiscoveryResponder({ httpPort: config.port })
-  let initialScanStarted = false
-  const runInitialScan = () => {
-    if (initialScanStarted) return
-    initialScanStarted = true
-    void scanLanDevices().catch(err => logger.warn(err, '[lan-discovery] initial scan failed'))
-  }
-
-  if (discoverySocket) {
-    discoverySocket.once('listening', runInitialScan)
-    const fallbackTimer = setTimeout(runInitialScan, 500)
-    fallbackTimer.unref?.()
-  } else {
-    runInitialScan()
-  }
-}
-
 function recordLockedHermesSelection(selection: HermesRuntimeSelection): void {
   if (selection.source === 'none' || !selection.path) {
     const activationError = readActiveVersionManifest()?.runtimeActivationError || ''
@@ -383,7 +345,6 @@ export async function bootstrap() {
   if (lockedDesktopSelection) recordLockedHermesSelection(hermesSelection)
   const inventoryResults = await Promise.allSettled([
     ...(!lockedDesktopSelection ? [getRuntimeVersionStatus({ includeRemote: false })] : []),
-    getCodingAgentsStatus(),
   ])
   for (const result of inventoryResults) {
     if (result.status === 'rejected') {
@@ -424,24 +385,6 @@ export async function bootstrap() {
     console.warn('[bootstrap] failed to clean up bundled MCP server:', err instanceof Error ? err.message : err)
   }
 
-  try {
-    const migratedPiMcpConfigs = await migratePersistedPiRuntimeMcpConfigs()
-    if (migratedPiMcpConfigs > 0) {
-      console.log(`[bootstrap] migrated ${migratedPiMcpConfigs} persisted Pi MCP runtime config(s) to proxy mode`)
-    }
-  } catch (err) {
-    logger.warn(err, '[bootstrap] failed to migrate persisted Pi MCP runtime configs')
-  }
-
-  try {
-    const restoredPiProxyTargets = await restorePersistedPiProxyTargets()
-    if (restoredPiProxyTargets > 0) {
-      console.log(`[bootstrap] restored ${restoredPiProxyTargets} persisted Pi proxy target(s)`)
-    }
-  } catch (err) {
-    logger.warn(err, '[bootstrap] failed to restore persisted Pi proxy targets')
-  }
-
   agentBridgeManager = getAgentBridgeManager()
   if (!isDesktopRuntime()) {
     await startRuntimeServicesBeforeListen(hermesAgentAvailable)
@@ -457,10 +400,6 @@ export async function bootstrap() {
 
   app.use(securityHeaders())
   app.use(cors({ origin: createCorsOriginResolver(config.corsOrigins) }))
-  // Codex can replay inline images from its native thread. Accept a bounded,
-  // authenticated request here so the proxy can remove historical image data
-  // before dispatching to any provider API mode.
-  app.use(createCodexProxyRequestBodyParser(isAuthorizedCodexProxyRequest))
   // Raise body limits above the default 1mb: profile avatars and MiMo voice-clone
   // reference audio are posted as base64 data URLs before reaching handlers.
   app.use(createRequestBodyParser())
@@ -517,16 +456,6 @@ export async function bootstrap() {
     close: () => kanbanEventsWebSocket.close(),
     forceClose: () => kanbanEventsWebSocket.forceClose(),
   })
-  const lanPeerSocketManager = getLanPeerSocketManager()
-  lanPeerSocketManager.setupServer(servers)
-  additionalShutdownSteps.push({
-    name: 'LAN peer WebSocket and child runtimes',
-    close: () => lanPeerSocketManager.shutdown(),
-    forceClose: () => lanPeerSocketManager.forceClose(),
-  })
-  console.log('[bootstrap] terminal + kanban + LAN peer websocket setup')
-
-  const loopbackBaseUrl = getLoopbackBaseUrl(server)
 
   // Group chat Socket.IO (must be after server is created)
   const activeGroupChatServer = new GroupChatServer(servers)
@@ -543,14 +472,7 @@ export async function bootstrap() {
   setChatRunServer(chatRunServer)
   activeGroupChatServer.setChatRunService(chatRunServer)
   chatRunServer.init()
-  startLocalAppRelayServer(activeGroupChatServer.getIO(), { localBaseUrl: loopbackBaseUrl })
-  console.log('[bootstrap] local App relay server ready')
-  if (
-    listAppConnections().some(connection => connection.connection_type === 'cloud')
-    || hasPendingCloudAppConnectionRevocations()
-  ) {
-    void ensureAppRelayHostClient().catch(err => logger.warn(err, '[app-relay] cloud host restore failed'))
-  }
+
   const groupAgentOutboundRelayManager = getGroupAgentOutboundRelayManager(
     () => activeGroupChatServer.getChatRunService(),
   )
@@ -583,9 +505,6 @@ export async function bootstrap() {
     close: () => workflowSocketServer?.close(),
   })
 
-  petStateSocketServer = new PetStateSocketServer(activeGroupChatServer.getIO())
-  petStateSocketServer.init()
-
   // Session deleter — periodically drain pending session deletes
   const { SessionDeleter } = await import('../modules/hermes/services/history/session-deleter')
   const sessionDeleter = SessionDeleter.getInstance()
@@ -607,7 +526,6 @@ export async function bootstrap() {
       }
       if (url.pathname !== '/api/hermes/terminal' &&
         url.pathname !== '/api/hermes/kanban/events' &&
-        url.pathname !== getLanPeerSocketPath() &&
         !url.pathname.startsWith('/socket.io/')) {
         socket.destroy()
       }
@@ -619,11 +537,6 @@ export async function bootstrap() {
   console.log(`Server: http://localhost:${config.port} (LAN: http://${localIp}:${config.port})`)
   console.log(`Log: ${config.appHome}/logs/server.log`)
   logger.info('Server: http://localhost:%d (LAN: http://%s:%d)', config.port, localIp, config.port)
-  startLanDiscovery()
-  additionalShutdownSteps.push({
-    name: 'LAN discovery responder',
-    close: stopLanDiscoveryResponder,
-  })
   refreshConfiguredProviderModelCatalogsInBackground('bootstrap')
 
   if (isDesktopRuntime()) {

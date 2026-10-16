@@ -9,14 +9,6 @@ import { apiDocsRoutes } from '../modules/studio'
 import { healthRoutes } from './health'
 import { updateRoutes } from './update'
 import { themeRoutes } from '../modules/studio/routes/theme'
-import { appConnectionRoutes, appRelayRoutes } from './app-relay'
-import { devicePublicRoutes, deviceRoutes } from './devices'
-import { socialMessageRoutes } from '../modules/studio/routes/social-messages'
-import {
-  claudeCodeProxyRoutes,
-  codexProxyRoutes,
-  codingAgentRoutes,
-} from './coding-agents'
 
 // Studio and agent route modules composed into one HTTP application.
 import { uploadRoutes } from '../modules/studio/routes/upload'
@@ -58,8 +50,6 @@ import { mcpRoutes } from '../modules/hermes/routes/mcp'
 import { runtimeVersionRoutes } from '../modules/hermes/routes/runtime-versions'
 import { agentStatusRoutes } from '../modules/studio/routes/agent-status'
 import { writeGateRoutes } from '../modules/hermes/routes/write-gate'
-import { petdexPublicRoutes, petdexRoutes } from '../modules/studio/routes/petdex'
-import { petRoutes } from '../modules/studio/routes/pets'
 import { legacyAppApiCompatibility } from '../modules/studio/middleware/legacy-app-api'
 
 /**
@@ -73,12 +63,8 @@ export function registerRoutes(app: any, authMiddleware: Array<(ctx: Context, ne
   // --- Public routes (no auth required) ---
   app.use(healthRoutes.routes())
   app.use(authPublicRoutes.routes())
-  app.use(devicePublicRoutes.routes())
-  app.use(claudeCodeProxyRoutes.routes())
-  app.use(codexProxyRoutes.routes())
   app.use(ttsRoutes.routes())
   app.use(apiDocsRoutes.routes())
-  app.use(petdexPublicRoutes.routes())
   app.use(groupChatPublicRoutes.routes())
   app.use(chatWebhookPublicRoutes.routes())
 
@@ -87,16 +73,11 @@ export function registerRoutes(app: any, authMiddleware: Array<(ctx: Context, ne
 
   // --- Protected routes (auth required) ---
   app.use(authProtectedRoutes.routes())
-  app.use(deviceRoutes.routes())
-  app.use(appConnectionRoutes.routes())
   app.use(uploadRoutes.routes())
   app.use(appUploadRoutes.routes())
   app.use(updateRoutes.routes())           // Must be before proxy (proxy catch-all matches everything)
-  app.use(codingAgentRoutes.routes())
   app.use(agentStatusRoutes.routes())
   app.use(themeRoutes.routes())
-  app.use(appRelayRoutes.routes())
-  app.use(socialMessageRoutes.routes())
   app.use(sessionRoutes.routes())
   app.use(profileRoutes.routes())
   app.use(skillRoutes.routes())
@@ -131,6 +112,4 @@ export function registerRoutes(app: any, authMiddleware: Array<(ctx: Context, ne
   app.use(mcpRoutes.routes())                   // MCP management
   app.use(runtimeVersionRoutes.routes())         // Runtime and version management
   app.use(writeGateRoutes.routes())              // Hermes Agent write approval review
-  app.use(petdexRoutes.routes())
-  app.use(petRoutes.routes())
 }

@@ -4,7 +4,6 @@ const closeDbMock = vi.hoisted(() => vi.fn())
 const stopPreviewRuntimeMock = vi.hoisted(() => vi.fn(async () => {}))
 const shutdownManagedGatewaysMock = vi.hoisted(() => vi.fn(async () => ({ stopped: 0 })))
 const forceStopManagedGatewaysMock = vi.hoisted(() => vi.fn())
-const codingAgentShutdownMock = vi.hoisted(() => vi.fn())
 const shutdownLocalSttRuntimeMock = vi.hoisted(() => vi.fn(async () => {}))
 
 vi.mock('../../packages/server/src/modules/studio/infrastructure/database/index', () => ({ closeDb: closeDbMock }))
@@ -16,33 +15,17 @@ vi.mock('../../packages/server/src/modules/hermes/services/gateway/runner', () =
 vi.mock('../../packages/server/src/modules/studio/services/voice/stt/local-model-manager', () => ({
   shutdownLocalSttRuntime: shutdownLocalSttRuntimeMock,
 }))
-vi.mock('../../packages/server/src/modules/coding-agents/services/runtime/run-manager', () => ({
-  codingAgentRunManager: { shutdown: codingAgentShutdownMock },
-}))
-vi.mock('../../packages/server/src/modules/studio/public/logging', () => ({
-  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-}))
-
 vi.mock('../../packages/server/src/modules/studio/infrastructure/database', () => ({ closeDb: closeDbMock }))
 vi.mock('../../packages/server/src/bootstrap/update', () => ({ stopPreviewRuntime: stopPreviewRuntimeMock }))
 vi.mock('../../packages/server/src/modules/hermes/services/gateway/runner', () => ({
   forceStopManagedGateways: forceStopManagedGatewaysMock,
   shutdownManagedGateways: shutdownManagedGatewaysMock,
 }))
-vi.mock('../../packages/server/src/modules/coding-agents/services/runtime/run-manager', () => ({
-  codingAgentRunManager: { shutdown: codingAgentShutdownMock },
-}))
 vi.mock('../../packages/server/src/modules/studio/public/logging', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
-vi.mock('../../packages/server/src/modules/studio/services/app-relay/client', () => ({
-  stopAppRelayClient: vi.fn(),
-}))
 vi.mock('../../packages/server/src/modules/studio/services/webhooks', () => ({
   stopChatWebhookDispatcher: vi.fn(),
-}))
-vi.mock('../../packages/server/src/modules/studio/services/social-messages', () => ({
-  shutdownSocialMessageRuntimes: vi.fn(async () => {}),
 }))
 
 describe('graceful shutdown background delivery ordering', () => {
@@ -141,7 +124,6 @@ describe('graceful shutdown background delivery ordering', () => {
 
     expect(forceStopManagedGatewaysMock).toHaveBeenCalledOnce()
     expect(agentBridgeManager.forceStop).toHaveBeenCalledOnce()
-    expect(codingAgentShutdownMock).toHaveBeenCalledOnce()
     expect(exitSpy).toHaveBeenCalledWith(0)
   })
 
@@ -163,7 +145,6 @@ describe('graceful shutdown background delivery ordering', () => {
     expect(forceStopManagedGatewaysMock).toHaveBeenCalledOnce()
     expect(agentBridgeManager.stop).not.toHaveBeenCalled()
     expect(agentBridgeManager.forceStop).not.toHaveBeenCalled()
-    expect(codingAgentShutdownMock).toHaveBeenCalledOnce()
     expect(exitSpy).toHaveBeenCalledWith(0)
   })
 

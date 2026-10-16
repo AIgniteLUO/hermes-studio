@@ -21,7 +21,7 @@ describe('Hermes schema initialization', () => {
   })
 
   it('initializes all tables with correct schemas', async () => {
-    const { initAllHermesTables, USAGE_TABLE, SESSIONS_TABLE, SESSION_CATEGORIES_TABLE, MESSAGES_TABLE, GC_ROOMS_TABLE, GC_MESSAGES_TABLE, GC_ROOM_AGENTS_TABLE, USERS_TABLE, USER_PROFILES_TABLE, SOCIAL_MESSAGE_ACCOUNTS_TABLE, SOCIAL_MESSAGE_RUNTIME_STATES_TABLE, DEVICES_TABLE } =
+    const { initAllHermesTables, USAGE_TABLE, SESSIONS_TABLE, SESSION_CATEGORIES_TABLE, MESSAGES_TABLE, GC_ROOMS_TABLE, GC_MESSAGES_TABLE, GC_ROOM_AGENTS_TABLE, USERS_TABLE, USER_PROFILES_TABLE } =
       await import('../../packages/server/src/modules/studio/infrastructure/database/schemas')
 
     expect(() => initAllHermesTables()).not.toThrow()
@@ -37,11 +37,14 @@ describe('Hermes schema initialization', () => {
     expect(tables.map(t => t.name)).toContain(GC_ROOM_AGENTS_TABLE)
     expect(tables.map(t => t.name)).toContain(USERS_TABLE)
     expect(tables.map(t => t.name)).toContain(USER_PROFILES_TABLE)
-    expect(tables.map(t => t.name)).toContain(SOCIAL_MESSAGE_ACCOUNTS_TABLE)
-    expect(tables.map(t => t.name)).toContain(SOCIAL_MESSAGE_RUNTIME_STATES_TABLE)
-    expect(tables.map(t => t.name)).toContain(DEVICES_TABLE)
-    // The MCU device registry table was retired with the hardware firmware support.
+    // The MCU device registry and the device-connection/social-message tables
+    // were retired together with their capabilities.
     expect(tables.map(t => t.name)).not.toContain('mcu_devices')
+    expect(tables.map(t => t.name)).not.toContain('devices')
+    expect(tables.map(t => t.name)).not.toContain('app_connections')
+    expect(tables.map(t => t.name)).not.toContain('app_authorization_codes')
+    expect(tables.map(t => t.name)).not.toContain('social_message_accounts')
+    expect(tables.map(t => t.name)).not.toContain('social_message_runtime_states')
 
     // Verify USAGE_TABLE structure
     const usageCols = db.prepare(`PRAGMA table_info("${USAGE_TABLE}")`).all() as Array<{ name: string }>
@@ -69,18 +72,6 @@ describe('Hermes schema initialization', () => {
     expect(profileCols.some(c => c.name === 'profile_name')).toBe(true)
     expect(profileCols.some(c => c.name === 'is_default')).toBe(true)
 
-    const socialAccountCols = db.prepare(`PRAGMA table_info("${SOCIAL_MESSAGE_ACCOUNTS_TABLE}")`).all() as Array<{ name: string }>
-    expect(socialAccountCols.some(c => c.name === 'credentials_json')).toBe(true)
-    expect(socialAccountCols.some(c => c.name === 'active')).toBe(true)
-    expect(socialAccountCols.some(c => c.name === 'recipient')).toBe(true)
-    expect(socialAccountCols.some(c => c.name === 'binding_locale')).toBe(true)
-    expect(socialAccountCols.some(c => c.name === 'binding_notified')).toBe(true)
-    const socialAccountIndexes = db.prepare(`PRAGMA index_list("${SOCIAL_MESSAGE_ACCOUNTS_TABLE}")`).all() as Array<{ name: string; unique: number }>
-    expect(socialAccountIndexes).toContainEqual(expect.objectContaining({
-      name: 'uniq_social_message_accounts_active_user',
-      unique: 1,
-    }))
-
     const roomAgentCols = db.prepare(`PRAGMA table_info("${GC_ROOM_AGENTS_TABLE}")`).all() as Array<{ name: string }>
     expect(roomAgentCols.some(c => c.name === 'agent')).toBe(true)
     expect(roomAgentCols.some(c => c.name === 'profile')).toBe(true)
@@ -92,11 +83,6 @@ describe('Hermes schema initialization', () => {
 
     const groupMessageCols = db.prepare(`PRAGMA table_info("${GC_MESSAGES_TABLE}")`).all() as Array<{ name: string }>
     expect(groupMessageCols.some(c => c.name === 'run_id')).toBe(true)
-
-    const deviceCols = db.prepare(`PRAGMA table_info("${DEVICES_TABLE}")`).all() as Array<{ name: string }>
-    expect(deviceCols.some(c => c.name === 'id')).toBe(true)
-    expect(deviceCols.some(c => c.name === 'status')).toBe(true)
-    expect(deviceCols.some(c => c.name === 'device_public_key')).toBe(true)
   })
 
   it('preserves existing data when adding safe schema columns', async () => {

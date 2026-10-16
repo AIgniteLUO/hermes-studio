@@ -119,10 +119,6 @@ describe('Database Schema Synchronization', () => {
         WORKFLOW_RUNS_SCHEMA,
         WORKFLOW_RUN_NODE_SESSIONS_TABLE,
         WORKFLOW_RUN_NODE_SESSIONS_SCHEMA,
-        SOCIAL_MESSAGE_ACCOUNTS_TABLE,
-        SOCIAL_MESSAGE_ACCOUNTS_SCHEMA,
-        SOCIAL_MESSAGE_RUNTIME_STATES_TABLE,
-        SOCIAL_MESSAGE_RUNTIME_STATES_SCHEMA,
       } =
         await import('../../packages/server/src/modules/studio/infrastructure/database/schemas')
 
@@ -156,17 +152,6 @@ describe('Database Schema Synchronization', () => {
       expect(sessionsCols.has('agent_session_id')).toBe(true)
       expect(sessionsCols.has('agent_native_session_id')).toBe(true)
       expect(sessionsCols.has('push_enabled')).toBe(true)
-
-      expect(tableExists(db, SOCIAL_MESSAGE_ACCOUNTS_TABLE)).toBe(true)
-      const socialAccountCols = getTableColumns(db, SOCIAL_MESSAGE_ACCOUNTS_TABLE)
-      expect(socialAccountCols.size).toBe(Object.keys(SOCIAL_MESSAGE_ACCOUNTS_SCHEMA).length)
-      expect(socialAccountCols.has('active')).toBe(true)
-      expect(socialAccountCols.has('binding_locale')).toBe(true)
-      expect(socialAccountCols.has('binding_notified')).toBe(true)
-      expect(getTablePrimaryKey(db, SOCIAL_MESSAGE_ACCOUNTS_TABLE)).toBe('user_id,platform')
-      expect(tableExists(db, SOCIAL_MESSAGE_RUNTIME_STATES_TABLE)).toBe(true)
-      const runtimeStateCols = getTableColumns(db, SOCIAL_MESSAGE_RUNTIME_STATES_TABLE)
-      expect(runtimeStateCols.size).toBe(Object.keys(SOCIAL_MESSAGE_RUNTIME_STATES_SCHEMA).length)
 
       // Verify workflow tables were created
       expect(tableExists(db, WORKFLOWS_TABLE)).toBe(true)

@@ -12,33 +12,35 @@ import {
 describe('Agent availability validation', () => {
   beforeEach(resetAgentStatusRegistryForTests)
 
-  it('normalizes group-chat and workflow Agent aliases', () => {
+  it('resolves only the Hermes runtime', () => {
     expect(resolveAgentStatusId('hermes')).toBe('hermes')
-    expect(resolveAgentStatusId('claude')).toBe('claude-code')
-    expect(resolveAgentStatusId('claude-code')).toBe('claude-code')
-    // A runtime that is no longer shipped resolves to null so callers must reject it.
+    // Removed runtimes resolve to null so callers must reject them.
+    expect(resolveAgentStatusId('claude')).toBeNull()
+    expect(resolveAgentStatusId('claude-code')).toBeNull()
+    expect(resolveAgentStatusId('codex')).toBeNull()
+    expect(resolveAgentStatusId('pi')).toBeNull()
     expect(resolveAgentStatusId('ekko')).toBeNull()
   })
 
-  it('rejects unavailable Agents with a stable conflict code', () => {
-    expect(() => assertAgentAvailable('codex')).toThrow('Codex is not installed')
+  it('rejects unavailable and removed Agents with stable error codes', () => {
+    expect(() => assertAgentAvailable('hermes')).toThrow('Hermes is not installed')
 
     try {
-      assertAgentAvailable('codex')
+      assertAgentAvailable('hermes')
     } catch (error: any) {
-      expect(error).toMatchObject({ status: 409, code: AGENT_NOT_INSTALLED, agent: 'codex' })
+      expect(error).toMatchObject({ status: 409, code: AGENT_NOT_INSTALLED, agent: 'hermes' })
     }
 
-    updateAgentStatus('codex', {
+    updateAgentStatus('hermes', {
       installed: true,
       source: 'user-cli',
-      path: '/usr/local/bin/codex',
+      path: '/usr/local/bin/hermes',
     })
-    expect(assertAgentAvailable('codex')).toBe('codex')
+    expect(assertAgentAvailable('hermes')).toBe('hermes')
 
-    expect(() => assertAgentAvailable('ekko')).toThrow('Invalid agent')
+    expect(() => assertAgentAvailable('codex')).toThrow('Invalid agent')
     try {
-      assertAgentAvailable('ekko')
+      assertAgentAvailable('codex')
     } catch (error: any) {
       expect(error).toMatchObject({ status: 400, code: 'INVALID_AGENT' })
     }
@@ -53,10 +55,9 @@ describe('Agent availability validation', () => {
       type: 'agent',
       data: {
         title: 'Reviewer',
-        agent: 'codex',
+        agent: 'hermes',
         provider: 'openai',
         model: 'gpt-test',
-        apiMode: 'codex_responses',
         reasoningEffort: '',
         input: 'Review',
         skills: [],
@@ -66,8 +67,8 @@ describe('Agent availability validation', () => {
       },
     }]
 
-    expect(() => assertWorkflowAgentDependencies(nodes)).toThrow('Codex is not installed')
-    updateAgentStatus('codex', { installed: true, source: 'user-cli', path: '/usr/local/bin/codex' })
+    expect(() => assertWorkflowAgentDependencies(nodes)).toThrow('Hermes is not installed')
+    updateAgentStatus('hermes', { installed: true, source: 'user-cli', path: '/usr/local/bin/hermes' })
     expect(() => assertWorkflowAgentDependencies(nodes)).not.toThrow()
   })
 })

@@ -14,12 +14,7 @@ describe('Agent status registry', () => {
   it('keeps one in-memory snapshot for every supported Agent', () => {
     const snapshot = getAgentStatusSnapshot()
 
-    expect(snapshot.agents.map(agent => agent.id)).toEqual([
-      'hermes',
-      'claude-code',
-      'codex',
-      'pi',
-    ])
+    expect(snapshot.agents.map(agent => agent.id)).toEqual(['hermes'])
     // No runtime is bundled with the product any more: every record starts out
     // not installed until an installation is recorded.
     expect(snapshot.agents.every(agent => agent.installed === false && agent.source === 'not-installed')).toBe(true)
@@ -83,16 +78,15 @@ describe('Agent status registry', () => {
     expect(isHermesAgentAvailable()).toBe(true)
   })
 
-  it('reports installed coding Agents as available', () => {
+  it('reports the installed Hermes Agent as available', () => {
     expect(isAgentAvailable('hermes')).toBe(false)
-    expect(isAgentAvailable('codex')).toBe(false)
 
-    updateAgentStatus('codex', {
+    updateAgentStatus('hermes', {
       installed: true,
       source: 'user-cli',
-      path: '/usr/local/bin/codex',
+      path: '/usr/local/bin/hermes',
     })
 
-    expect(isAgentAvailable('codex')).toBe(true)
+    expect(isAgentAvailable('hermes')).toBe(true)
   })
 })

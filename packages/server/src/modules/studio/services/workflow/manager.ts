@@ -48,13 +48,12 @@ export type { WorkflowCreateInput, WorkflowRecord, WorkflowUpdateInput }
 
 export type WorkflowRuntimeState = 'idle' | 'queued' | 'running' | 'pending_approval' | 'completed' | 'skipped' | 'failed' | 'approval_rejected' | 'canceled'
 export type WorkflowRunType = 'workflow'
-export type WorkflowNodeAgent = 'hermes' | 'claude-code' | 'codex' | 'pi'
+export type WorkflowNodeAgent = 'hermes'
 
 export interface WorkflowNodeRunTarget {
   type: WorkflowRunType
   source: 'workflow'
-  agent: 'hermes' | 'claude' | 'codex' | 'pi'
-  codingAgentId?: 'claude-code' | 'codex' | 'pi'
+  agent: 'hermes'
 }
 
 export interface WorkflowRuntimeStatus {
@@ -111,7 +110,6 @@ export interface WorkflowNodeSnapshot {
     agent: string
     provider: string
     model: string
-    apiMode: string
     reasoningEffort: string
     input: string
     skills: string[]
@@ -231,30 +229,6 @@ function idleStatus(workflowId: string): WorkflowRuntimeStatus {
 }
 
 export function resolveWorkflowNodeRunTarget(agent?: string | null): WorkflowNodeRunTarget {
-  if (agent === 'claude-code') {
-    return {
-      type: 'workflow',
-      source: 'workflow',
-      agent: 'claude',
-      codingAgentId: 'claude-code',
-    }
-  }
-  if (agent === 'codex') {
-    return {
-      type: 'workflow',
-      source: 'workflow',
-      agent: 'codex',
-      codingAgentId: 'codex',
-    }
-  }
-  if (agent === 'pi') {
-    return {
-      type: 'workflow',
-      source: 'workflow',
-      agent: 'pi',
-      codingAgentId: 'pi',
-    }
-  }
   if (agent === 'hermes') {
     return {
       type: 'workflow',
@@ -270,7 +244,6 @@ function stringArray(value: unknown): string[] {
 }
 
 const WORKFLOW_REASONING_EFFORTS = new Set(['default', 'none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'])
-const WORKFLOW_API_MODES = new Set(['chat_completions', 'codex_responses', 'anthropic_messages'])
 export function normalizeWorkflowNode(raw: unknown): WorkflowNodeSnapshot | null {
   const record = raw && typeof raw === 'object' ? raw as Record<string, any> : {}
   const id = typeof record.id === 'string' && record.id.trim() ? record.id.trim() : ''
@@ -287,19 +260,14 @@ export function normalizeWorkflowNode(raw: unknown): WorkflowNodeSnapshot | null
     }
     join = orchestration.join
   }
-  const agent = typeof data.agent === 'string' && data.agent.trim() ? data.agent.trim() : 'hermes'
-  if (agent !== 'hermes' && agent !== 'claude-code' && agent !== 'codex' && agent !== 'pi') {
-    throw new Error(`workflow node ${id} has unsupported agent runtime`)
-  }
+  // Stored workflows may still reference removed agent runtimes
+  // ('claude-code'/'codex'/'pi'); they are read as Hermes nodes instead of erroring.
+  const agent = 'hermes'
   const provider = typeof data.provider === 'string' ? data.provider.trim() : ''
   const model = typeof data.model === 'string' ? data.model.trim() : ''
-  const apiMode = typeof data.apiMode === 'string' ? data.apiMode.trim() : ''
-  const targetFieldCount = [provider, model, apiMode].filter(Boolean).length
-  if (targetFieldCount !== 0 && targetFieldCount !== 3) {
-    throw new Error(`workflow node ${id} target must set provider, model, and apiMode together`)
-  }
-  if (apiMode && !WORKFLOW_API_MODES.has(apiMode)) {
-    throw new Error(`workflow node ${id} has invalid apiMode`)
+  const targetFieldCount = [provider, model].filter(Boolean).length
+  if (targetFieldCount !== 0 && targetFieldCount !== 2) {
+    throw new Error(`workflow node ${id} target must set provider and model together`)
   }
   const reasoningEffort = typeof data.reasoningEffort === 'string' && data.reasoningEffort.trim()
     ? data.reasoningEffort.trim()
@@ -322,7 +290,6 @@ export function normalizeWorkflowNode(raw: unknown): WorkflowNodeSnapshot | null
       agent,
       provider,
       model,
-      apiMode,
       reasoningEffort,
       input: typeof data.input === 'string' ? data.input : '',
       skills: stringArray(data.skills),
@@ -1317,10 +1284,9 @@ export class WorkflowManager extends EventEmitter<WorkflowManagerEvents> {
       profile: args.profile,
       source: 'workflow',
       agent: args.target.agent,
-      agent_mode: args.node.data.agent === 'hermes' ? '' : 'scoped',
+      agent_mode: '',
       model: args.node.data.model,
       provider: args.node.data.provider,
-      ...(args.node.data.agent === 'hermes' ? {} : { api_mode: args.node.data.apiMode }),
       title: args.node.data.title,
       workspace: args.workspace || undefined,
     })
@@ -1480,12 +1446,8 @@ export class WorkflowManager extends EventEmitter<WorkflowManagerEvents> {
           session_id: sessionId, source: 'workflow', session_source: 'workflow', input: assembledInput,
           workflow_id: workflowId, workflow_node_id: node.id,
           profile, workspace: workspace, model: node.data.model || undefined,
-          provider: node.data.provider || undefined, mode: node.data.agent === 'hermes' ? undefined : 'scoped',
-          coding_agent_id: target.codingAgentId, agent_id: target.codingAgentId,
-          ...(node.data.agent === 'hermes'
-            ? { background_delegation_enabled: false }
-            : {}),
-          ...(node.data.agent === 'hermes' ? {} : { apiMode: node.data.apiMode || undefined }),
+          provider: node.data.provider || undefined,
+          background_delegation_enabled: false,
           one_shot_model: true,
           ...(node.data.reasoningEffort !== 'default' ? { reasoning_effort: node.data.reasoningEffort } : {}),
         }, { profile, user: args.user, timeoutMs: remainingTimeoutMs, approvalChoice: 'once' })
@@ -1994,13 +1956,7 @@ export class WorkflowManager extends EventEmitter<WorkflowManagerEvents> {
             workspace: workspace,
             model: node.data.model || undefined,
             provider: node.data.provider || undefined,
-            mode: node.data.agent === 'hermes' ? undefined : 'scoped',
-            coding_agent_id: target.codingAgentId,
-            agent_id: target.codingAgentId,
-            ...(node.data.agent === 'hermes'
-              ? { background_delegation_enabled: false }
-              : {}),
-            ...(node.data.agent === 'hermes' ? {} : { apiMode: node.data.apiMode || undefined }),
+            background_delegation_enabled: false,
             one_shot_model: true,
             ...(node.data.reasoningEffort !== 'default' ? { reasoning_effort: node.data.reasoningEffort } : {}),
           }, {

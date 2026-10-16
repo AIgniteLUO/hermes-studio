@@ -135,16 +135,16 @@ function isBridgeStatusLookupTimeout(error: unknown): boolean {
 
 function isHermesWorkerBackedSession(session?: { source?: string | null; agent?: string | null; agent_session_id?: string | null }): boolean {
   const source = session?.source || undefined
-  // "api_server" is a legacy/default source value; Hermes sessions still use worker-backed runtime.
-  // coding_agent runs have a separate lifecycle.
+  // "api_server" is a legacy/default source value; Hermes sessions still use
+  // worker-backed runtime. Historical rows from removed capabilities
+  // ('coding_agent', 'global_agent') also fall through to the Hermes worker
+  // instead of being rejected, so old sessions remain operable.
   if (!source || source === 'cli' || source === 'api_server') return true
   if (source === 'workflow' || source === 'group_chat') {
     const agent = String(session?.agent || '').trim()
     return agent !== 'claude' && agent !== 'codex' && agent !== 'pi' && !session?.agent_session_id
   }
-  if (source !== 'global_agent') return false
-  const agent = String(session?.agent || '').trim()
-  return agent !== 'claude' && agent !== 'codex' && agent !== 'pi' && !session?.agent_session_id
+  return true
 }
 
 function isBridgeRunSource(source?: string): boolean {
@@ -745,7 +745,6 @@ export class ChatRunSocket {
     const source = resolveRunSource(data.source, data.session_id)
     if (data.session_id) {
       const state = getOrCreateSession(this.sessionMap, data.session_id)
-      state.webhookAgent = 'bridge'
       state.webhookRoomId = data.group_room_id
       state.webhookWorkflowId = data.workflow_id
       state.webhookWorkflowNodeId = data.workflow_node_id
@@ -1706,16 +1705,15 @@ export class ChatRunSocket {
 
   emitExternalEvent(sessionId: string, event: string, payload: any) {
     const tagged = { ...payload, session_id: sessionId }
-    const profile = this.resolvePetEventProfile(sessionId, tagged)
+    const profile = this.resolveEventProfile(sessionId, tagged)
     const state = this.sessionMap.get(sessionId)
     const session = getSession(sessionId)
-    const storedAgent = String(session?.agent || '')
     observeChatRunWebhookEvent({
       event,
       sessionId,
       profile,
-      source: state?.source || session?.source || 'coding_agent',
-      agent: state?.webhookAgent || (storedAgent === 'codex' ? 'codex' : storedAgent === 'pi' ? 'pi' : 'claude-code'),
+      source: state?.source || session?.source || 'cli',
+      agent: 'bridge' as ChatRunWebhookAgent,
       payload: tagged,
       roomId: state?.webhookRoomId,
       workflowId: state?.webhookWorkflowId,
@@ -1855,16 +1853,15 @@ export class ChatRunSocket {
 
   private emitToSession(socket: Socket, sessionId: string, event: string, payload: any) {
     const tagged = { ...payload, session_id: sessionId }
-    const profile = this.resolvePetEventProfile(sessionId, tagged)
+    const profile = this.resolveEventProfile(sessionId, tagged)
     const state = this.sessionMap.get(sessionId)
     const session = getSession(sessionId)
-    const storedAgent = String(session?.agent || '')
     observeChatRunWebhookEvent({
       event,
       sessionId,
       profile,
       source: state?.source || session?.source || 'chat',
-      agent: state?.webhookAgent || (storedAgent === 'codex' ? 'codex' : storedAgent === 'pi' ? 'pi' : 'bridge'),
+      agent: 'bridge' as ChatRunWebhookAgent,
       payload: tagged,
       roomId: state?.webhookRoomId,
       workflowId: state?.webhookWorkflowId,
@@ -1967,7 +1964,7 @@ export class ChatRunSocket {
     logger.info('[chat-run-socket] closed all connections and cleared state')
   }
 
-  private resolvePetEventProfile(sessionId: string, payload: Record<string, unknown>): string {
+  private resolveEventProfile(sessionId: string, payload: Record<string, unknown>): string {
     const payloadProfile = typeof payload.profile === 'string' ? payload.profile.trim() : ''
     if (payloadProfile) return payloadProfile
     const stateProfile = this.sessionMap.get(sessionId)?.profile

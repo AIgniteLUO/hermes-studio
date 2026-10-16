@@ -76,9 +76,9 @@ export async function loadSessionStateFromDb(sid: string, _sessionMap: Map<strin
     let outputTokens: number
     let contextTokens: number | undefined
     const session = actualDetail?.session || getSession(sid)
-    const usageSource = session?.source === 'coding_agent' || ['codex', 'pi', 'claude', 'claude-code', 'claude_code'].includes(session?.agent || '')
-      ? 'coding_agent'
-      : 'hermes'
+    // Historical coding-agent sessions count under the hermes usage bucket;
+    // their native accounting is gone with the runtime.
+    const usageSource = 'hermes'
     const totals = getRecordedUsageTotals(sid, usageSource)
     const pageUsage = estimateUsageTokensFromMessages(messages)
     const latestUsage = getUsage(sid)

@@ -83,7 +83,6 @@ export async function calcAndUpdateUsage(
   emit: (event: string, payload: any) => void,
   options: {
     truncateToolResultsForContext?: boolean
-    nativeSource?: 'coding_agent'
   } = {},
 ): Promise<{
   inputTokens: number
@@ -92,31 +91,6 @@ export async function calcAndUpdateUsage(
   contextOutputTokens?: number
 }> {
   try {
-    if (options.nativeSource) {
-      const totals = getRecordedUsageTotals(sid, options.nativeSource)
-      const latest = getUsage(sid)
-      const usage = {
-        inputTokens: totals.inputTokens,
-        outputTokens: totals.outputTokens,
-      }
-      state.inputTokens = usage.inputTokens
-      state.outputTokens = usage.outputTokens
-      emit('usage.updated', {
-        event: 'usage.updated',
-        session_id: sid,
-        ...usage,
-      })
-      return {
-        ...usage,
-        ...(latest
-          ? {
-              contextInputTokens: Number(latest.input_tokens || 0),
-              contextOutputTokens: Number(latest.output_tokens || 0),
-            }
-          : {}),
-      }
-    }
-
     const snapshot = getCompressionSnapshot(sid)
     if (snapshot?.compressedThroughMessageId != null) {
       const cursorRead = readCursorSnapshotParts(sid, snapshot, {

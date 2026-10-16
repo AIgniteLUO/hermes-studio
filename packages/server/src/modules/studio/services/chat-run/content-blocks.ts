@@ -1,60 +1,13 @@
 import type { ContentBlock } from './types'
 
-interface CodingAgentImageInput {
-  name: string
-  path: string
-  mediaType: string
-}
-
 type ResponseContentPart = { type: string; text?: string; image_url?: string }
 type AgentContentPart = { type: string; text?: string; image_url?: { url: string } }
-export interface CodingAgentContent {
-  text: string
-  images: CodingAgentImageInput[]
-}
-
 /**
  * Convert ContentBlock[] to string for display/storage
  */
 export function contentBlocksToString(input: string | ContentBlock[]): string {
   if (typeof input === 'string') return input
   return JSON.stringify(input)
-}
-
-/**
- * Convert uploaded content blocks into a coding-agent prompt plus native image
- * attachments. File paths remain in the prompt so coding tools can inspect or
- * transform the uploaded files after the initial multimodal turn.
- */
-export function convertContentBlocksForCodingAgent(input: string | ContentBlock[]): CodingAgentContent {
-  if (typeof input === 'string') return { text: input, images: [] }
-
-  const textParts: string[] = []
-  const images: CodingAgentImageInput[] = []
-  for (const block of input) {
-    if (block.type === 'text') {
-      if (block.text.trim()) textParts.push(block.text.trim())
-      continue
-    }
-    if (block.type === 'image') {
-      const label = block.video_frame
-        ? `Representative frame extracted from the attached video: ${block.name || block.path}`
-        : `Attached image: ${block.name || block.path}`
-      textParts.push(`[${label}]\nLocal image path for tools: ${block.path}`)
-      images.push({
-        name: block.name || block.path,
-        path: block.path,
-        mediaType: block.media_type,
-      })
-      continue
-    }
-    textParts.push(`[Attached file: ${block.name || block.path}]\nLocal file path for tools: ${block.path}`)
-  }
-
-  return {
-    text: textParts.join('\n\n'),
-    images,
-  }
 }
 
 /**

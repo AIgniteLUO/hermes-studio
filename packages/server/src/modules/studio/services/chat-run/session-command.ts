@@ -821,17 +821,6 @@ export async function handleSessionCommand(
         return
       }
 
-      const parent = getSession(sessionId)
-      if (isCodingAgentBranchSource(parent)) {
-        emitCommand({
-          ok: false,
-          action: 'branch',
-          terminal: true,
-          message: 'Cannot branch coding agent sessions.',
-        })
-        return
-      }
-
       const fork = createBranchSession(sessionId, command.args, ctx)
       if (!fork) {
         emitCommand({
@@ -1195,7 +1184,7 @@ function persistCommandMessage(sessionId: string, state: SessionState, content: 
 
 function createBranchSession(parentSessionId: string, requestedTitle: string, ctx: SessionCommandContext): BranchSessionSummary | null {
   const parent = getSession(parentSessionId)
-  if (!parent || isCodingAgentBranchSource(parent)) return null
+  if (!parent) return null
 
   const detail = getSessionDetail(parentSessionId)
   const sourceMessages = detail?.messages || []
@@ -1262,10 +1251,6 @@ function createBranchSession(parentSessionId: string, requestedTitle: string, ct
   }
 }
 
-
-function isCodingAgentBranchSource(session: { source?: string | null; agent?: string | null } | null | undefined): boolean {
-  return session?.source === 'coding_agent' || session?.agent === 'claude' || session?.agent === 'codex' || session?.agent === 'pi'
-}
 
 function generateBranchSessionId(): string {
   const now = new Date()

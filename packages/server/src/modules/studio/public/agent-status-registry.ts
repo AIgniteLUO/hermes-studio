@@ -1,4 +1,4 @@
-export type AgentStatusId = 'hermes' | 'claude-code' | 'codex' | 'pi'
+export type AgentStatusId = 'hermes'
 
 export type AgentStatusSource =
   | 'managed-runtime'
@@ -18,7 +18,7 @@ export interface AgentStatusRecord {
   id: AgentStatusId
   name: string
   provider: string
-  kind: 'hermes' | 'built-in' | 'coding-agent'
+  kind: 'hermes' | 'built-in'
   installed: boolean
   version: string
   source: AgentStatusSource
@@ -46,7 +46,7 @@ export interface AgentAvailabilitySnapshot {
   agents: AgentAvailabilityRecord[]
 }
 
-const AGENT_ORDER: AgentStatusId[] = ['hermes', 'claude-code', 'codex', 'pi']
+const AGENT_ORDER: AgentStatusId[] = ['hermes']
 
 const DEFAULTS: Record<AgentStatusId, Omit<AgentStatusRecord, 'updatedAt'>> = {
   hermes: {
@@ -54,42 +54,6 @@ const DEFAULTS: Record<AgentStatusId, Omit<AgentStatusRecord, 'updatedAt'>> = {
     name: 'Hermes',
     provider: 'Nous Research',
     kind: 'hermes',
-    installed: false,
-    version: '',
-    source: 'not-installed',
-    path: '',
-    error: '',
-    installations: [],
-  },
-  'claude-code': {
-    id: 'claude-code',
-    name: 'Claude',
-    provider: 'Anthropic',
-    kind: 'coding-agent',
-    installed: false,
-    version: '',
-    source: 'not-installed',
-    path: '',
-    error: '',
-    installations: [],
-  },
-  codex: {
-    id: 'codex',
-    name: 'Codex',
-    provider: 'OpenAI',
-    kind: 'coding-agent',
-    installed: false,
-    version: '',
-    source: 'not-installed',
-    path: '',
-    error: '',
-    installations: [],
-  },
-  pi: {
-    id: 'pi',
-    name: 'Pi',
-    provider: 'Pi',
-    kind: 'coding-agent',
     installed: false,
     version: '',
     source: 'not-installed',

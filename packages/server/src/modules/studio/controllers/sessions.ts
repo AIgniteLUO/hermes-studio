@@ -137,25 +137,25 @@ function denySessionAccess(ctx: any, session: any | null | undefined): boolean {
 }
 
 function isVisibleWebUiSessionSource(source?: string | null): boolean {
+  // Includes historical sources ('coding_agent', 'global_agent') so rows from
+  // removed capabilities stay listed instead of silently disappearing.
   return source === 'api_server' || source === 'cli' || source === 'coding_agent' || source === 'global_agent'
 }
 
 function isRequestedSessionSource(source: string | undefined, sessionSource?: string | null): boolean {
-  if (source === 'global_agent') return sessionSource === 'global_agent'
   if (source === 'workflow') return sessionSource === 'workflow'
   if (source === 'group_chat') return sessionSource === 'group_chat'
   return isVisibleWebUiSessionSource(sessionSource)
 }
 
 function requestedSessionSources(source?: string): string[] {
-  if (source === 'global_agent') return ['global_agent']
   if (source === 'workflow') return ['workflow']
   if (source === 'group_chat') return ['group_chat']
   return ['api_server', 'cli', 'coding_agent', 'global_agent']
 }
 
 function isHermesHistorySessionSource(source?: string | null): boolean {
-  return source !== 'global_agent' && source !== 'workflow' && source !== 'group_chat'
+  return source !== 'workflow' && source !== 'group_chat'
 }
 
 function sessionLastActive(session: any): number {
@@ -178,8 +178,8 @@ function mergeHermesHistorySessions(
   const importedIds = new Set(localSessions.map(session => session.id))
   const historySessionsById = new Map<string, any>()
   // Keep Hermes Agent state.db as the canonical summary when both stores have
-  // the same id. Hermes Studio contributes import/archive state and local-only
-  // coding-agent sessions without replacing the Agent-owned session fields.
+  // the same id. Hermes Studio contributes import/archive state without
+  // replacing the Agent-owned session fields.
   for (const session of hermesSessions) {
     historySessionsById.set(session.id, {
       ...(profile ? { ...session, profile } : session),

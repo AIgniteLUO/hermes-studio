@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   convertContentBlocks,
   convertContentBlocksForAgent,
-  convertContentBlocksForCodingAgent,
 } from '../../packages/server/src/modules/studio/services/chat-run/content-blocks'
 
 let tempDir = ''
@@ -54,28 +53,7 @@ describe('run chat content blocks', () => {
     expect(parts[2].image_url?.url).toMatch(/^data:image\/png;base64,/)
   })
 
-  it('separates coding-agent prompt text from native image attachments', () => {
-    const imagePath = join(tempDir, 'image.png')
-
-    expect(convertContentBlocksForCodingAgent([
-      { type: 'text', text: '  inspect this  ' },
-      { type: 'image', name: 'image.png', path: imagePath, media_type: 'image/png' },
-      { type: 'file', name: 'notes.txt', path: join(tempDir, 'notes.txt'), media_type: 'text/plain' },
-    ])).toEqual({
-      text: [
-        'inspect this',
-        `[Attached image: image.png]\nLocal image path for tools: ${imagePath}`,
-        `[Attached file: notes.txt]\nLocal file path for tools: ${join(tempDir, 'notes.txt')}`,
-      ].join('\n\n'),
-      images: [{
-        name: 'image.png',
-        path: imagePath,
-        mediaType: 'image/png',
-      }],
-    })
-  })
-
-  it('labels representative video frames for API, bridge, and coding-agent inputs', async () => {
+  it('labels representative video frames for API and bridge inputs', async () => {
     const framePath = join(tempDir, 'clip-video-frame-01.jpg')
     await writeFile(framePath, Buffer.from([1, 2, 3]))
     const block = {
@@ -98,10 +76,5 @@ describe('run chat content blocks', () => {
       text: `${label}\nLocal image path for tools: ${framePath}`,
     })
     expect(agentParts[1].type).toBe('image_url')
-
-    expect(convertContentBlocksForCodingAgent([block])).toMatchObject({
-      text: `${label}\nLocal image path for tools: ${framePath}`,
-      images: [{ path: framePath, mediaType: 'image/jpeg' }],
-    })
   })
 })

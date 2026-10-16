@@ -143,7 +143,6 @@ export interface SessionState {
   queueInsertion?: QueueInsertionControl
   responseRun?: ResponseRunState
   source?: ChatRunSource
-  webhookAgent?: 'bridge' | 'claude-code' | 'codex' | 'pi'
   webhookRoomId?: string
   webhookWorkflowId?: string
   webhookWorkflowNodeId?: string

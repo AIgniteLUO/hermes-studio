@@ -297,7 +297,6 @@ export interface GroupChatRunService {
             workspace?: string | null
             source?: string
             session_source?: 'group_chat'
-            coding_agent_id?: 'claude-code' | 'codex' | 'pi'
             mode?: 'scoped'
             profile?: string
             reasoning_effort?: string
@@ -330,8 +329,6 @@ export interface GroupChatRunService {
     }>
     abortSession(sessionId: string, reason?: string): Promise<void>
     disposeSession?(sessionId: string): Promise<void>
-    respondCodingAgentApproval?(sessionId: string, approvalId: string, choice: string): boolean
-    respondCodingAgentClarification?(sessionId: string, clarifyId: string, response: string): boolean
 }
 
 // ─── Agent Client (single connection) ─────────────────────────
@@ -457,12 +454,12 @@ export class AgentClient implements GroupAgentExecutor {
         const sessions = [...this.activeSessions.values()]
         for (const sessionId of sessions) {
             this.markSessionInterrupted(sessionId)
-            await this.chatRunService?.abortSession(sessionId, 'Coding agent removed, reconfigured, or disconnected')
+            await this.chatRunService?.abortSession(sessionId, 'Group agent removed, reconfigured, or disconnected')
                 .catch((err: any) => {
-                    logger.warn(`[AgentClients] failed to abort disconnected coding-agent session ${sessionId}: ${err?.message || err}`)
+                    logger.warn(`[AgentClients] failed to abort disconnected group-agent session ${sessionId}: ${err?.message || err}`)
                 })
             await this.chatRunService?.disposeSession?.(sessionId).catch((err: any) => {
-                logger.warn(`[AgentClients] failed to dispose disconnected coding-agent session ${sessionId}: ${err?.message || err}`)
+                logger.warn(`[AgentClients] failed to dispose disconnected group-agent session ${sessionId}: ${err?.message || err}`)
             })
         }
         this.activeSessions.clear()
@@ -480,22 +477,6 @@ export class AgentClient implements GroupAgentExecutor {
         this.pendingToolExternalIds.clear()
         this.pendingToolCompletionEvents.clear()
         this.acknowledgedToolCallIds.clear()
-    }
-
-    respondApproval(approvalId: string, choice: string): Promise<boolean> {
-        if (!this.chatRunService?.respondCodingAgentApproval) return Promise.resolve(false)
-        for (const sessionId of this.activeSessions.values()) {
-            if (this.chatRunService.respondCodingAgentApproval(sessionId, approvalId, choice)) return Promise.resolve(true)
-        }
-        return Promise.resolve(false)
-    }
-
-    respondClarify(clarifyId: string, response: string): Promise<boolean> {
-        if (!this.chatRunService?.respondCodingAgentClarification) return Promise.resolve(false)
-        for (const sessionId of this.activeSessions.values()) {
-            if (this.chatRunService.respondCodingAgentClarification(sessionId, clarifyId, response)) return Promise.resolve(true)
-        }
-        return Promise.resolve(false)
     }
 
     async joinRoom(roomId: string): Promise<JoinResult> {
@@ -1126,11 +1107,6 @@ export class AgentClient implements GroupAgentExecutor {
                     workspace,
                 })
             }
-            const codingAgentId = this.agent === 'claude'
-                ? 'claude-code'
-                : this.agent === 'pi'
-                    ? 'pi'
-                    : 'codex'
             const groupSystemPrompt = this.groupSystemPrompt(roomId, msg)
             const result = await this.chatRunService.runAndWait({
                 input: this.groupRuntimeInput(msg, runtimeContext),
@@ -1145,8 +1121,6 @@ export class AgentClient implements GroupAgentExecutor {
                 workspace: workspace || null,
                 source: 'group_chat',
                 session_source: 'group_chat',
-                coding_agent_id: codingAgentId,
-                mode: 'scoped',
                 profile: this.profile,
                 reasoning_effort: this.reasoningEffort || undefined,
                 background_delegation_enabled: false,

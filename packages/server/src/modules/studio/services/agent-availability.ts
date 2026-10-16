@@ -3,19 +3,15 @@ import {
   type AgentStatusId,
 } from '../public/agent-status-registry'
 
+// Historical aliases ('claude', 'claude-code', 'codex', 'pi') are no longer
+// accepted: those agents are gone, and group-chat/workflow validation should
+// reject them instead of silently rerouting to Hermes.
 const AGENT_ALIASES: Record<string, AgentStatusId> = {
   hermes: 'hermes',
-  claude: 'claude-code',
-  'claude-code': 'claude-code',
-  codex: 'codex',
-  pi: 'pi',
 }
 
 const AGENT_NAMES: Record<AgentStatusId, string> = {
   hermes: 'Hermes',
-  'claude-code': 'Claude',
-  codex: 'Codex',
-  pi: 'Pi',
 }
 
 export const AGENT_NOT_INSTALLED = 'AGENT_NOT_INSTALLED'

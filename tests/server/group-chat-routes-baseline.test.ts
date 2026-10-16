@@ -45,9 +45,6 @@ describe('group chat REST route baseline', () => {
       source: 'user-cli',
       path: '/usr/local/bin/hermes',
     })
-    for (const id of ['claude-code', 'codex', 'pi'] as const) {
-      updateAgentStatus(id, { installed: true, source: 'user-cli', path: `/usr/local/bin/${id}` })
-    }
     storage = {
       rooms: new Map<string, any>(),
       agents: new Map<string, any[]>(),
@@ -487,11 +484,11 @@ describe('group chat REST route baseline', () => {
       id: 'row-agent',
       roomId: 'room-agents',
       agentId: 'agent-1',
-      agent: 'codex',
+      agent: 'hermes',
       profile: 'private-profile',
       provider: 'private-provider',
       model: 'private-model',
-      apiMode: 'codex_responses',
+      apiMode: '',
       reasoningEffort: 'high',
       name: 'Builder',
       description: 'Private description',
@@ -512,7 +509,7 @@ describe('group chat REST route baseline', () => {
       id: 'row-agent',
       roomId: 'room-agents',
       agentId: 'agent-1',
-      agent: 'codex',
+      agent: 'hermes',
       name: 'Builder',
       avatar: '{"type":"generated","seed":"builder"}',
     }])
@@ -955,11 +952,11 @@ describe('group chat REST route baseline', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        agent: 'codex',
+        agent: 'hermes',
         profile: 'research',
         provider: 'openai',
         model: 'gpt-test',
-        apiMode: 'codex_responses',
+        apiMode: '',
         reasoningEffort: 'high',
         name: 'Researcher',
         description: 'Finds evidence',
@@ -970,11 +967,11 @@ describe('group chat REST route baseline', () => {
 
     expect(res.status).toBe(200)
     expect(agentClients.createAgent).toHaveBeenCalledWith(expect.objectContaining({
-      agent: 'codex',
+      agent: 'hermes',
       profile: 'research',
       provider: 'openai',
       model: 'gpt-test',
-      apiMode: 'codex_responses',
+      apiMode: '',
       reasoningEffort: 'high',
       name: 'Researcher',
       description: 'Finds evidence',
@@ -987,20 +984,20 @@ describe('group chat REST route baseline', () => {
       'Finds evidence',
       0,
       {
-        agent: 'codex',
+        agent: 'hermes',
         provider: 'openai',
         model: 'gpt-test',
-        apiMode: 'codex_responses',
+        apiMode: '',
         reasoningEffort: 'high',
         avatar: JSON.stringify({ type: 'generated', seed: 'researcher-avatar' }),
       },
     )
     expect(body.agent).toMatchObject({
-      agent: 'codex',
+      agent: 'hermes',
       profile: 'research',
       provider: 'openai',
       model: 'gpt-test',
-      apiMode: 'codex_responses',
+      apiMode: '',
       reasoningEffort: 'high',
       avatar: JSON.stringify({ type: 'generated', seed: 'researcher-avatar' }),
     })
@@ -1008,7 +1005,7 @@ describe('group chat REST route baseline', () => {
   })
 
   it('rejects adding a room agent that is not installed', async () => {
-    updateAgentStatus('codex', {
+    updateAgentStatus('hermes', {
       installed: false,
       source: 'not-installed',
       path: '',
@@ -1020,90 +1017,85 @@ describe('group chat REST route baseline', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        agent: 'codex',
+        agent: 'hermes',
         profile: 'research',
         provider: 'openai',
         model: 'gpt-test',
-        apiMode: 'codex_responses',
+        apiMode: '',
       }),
     })
 
     expect(res.status).toBe(409)
     await expect(res.json()).resolves.toMatchObject({
       code: 'AGENT_NOT_INSTALLED',
-      error: 'Codex is not installed',
-      agent: 'codex',
+      error: 'Hermes is not installed',
+      agent: 'hermes',
     })
     expect(agentClients.createAgent).not.toHaveBeenCalled()
     expect(storage.addRoomAgent).not.toHaveBeenCalled()
   })
 
-  it('creates, adds, and updates Pi room agents through the local API', async () => {
+  it('creates, adds, and updates Hermes room agents through the local API', async () => {
     const createRoom = await fetch(`${baseUrl}/api/studio/group-chat/rooms`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name: 'Pi Room',
-        inviteCode: 'PIROOM',
+        name: 'Hermes Room',
+        inviteCode: 'HERMESROOM',
         agents: [{
-          agent: 'pi',
+          agent: 'hermes',
           profile: 'default',
           provider: 'openai',
-          model: 'pi-create-model',
-          apiMode: 'codex_responses',
-          name: 'Pi Creator',
+          model: 'hermes-create-model',
+          name: 'Hermes Creator',
         }],
       }),
     })
     expect(createRoom.status).toBe(200)
     expect(agentClients.createAgent).toHaveBeenCalledWith(expect.objectContaining({
-      agent: 'pi',
-      model: 'pi-create-model',
-      apiMode: 'codex_responses',
+      agent: 'hermes',
+      model: 'hermes-create-model',
+      apiMode: '',
     }))
 
-    storage.rooms.set('room-pi', { id: 'room-pi', name: 'Pi Room', inviteCode: 'PIROOM2' })
-    const addAgent = await fetch(`${baseUrl}/api/studio/group-chat/rooms/room-pi/agents`, {
+    storage.rooms.set('room-hermes', { id: 'room-hermes', name: 'Hermes Room', inviteCode: 'HERMESROOM2' })
+    const addAgent = await fetch(`${baseUrl}/api/studio/group-chat/rooms/room-hermes/agents`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        agent: 'pi',
+        agent: 'hermes',
         profile: 'research',
         provider: 'openai',
-        model: 'pi-add-model',
-        apiMode: 'codex_responses',
+        model: 'hermes-add-model',
         reasoningEffort: 'medium',
-        name: 'Pi Worker',
+        name: 'Hermes Worker',
       }),
     })
     expect(addAgent.status).toBe(200)
     const added = await addAgent.json()
     expect(added.agent).toMatchObject({
-      agent: 'pi',
+      agent: 'hermes',
       profile: 'research',
-      model: 'pi-add-model',
-      apiMode: 'codex_responses',
+      model: 'hermes-add-model',
     })
 
-    const updateAgent = await fetch(`${baseUrl}/api/studio/group-chat/rooms/room-pi/agents/${added.agent.id}`, {
+    const updateAgent = await fetch(`${baseUrl}/api/studio/group-chat/rooms/room-hermes/agents/${added.agent.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        agent: 'pi',
+        agent: 'hermes',
         profile: 'research',
         provider: 'openai',
-        model: 'pi-updated-model',
-        apiMode: 'codex_responses',
+        model: 'hermes-updated-model',
         reasoningEffort: 'high',
-        name: 'Pi Reviewer',
+        name: 'Hermes Reviewer',
       }),
     })
     expect(updateAgent.status).toBe(200)
     await expect(updateAgent.json()).resolves.toMatchObject({
       agent: expect.objectContaining({
-        agent: 'pi',
-        model: 'pi-updated-model',
-        apiMode: 'codex_responses',
+        agent: 'hermes',
+        model: 'hermes-updated-model',
         reasoningEffort: 'high',
       }),
     })
@@ -1130,32 +1122,6 @@ describe('group chat REST route baseline', () => {
       }),
     })
     expect(invalidReasoning.status).toBe(400)
-
-    const missingApiMode = await fetch(`${baseUrl}/api/studio/group-chat/rooms/room-1/agents`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        agent: 'codex',
-        profile: 'research',
-        provider: 'openai',
-        model: 'gpt-test',
-      }),
-    })
-    expect(missingApiMode.status).toBe(400)
-
-    const invalidApiMode = await fetch(`${baseUrl}/api/studio/group-chat/rooms/room-1/agents`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        agent: 'codex',
-        profile: 'research',
-        provider: 'openai',
-        model: 'gpt-test',
-        apiMode: 'unsupported',
-      }),
-    })
-    expect(invalidApiMode.status).toBe(400)
-    expect(await invalidApiMode.json()).toMatchObject({ error: 'Invalid apiMode' })
 
     const invalidAgent = await fetch(`${baseUrl}/api/studio/group-chat/rooms/room-1/agents`, {
       method: 'POST',
@@ -1230,11 +1196,10 @@ describe('group chat REST route baseline', () => {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        agent: 'codex',
+        agent: 'hermes',
         profile: 'research',
         provider: 'openai',
         model: 'new-model',
-        apiMode: 'codex_responses',
         reasoningEffort: 'high',
         name: 'Reviewer',
         description: 'Reviews changes',
@@ -1245,10 +1210,9 @@ describe('group chat REST route baseline', () => {
     expect(res.status).toBe(200)
     expect(agentClients.createAgent).toHaveBeenCalledWith(expect.objectContaining({
       agentId: 'agent-1',
-      agent: 'codex',
+      agent: 'hermes',
       profile: 'research',
       model: 'new-model',
-      apiMode: 'codex_responses',
       reasoningEffort: 'high',
       name: 'Reviewer',
     }))
@@ -1261,10 +1225,10 @@ describe('group chat REST route baseline', () => {
       'Reviewer',
       'Reviews changes',
       {
-        agent: 'codex',
+        agent: 'hermes',
         provider: 'openai',
         model: 'new-model',
-        apiMode: 'codex_responses',
+        apiMode: '',
         reasoningEffort: 'high',
       },
     )

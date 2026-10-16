@@ -24,10 +24,10 @@ beforeEach(async () => {
     '../../packages/server/src/modules/studio/public/agent-status-registry'
   )
   resetAgentStatusRegistryForTests()
-  updateAgentStatus('codex', {
+  updateAgentStatus('hermes', {
     installed: true,
     source: 'user-cli',
-    path: '/usr/local/bin/codex',
+    path: '/usr/local/bin/hermes',
   })
 })
 
@@ -47,11 +47,11 @@ describe('group Agent presets', () => {
     modelGroups.value = [{ provider: 'openai', models: ['gpt-test'] }]
 
     const input = {
-      agent: 'codex',
+      agent: 'hermes',
       profile: 'research',
       provider: 'openai',
       model: 'gpt-test',
-      apiMode: 'codex_responses',
+      apiMode: '',
       reasoningEffort: 'high',
       name: 'Duplicate Reviewer',
       description: '',
@@ -116,11 +116,11 @@ describe('group Agent presets', () => {
 
     const created = createGroupAgentPreset({
       ownerUserId: 7,
-      agent: 'codex',
+      agent: 'hermes',
       profile: 'research',
       provider: 'openai',
       model: 'gpt-test',
-      apiMode: 'codex_responses',
+      apiMode: '',
       reasoningEffort: 'high',
       name: 'Reviewer',
       description: 'Reviews pull requests',
@@ -148,21 +148,21 @@ describe('group Agent presets', () => {
     } = await import('../../packages/server/src/modules/studio/services/group-chat/agent-presets')
 
     expect(() => normalizeGroupAgentPresetInput({
-      agent: 'codex',
+      agent: 'hermes',
       profile: 'research',
       provider: 'openai',
       model: 'gpt-test',
-      apiMode: 'codex_responses',
+      apiMode: '',
       name: 'Reviewer',
       apiKey: 'secret',
     })).toThrow(/unsupported or secret fields/i)
 
     const preset = normalizeGroupAgentPresetInput({
-      agent: 'codex',
+      agent: 'hermes',
       profile: 'research',
       provider: 'openai',
       model: 'gpt-test',
-      apiMode: 'codex_responses',
+      apiMode: '',
       reasoningEffort: 'high',
       name: 'Reviewer',
       description: '',
@@ -187,11 +187,11 @@ describe('group Agent presets', () => {
     modelGroups.value = [{ provider: 'openai', models: ['gpt-test'] }]
     const user = { id: 901, role: 'admin', profiles: ['research'] }
     const input = {
-      agent: 'codex',
+      agent: 'hermes',
       profile: 'research',
       provider: 'openai',
       model: 'gpt-test',
-      apiMode: 'codex_responses',
+      apiMode: '',
       reasoningEffort: 'high',
       name: 'Availability Reviewer',
       description: '',
@@ -201,7 +201,7 @@ describe('group Agent presets', () => {
     await controller.create(createCtx)
     expect(createCtx.status).toBe(201)
 
-    updateAgentStatus('codex', {
+    updateAgentStatus('hermes', {
       installed: false,
       source: 'not-installed',
       path: '',
@@ -214,11 +214,11 @@ describe('group Agent presets', () => {
       expect.objectContaining({
         id: createCtx.body.preset.id,
         available: false,
-        validationError: 'Codex is not installed',
+        validationError: 'Hermes is not installed',
       }),
     ])
     await expect(controller.resolveGroupAgentPresetForApplication(user, createCtx.body.preset.id))
-      .rejects.toMatchObject({ status: 409, code: 'AGENT_NOT_INSTALLED', agent: 'codex' })
+      .rejects.toMatchObject({ status: 409, code: 'AGENT_NOT_INSTALLED', agent: 'hermes' })
   })
 
   it('enforces owner/profile boundaries and fail-closes disabled models across CRUD and application', async () => {
@@ -227,11 +227,11 @@ describe('group Agent presets', () => {
     const createCtx: any = {
       state: { user: { id: 41, role: 'admin', profiles: ['research'] } },
       request: { body: {
-        agent: 'codex',
+        agent: 'hermes',
         profile: 'research',
         provider: 'openai',
         model: 'gpt-test',
-        apiMode: 'codex_responses',
+        apiMode: '',
         reasoningEffort: 'high',
         name: 'Reviewer API',
         description: '',

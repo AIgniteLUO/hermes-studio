@@ -105,7 +105,7 @@ function contentPreview(content: unknown): string {
 
 type AgentInput = {
     presetId?: string
-    agent?: 'hermes' | 'codex' | 'claude' | 'pi'
+    agent?: 'hermes'
     profile: string
     provider?: string
     model?: string
@@ -132,7 +132,7 @@ type RoomSummaryInput = {
 }
 
 const GROUP_AGENT_REASONING_EFFORTS = new Set(['', 'none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'])
-const GROUP_AGENT_TYPES = new Set(['hermes', 'codex', 'claude', 'pi'])
+const GROUP_AGENT_TYPES = new Set(['hermes'])
 const GROUP_AGENT_API_MODES = new Set(['chat_completions', 'codex_responses', 'anthropic_messages'])
 const GROUP_AGENT_AVATAR_MAX_LENGTH = 1_500_000
 
@@ -348,7 +348,7 @@ export async function createRoom(ctx: any) {
         inviteCode?: string
         agents?: {
             presetId?: string
-            agent?: 'hermes' | 'codex' | 'claude' | 'pi'
+            agent?: 'hermes'
             profile: string
             provider?: string
             model?: string

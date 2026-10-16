@@ -22,8 +22,7 @@ const ALLOWED_FIELDS = new Set([
   'agent', 'profile', 'provider', 'model', 'apiMode', 'reasoningEffort',
   'name', 'description', 'avatar',
 ])
-const AGENTS = new Set<GroupAgentPresetAgent>(['hermes', 'codex', 'claude', 'pi'])
-const API_MODES = new Set(['chat_completions', 'codex_responses', 'anthropic_messages'])
+const AGENTS = new Set<GroupAgentPresetAgent>(['hermes'])
 const REASONING_EFFORTS = new Set(['', 'none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'])
 const AVATAR_MAX_LENGTH = 1_500_000
 
@@ -74,8 +73,8 @@ export function normalizeGroupAgentPresetInput(input: unknown): Omit<GroupAgentP
   }
   const agent = requiredText(record.agent || 'hermes', 'agent', 20) as GroupAgentPresetAgent
   if (!AGENTS.has(agent)) throw Object.assign(new Error('Invalid agent'), { status: 400 })
-  const apiMode = agent === 'hermes' ? '' : requiredText(record.apiMode, 'apiMode', 40)
-  if (apiMode && !API_MODES.has(apiMode)) throw Object.assign(new Error('Invalid apiMode'), { status: 400 })
+  // apiMode was a coding-agent protocol option; hermes presets do not carry one.
+  const apiMode = ''
   const reasoningEffort = optionalText(record.reasoningEffort, 'reasoningEffort', 20)
   if (!REASONING_EFFORTS.has(reasoningEffort)) throw Object.assign(new Error('Invalid reasoningEffort'), { status: 400 })
   return {

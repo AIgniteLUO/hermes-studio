@@ -30,7 +30,7 @@ import { buildAgentInstructions, buildNonOwnerRequestSecurityPrompt } from './ag
 
 export const GROUP_CHAT_AGENT_SOCKET_SECRET = randomBytes(32).toString('hex')
 
-export type StoredGroupAgentType = 'hermes' | 'codex' | 'claude' | 'pi'
+export type StoredGroupAgentType = 'hermes'
 
 /**
  * Historical databases may still hold Agent values that the product no longer
@@ -40,14 +40,15 @@ export type StoredGroupAgentType = 'hermes' | 'codex' | 'claude' | 'pi'
  * throwing, and stored rows are never rewritten.
  */
 export function normalizeStoredGroupAgent(value: unknown): StoredGroupAgentType {
-    return value === 'codex' || value === 'claude' || value === 'pi' ? value : 'hermes'
+    // Historical rows ('codex'/'claude'/'pi') normalize to hermes at read time.
+    return 'hermes'
 }
 
 // ─── Types ────────────────────────────────────────────────────
 
 export interface AgentConfig {
     agentId?: string
-    agent?: 'hermes' | 'codex' | 'claude' | 'pi'
+    agent?: 'hermes'
     profile: string
     provider?: string
     model?: string
@@ -113,7 +114,7 @@ export function mentionMessageToStoredContextMessage(roomId: string, msg: Mentio
 type GroupEstimateMessage = { role: 'user' | 'assistant'; content: string }
 export type GroupModelContext = { model: string; provider: string }
 export type GroupAgentSessionConfig = {
-    agent?: 'hermes' | 'codex' | 'claude' | 'pi'
+    agent?: 'hermes'
     provider?: string
     model?: string
     apiMode?: string
@@ -240,7 +241,7 @@ export interface GroupAgentEventSink {
 
 export interface GroupAgentExecutor {
     readonly agentId: string
-    readonly agent: 'hermes' | 'codex' | 'claude' | 'pi'
+    readonly agent: 'hermes'
     readonly profile: string
     readonly provider: string
     readonly model: string
@@ -335,7 +336,7 @@ export interface GroupChatRunService {
 
 export class AgentClient implements GroupAgentExecutor {
     readonly agentId: string
-    readonly agent: 'hermes' | 'codex' | 'claude' | 'pi'
+    readonly agent: 'hermes'
     readonly profile: string
     readonly provider: string
     readonly model: string

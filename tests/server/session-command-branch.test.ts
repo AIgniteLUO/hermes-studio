@@ -149,22 +149,22 @@ describe('branch session command', () => {
     }))
   })
 
-  it('rejects /fork for coding agent sessions', async () => {
+  it('branches historical coding-agent sessions like any other session', async () => {
     const { handleSessionCommand, parseSessionCommand } = await import('../../packages/server/src/modules/studio/services/chat-run/session-command')
     const { nsp, socket, namespaceEmit } = makeSocketHarness()
     const sessionMap = new Map<string, any>([
       ['session-1', { messages: [], isWorking: false, events: [], queue: [] }],
     ])
     getSessionMock.mockReturnValue(makeParentSession({ source: 'coding_agent', agent: 'codex' }))
+    addMessagesMock.mockResolvedValue([{ id: 1, role: 'user', content: 'hello' }])
 
     await handleSessionCommand('session-1', parseSessionCommand('/fork side path')!, makeCtx(sessionMap, nsp, socket))
 
-    expect(createBranchedSessionMock).not.toHaveBeenCalled()
-    expect(namespaceEmit).toHaveBeenCalledWith('session.command', expect.objectContaining({
+    expect(createBranchedSessionMock).toHaveBeenCalled()
+    expect(namespaceEmit).not.toHaveBeenCalledWith('session.command', expect.objectContaining({
       action: 'branch',
       ok: false,
       terminal: true,
-      message: expect.stringContaining('Cannot branch coding agent sessions'),
     }))
   })
 

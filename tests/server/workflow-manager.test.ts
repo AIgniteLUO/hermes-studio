@@ -142,24 +142,9 @@ describe('workflow manager', () => {
       agent: 'hermes',
     })
     expect(() => resolveWorkflowNodeRunTarget('ekko-agent')).toThrow('unsupported workflow Agent runtime: ekko-agent')
-    expect(resolveWorkflowNodeRunTarget('claude-code')).toEqual({
-      type: 'workflow',
-      source: 'workflow',
-      agent: 'claude',
-      codingAgentId: 'claude-code',
-    })
-    expect(resolveWorkflowNodeRunTarget('codex')).toEqual({
-      type: 'workflow',
-      source: 'workflow',
-      agent: 'codex',
-      codingAgentId: 'codex',
-    })
-    expect(resolveWorkflowNodeRunTarget('pi')).toEqual({
-      type: 'workflow',
-      source: 'workflow',
-      agent: 'pi',
-      codingAgentId: 'pi',
-    })
+    expect(() => resolveWorkflowNodeRunTarget('claude-code')).toThrow('unsupported workflow Agent runtime: claude-code')
+    expect(() => resolveWorkflowNodeRunTarget('codex')).toThrow('unsupported workflow Agent runtime: codex')
+    expect(() => resolveWorkflowNodeRunTarget('pi')).toThrow('unsupported workflow Agent runtime: pi')
     expect(() => resolveWorkflowNodeRunTarget('unknown')).toThrow('unsupported workflow Agent runtime: unknown')
     expect(() => resolveWorkflowNodeRunTarget()).toThrow('unsupported workflow Agent runtime')
   })
@@ -175,12 +160,13 @@ describe('workflow manager', () => {
   it('rejects unsupported node types and agent runtimes instead of silently falling back to Hermes', async () => {
     const { normalizeWorkflowNode } = await import('../../packages/server/src/modules/studio/services/workflow/manager')
     expect(() => normalizeWorkflowNode({ id: 'shell', type: 'shell', data: { agent: 'hermes' } })).toThrow('workflow node shell must be an Agent node')
-    expect(() => normalizeWorkflowNode({ id: 'unknown', type: 'agent', data: { agent: 'python' } })).toThrow('workflow node unknown has unsupported agent runtime')
+    expect(() => normalizeWorkflowNode({ id: 'shell', type: 'shell', data: { agent: 'hermes' } })).toThrow('workflow node shell must be an Agent node')
     expect(normalizeWorkflowNode({ id: 'hermes', type: 'agent', data: { agent: 'hermes' } })?.data.agent).toBe('hermes')
-    expect(() => normalizeWorkflowNode({ id: 'ekko', type: 'agent', data: { agent: 'ekko-agent' } })).toThrow('workflow node ekko has unsupported agent runtime')
-    expect(normalizeWorkflowNode({ id: 'claude', type: 'agent', data: { agent: 'claude-code' } })?.data.agent).toBe('claude-code')
-    expect(normalizeWorkflowNode({ id: 'codex', type: 'agent', data: { agent: 'codex' } })?.data.agent).toBe('codex')
-    expect(normalizeWorkflowNode({ id: 'pi', type: 'agent', data: { agent: 'pi' } })?.data.agent).toBe('pi')
+    // Stored workflows may reference removed runtimes; they read as Hermes nodes.
+    expect(normalizeWorkflowNode({ id: 'ekko', type: 'agent', data: { agent: 'ekko-agent' } })?.data.agent).toBe('hermes')
+    expect(normalizeWorkflowNode({ id: 'claude', type: 'agent', data: { agent: 'claude-code' } })?.data.agent).toBe('hermes')
+    expect(normalizeWorkflowNode({ id: 'codex', type: 'agent', data: { agent: 'codex' } })?.data.agent).toBe('hermes')
+    expect(normalizeWorkflowNode({ id: 'pi', type: 'agent', data: { agent: 'pi' } })?.data.agent).toBe('hermes')
   })
 
   it('normalizes workflow node join mode and rejects malformed explicit values', async () => {
@@ -194,14 +180,15 @@ describe('workflow manager', () => {
   it('ignores removed legacy execution-policy fields while preserving the upstream execution identity', async () => {
     const { normalizeWorkflowNode } = await import('../../packages/server/src/modules/studio/services/workflow/manager')
     const normalized = normalizeWorkflowNode({ id: 'legacy-policy', type: 'agent', data: {
-      agent: 'hermes', provider: 'custom:test', model: 'model-a', apiMode: 'chat_completions',
+      agent: 'hermes', provider: 'custom:test', model: 'model-a',
       reasoningEffort: 'high', executionPolicy: {
         allowedToolsets: [], allowedTools: ['browser_click'], skipMemory: true, skipContextFiles: false,
       },
     } })
     expect(normalized?.data).toMatchObject({
-      provider: 'custom:test', model: 'model-a', apiMode: 'chat_completions', reasoningEffort: 'high',
+      provider: 'custom:test', model: 'model-a', reasoningEffort: 'high',
     })
+    expect(normalized?.data).not.toHaveProperty('apiMode')
     expect(normalized?.data).not.toHaveProperty('executionPolicy')
     expect(() => normalizeWorkflowNode({ id: 'malformed-legacy-policy', type: 'agent', data: {
       executionPolicy: { allowedToolsets: 'browser' },
@@ -257,7 +244,7 @@ describe('workflow manager', () => {
       name: `Exact execution tuple ${Date.now()}`, profile: 'default',
       nodes: [{ id: 'agent', type: 'agent', position: { x: -240, y: 360 }, data: {
         title: 'Agent', agent: 'hermes', provider: 'custom:test', model: 'model-a',
-        apiMode: 'chat_completions', reasoningEffort: 'high', input: 'work',
+        reasoningEffort: 'high', input: 'work',
         executionPolicy: { allowedToolsets: [], allowedTools: ['browser_click'], skipMemory: true, skipContextFiles: true },
       } }], edges: [],
     })
@@ -266,10 +253,11 @@ describe('workflow manager', () => {
       const result = await manager.runNow(workflow.id)
       expect(result.run.status).toBe('completed')
       expect(result.run.snapshot_nodes[0]).toMatchObject({ data: {
-        provider: 'custom:test', model: 'model-a', apiMode: 'chat_completions', reasoningEffort: 'high',
+        provider: 'custom:test', model: 'model-a', reasoningEffort: 'high',
       } })
       expect(result.run.snapshot_nodes[0]?.position).toEqual({ x: -240, y: 360 })
       expect(result.run.snapshot_nodes[0]?.data).not.toHaveProperty('executionPolicy')
+      expect(result.run.snapshot_nodes[0]?.data).not.toHaveProperty('apiMode')
       expect(chatRunMock.runAndWait).toHaveBeenCalledWith(expect.objectContaining({
         provider: 'custom:test', model: 'model-a', one_shot_model: true, reasoning_effort: 'high',
         background_delegation_enabled: false,
@@ -334,142 +322,6 @@ describe('workflow manager', () => {
     } finally { await manager.delete(workflow.id) }
   })
 
-  it.each(['codex', 'pi'] as const)('continues forwarding api mode for %s workflow nodes', async (agent) => {
-    const { initAllStores } = await import('../../packages/server/src/modules/studio/infrastructure/database/init')
-    const { WorkflowManager } = await import('../../packages/server/src/modules/studio/services/workflow/manager')
-    initAllStores()
-    chatRunMock.runAndWait.mockReset().mockResolvedValue({ ok: true, output: 'done' })
-    const manager = new WorkflowManager()
-    const workflow = manager.create({
-      name: `${agent} api mode ${Date.now()}`,
-      profile: 'default',
-      nodes: [{ id: 'agent', type: 'agent', data: {
-        title: 'Agent', agent, provider: 'custom:test', model: 'model-a',
-        apiMode: 'chat_completions', reasoningEffort: 'high', input: 'work',
-      } }],
-      edges: [],
-    })
-    try {
-      await manager.runNow(workflow.id)
-      expect(chatRunMock.runAndWait).toHaveBeenCalledWith(expect.objectContaining({
-        coding_agent_id: agent, apiMode: 'chat_completions', reasoning_effort: 'high',
-      }), expect.any(Object))
-      expect(chatRunMock.runAndWait.mock.calls[0]?.[0]).not.toHaveProperty('background_delegation_enabled')
-    } finally { await manager.delete(workflow.id) }
-  })
-
-  it('runs claude-code workflow nodes as scoped one-shot executions', async () => {
-    const { initAllStores } = await import('../../packages/server/src/modules/studio/infrastructure/database/init')
-    const { getDb } = await import('../../packages/server/src/modules/studio/infrastructure/database/index')
-    const { WorkflowManager } = await import('../../packages/server/src/modules/studio/services/workflow/manager')
-    initAllStores()
-    chatRunMock.runAndWait.mockReset().mockResolvedValue({ ok: true, output: 'done' })
-    const manager = new WorkflowManager()
-    const workflow = manager.create({
-      name: `Scoped execution ${Date.now()}`,
-      profile: 'default',
-      nodes: [{ id: 'agent', type: 'agent', data: {
-        title: 'Claude', agent: 'claude-code', provider: 'custom:test', model: 'model-a',
-        apiMode: 'anthropic_messages', reasoningEffort: 'high', input: 'work',
-      } }],
-      edges: [],
-    })
-    try {
-      const result = await manager.runNow(workflow.id)
-      expect(result.run.status).toBe('completed')
-      expect(chatRunMock.runAndWait).toHaveBeenCalledWith(expect.objectContaining({
-        coding_agent_id: 'claude-code',
-        agent_id: 'claude-code',
-        mode: 'scoped',
-        provider: 'custom:test',
-        model: 'model-a',
-        apiMode: 'anthropic_messages',
-        reasoning_effort: 'high',
-        one_shot_model: true,
-      }), expect.any(Object))
-      expect(chatRunMock.runAndWait.mock.calls[0]?.[0]).not.toHaveProperty('background_delegation_enabled')
-      expect(result.nodeSessions[0]).toMatchObject({
-        agent: 'claude',
-        agent_mode: 'scoped',
-        status: 'completed',
-      })
-      expect(getDb()!.prepare(`SELECT source, agent, agent_mode, provider, model, api_mode FROM sessions WHERE id = ?`)
-        .get(result.nodeSessions[0]!.session_id)).toEqual({
-          source: 'workflow',
-          agent: 'claude',
-          agent_mode: 'scoped',
-          provider: 'custom:test',
-          model: 'model-a',
-          api_mode: 'anthropic_messages',
-        })
-    } finally { await manager.delete(workflow.id) }
-  })
-
-  it('forwards workflow images to coding-agent nodes as ContentBlock input', async () => {
-    const { initAllStores } = await import('../../packages/server/src/modules/studio/infrastructure/database/init')
-    const { WorkflowManager } = await import('../../packages/server/src/modules/studio/services/workflow/manager')
-    initAllStores()
-    chatRunMock.runAndWait.mockReset().mockResolvedValue({ ok: true, output: 'done' })
-    const manager = new WorkflowManager()
-    const imagePath = '/tmp/workflow-reference.png'
-    const workflow = manager.create({
-      name: `Coding Agent image input ${Date.now()}`,
-      profile: 'default',
-      nodes: [{ id: 'agent', type: 'agent', data: {
-        title: 'Agent', agent: 'codex', provider: 'custom:test', model: 'model-a',
-        apiMode: 'codex_responses', input: 'inspect the reference', images: [imagePath],
-      } }],
-      edges: [],
-    })
-    try {
-      await manager.runNow(workflow.id)
-      expect(chatRunMock.runAndWait).toHaveBeenCalledWith(expect.objectContaining({
-        coding_agent_id: 'codex',
-        input: [
-          { type: 'text', text: '[Current task]\ninspect the reference' },
-          {
-            type: 'image',
-            name: 'workflow-reference.png',
-            path: imagePath,
-            media_type: 'image/png',
-          },
-        ],
-      }), expect.any(Object))
-    } finally { await manager.delete(workflow.id) }
-  })
-
-  it('forwards workflow files as file ContentBlocks instead of mislabeled images', async () => {
-    const { initAllStores } = await import('../../packages/server/src/modules/studio/infrastructure/database/init')
-    const { WorkflowManager } = await import('../../packages/server/src/modules/studio/services/workflow/manager')
-    initAllStores()
-    chatRunMock.runAndWait.mockReset().mockResolvedValue({ ok: true, output: 'done' })
-    const manager = new WorkflowManager()
-    const filePath = '/tmp/workflow-reference.pdf'
-    const workflow = manager.create({
-      name: `Coding Agent file input ${Date.now()}`,
-      profile: 'default',
-      nodes: [{ id: 'agent', type: 'agent', data: {
-        title: 'Agent', agent: 'codex', provider: 'custom:test', model: 'model-a',
-        apiMode: 'codex_responses', input: 'inspect the reference', images: [filePath],
-      } }],
-      edges: [],
-    })
-    try {
-      await manager.runNow(workflow.id)
-      expect(chatRunMock.runAndWait).toHaveBeenCalledWith(expect.objectContaining({
-        coding_agent_id: 'codex',
-        input: [
-          { type: 'text', text: '[Current task]\ninspect the reference' },
-          {
-            type: 'file',
-            name: 'workflow-reference.pdf',
-            path: filePath,
-            media_type: 'application/pdf',
-          },
-        ],
-      }), expect.any(Object))
-    } finally { await manager.delete(workflow.id) }
-  })
 
   it('rejects unsupported execution tuples before persisting a run', async () => {
     const { initAllStores } = await import('../../packages/server/src/modules/studio/infrastructure/database/init')
@@ -481,16 +333,11 @@ describe('workflow manager', () => {
     const partial = manager.create({ name: `Partial tuple ${Date.now()}`, profile: 'default', nodes: [
       { id: 'agent', type: 'agent', data: { agent: 'hermes', provider: 'custom:test', input: 'work' } },
     ], edges: [] })
-    const invalidApiMode = manager.create({ name: `Invalid apiMode ${Date.now()}`, profile: 'default', nodes: [
-      { id: 'agent', type: 'agent', data: { agent: 'hermes', provider: 'custom:test', model: 'model-a', apiMode: 'unsupported', input: 'work' } },
-    ], edges: [] })
     try {
-      await expect(manager.runNow(partial.id)).rejects.toThrow('target must set provider, model, and apiMode together')
-      await expect(manager.runNow(invalidApiMode.id)).rejects.toThrow('has invalid apiMode')
+      await expect(manager.runNow(partial.id)).rejects.toThrow('target must set provider and model together')
       expect(listWorkflowRuns(partial.id)).toEqual([])
-      expect(listWorkflowRuns(invalidApiMode.id)).toEqual([])
       expect(chatRunMock.runAndWait).not.toHaveBeenCalled()
-    } finally { await manager.delete(partial.id); await manager.delete(invalidApiMode.id) }
+    } finally { await manager.delete(partial.id) }
   })
 
   it('defers portable skill validation until runNow and fails closed before persisting a run', async () => {
@@ -1218,7 +1065,8 @@ describe('workflow manager', () => {
     } finally { await manager.delete(workflow.id) }
   })
 
-  it.each(['hermes', 'claude-code'] as const)('persists a resolvable Session before a failing %s workflow node can leave evidence', async (agent) => {
+  it('persists a resolvable Session before a failing Hermes workflow node can leave evidence', async () => {
+    const agent = 'hermes'
     const { initAllStores } = await import('../../packages/server/src/modules/studio/infrastructure/database/init')
     const { getDb } = await import('../../packages/server/src/modules/studio/infrastructure/database/index')
     const { WorkflowManager } = await import('../../packages/server/src/modules/studio/services/workflow/manager')
@@ -1229,7 +1077,7 @@ describe('workflow manager', () => {
     const workflow = manager.create({
       name: `Resolvable ${agent} session ${Date.now()}`, profile: 'default', workspace,
       nodes: [{ id: 'node', type: 'agent', data: {
-        title: 'Node', agent, provider: 'custom:test', model: 'model-a', apiMode: 'chat_completions', input: 'work',
+        title: 'Node', agent, provider: 'custom:test', model: 'model-a', input: 'work',
       } }], edges: [],
     })
     try {
@@ -1241,7 +1089,7 @@ describe('workflow manager', () => {
         id: nodeSession.session_id,
         profile: 'default',
         source: 'workflow',
-        agent: agent === 'hermes' ? 'hermes' : 'claude',
+        agent: 'hermes',
         workspace,
       })
     } finally { await manager.delete(workflow.id) }

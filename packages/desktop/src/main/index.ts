@@ -27,7 +27,7 @@ import { bundledNode, desktopIcon, desktopMacTrayIcon, desktopRuntimeVersion, de
 import { checkForDesktopUpdates, initAutoUpdater } from './updater'
 import { t } from './desktop-i18n'
 import { resetDesktopDefaultLogin } from './desktop-login-reset'
-import { installHermesStudioCliShim, installHermesStudioMcpShim } from './cli-shim'
+import { installHermesStudioCliShim } from './cli-shim'
 import { parseHermesCliArgs, runBundledHermesCli } from './hermes-cli'
 import { installSelectionContextMenu } from './selection-context-menu'
 import { groupChatAgentLinkPopupResponse } from './group-chat-agent-popup'
@@ -896,11 +896,6 @@ async function installPackagedCommandShims(): Promise<void> {
       nodePath: bundledNode(),
       runtimeVersion: desktopRuntimeVersion(),
       webUiScriptPath: join(webuiDir(), 'bin', 'hermes-web-ui.mjs'),
-    }),
-    installHermesStudioMcpShim({
-      nodePath: bundledNode(),
-      scriptPath: join(webuiDir(), 'bin', 'hermes-studio-mcp.mjs'),
-      webUiUrl: `http://127.0.0.1:${PORT}`,
     }),
   ]
   const results = await Promise.allSettled(installs)

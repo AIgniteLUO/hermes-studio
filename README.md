@@ -295,12 +295,9 @@ desktop app, bundled Hermes Agent CLI, and bundled server CLI do not conflict:
 | `hermes-studio cli ...` | Run the bundled Hermes Agent CLI |
 | `hermes-studio web ...` | Run the bundled `hermes-web-ui` command |
 | `hermes-studio -h` | Show wrapper help |
-| `hermes-studio-mcp [api\|browser\|devices\|use]` | Run one managed Studio MCP toolset |
 
 Use `hermes-studio cli -h` for Hermes Agent CLI help and
-`hermes-studio web -h` for server CLI help. `hermes-studio-mcp` defaults to the
-`api` toolset; choose `browser`, `devices`, or `use` to keep the exposed MCP
-surface focused on the current task.
+`hermes-studio web -h` for server CLI help.
 
 Desktop auto-updates read metadata and packages from the GitHub Releases
 `latest` assets at
@@ -430,7 +427,6 @@ These variables configure Hermes Studio, its local Hermes runtime integration, a
 | `hermes-web-ui update` / `upgrade` | Refused: this fork has no npm self-update channel (explains why and exits non-zero) |
 | `hermes-web-ui version` / `-v` | Show the version |
 | `hermes-web-ui -h` | Show help |
-| `hermes-web-ui-mcp [api\|browser\|devices\|use]` | Run one managed Studio MCP toolset (same as `hermes-studio-mcp`) |
 
 Add `--no-open` to `start` or `client` when no browser should open.
 

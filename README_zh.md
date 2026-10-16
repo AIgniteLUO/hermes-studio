@@ -300,11 +300,9 @@ hermes-web-ui reset-default-login
 | `hermes-studio cli ...` | 运行内置 Hermes Agent CLI |
 | `hermes-studio web ...` | 运行内置 `hermes-web-ui` 命令 |
 | `hermes-studio -h` | 显示 wrapper 帮助 |
-| `hermes-studio-mcp [api\|browser\|devices\|use]` | 运行指定的受管 Studio MCP 工具集 |
 
 使用 `hermes-studio cli -h` 查看 Hermes Agent CLI 帮助，使用
-`hermes-studio web -h` 查看服务端 CLI 帮助。`hermes-studio-mcp` 默认暴露
-`api` 工具集；按任务选择 `browser`、`devices` 或 `use`，可以缩小 MCP 暴露面。
+`hermes-studio web -h` 查看服务端 CLI 帮助。
 
 桌面自动更新从 GitHub Releases `latest` 资源读取更新元数据和安装包：
 `https://github.com/AIgniteLUO/hermes-studio/releases/latest/download`。
@@ -430,7 +428,6 @@ Studio 启动后端聊天能力时，会优先使用包含 `run_agent.py` 的源
 | `hermes-web-ui update` / `upgrade` | 已禁用：本 fork 没有 npm 自更新通道（会说明原因并以非零状态退出） |
 | `hermes-web-ui version` / `-v` | 显示版本号 |
 | `hermes-web-ui -h` | 显示帮助信息 |
-| `hermes-web-ui-mcp [api\|browser\|devices\|use]` | 运行一个受管 Studio MCP 工具集（等同于 `hermes-studio-mcp`） |
 
 如不希望自动打开浏览器，可在 `start` 或 `client` 后添加 `--no-open`。
 

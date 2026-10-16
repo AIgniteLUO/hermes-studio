@@ -16,7 +16,6 @@ import { HERMES_CLI_ARG } from './cli-constants'
 const execFileAsync = promisify(execFile)
 
 const SHIM_MARKER = 'HERMES_STUDIO_CLI_SHIM'
-const MCP_SHIM_MARKER = 'HERMES_STUDIO_MCP_SHIM'
 const PATH_MARKER_START = '# >>> Hermes Studio CLI shim >>>'
 const PATH_MARKER_END = '# <<< Hermes Studio CLI shim <<<'
 const WINDOWS_USER_PATH_ENV_B64 = 'HERMES_STUDIO_WINDOWS_USER_PATH_B64'
@@ -38,12 +37,6 @@ interface CliShimInstallOptions {
   platform?: NodeJS.Platform
   runtimeVersion?: string
   webUiScriptPath?: string
-}
-
-interface McpShimInstallOptions extends CliShimInstallOptions {
-  nodePath?: string
-  scriptPath?: string
-  webUiUrl?: string
 }
 
 function platformDelimiter(platform: NodeJS.Platform): string {
@@ -74,9 +67,6 @@ export function shimPathForPlatform(binDir: string, platform: NodeJS.Platform = 
   return join(binDir, platform === 'win32' ? 'hermes-studio.cmd' : 'hermes-studio')
 }
 
-export function mcpShimPathForPlatform(binDir: string, platform: NodeJS.Platform = process.platform): string {
-  return join(binDir, platform === 'win32' ? 'hermes-studio-mcp.cmd' : 'hermes-studio-mcp')
-}
 
 function shellQuote(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`
@@ -125,11 +115,11 @@ function powershellUtf8Value(value: string): string {
   return `[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('${utf8Base64(value)}'))`
 }
 
-function windowsPowerShellSidecarName(name: 'hermes-studio' | 'hermes-studio-mcp'): string {
+function windowsPowerShellSidecarName(name: 'hermes-studio'): string {
   return `${name}.ps1`
 }
 
-function windowsCmdShimContent(name: 'hermes-studio' | 'hermes-studio-mcp', marker: string): string {
+function windowsCmdShimContent(name: 'hermes-studio', marker: string): string {
   return [
     '@echo off',
     `rem ${marker}`,
@@ -279,82 +269,6 @@ export function createShimContent(
     'esac',
     '',
   ].join('\n')
-}
-
-export function createMcpShimContent(
-  nodePath: string,
-  scriptPath: string,
-  webUiUrl = 'http://127.0.0.1:8748',
-  platform: NodeJS.Platform = process.platform,
-): string {
-  if (platform === 'win32') {
-    return windowsCmdShimContent('hermes-studio-mcp', MCP_SHIM_MARKER)
-  }
-
-  return [
-    '#!/bin/sh',
-    `# ${MCP_SHIM_MARKER}`,
-    `NODE=${shellQuote(nodePath)}`,
-    `SCRIPT=${shellQuote(scriptPath)}`,
-    'if [ ! -x "$NODE" ]; then',
-    '  echo "Hermes Studio Node runtime not found at $NODE" >&2',
-    '  echo "Open Hermes Studio once to finish runtime setup, then retry hermes-studio-mcp." >&2',
-    '  exit 127',
-    'fi',
-    'if [ ! -f "$SCRIPT" ]; then',
-    '  echo "Hermes Studio MCP script not found at $SCRIPT" >&2',
-    '  exit 127',
-    'fi',
-    'if [ -z "${HERMES_WEB_UI_URL:-}" ]; then',
-    '  if [ -n "${HERMES_DESKTOP_PORT:-}" ]; then',
-    '    HERMES_WEB_UI_URL="http://127.0.0.1:${HERMES_DESKTOP_PORT}"',
-    '  else',
-    `    HERMES_WEB_UI_URL=${shellQuote(webUiUrl)}`,
-    '  fi',
-    'fi',
-    'export HERMES_WEB_UI_URL',
-    'if [ -z "${HERMES_MCP_SERVER_NAME:-}" ]; then',
-    '  HERMES_MCP_SERVER_NAME=hermes-studio-mcp',
-    'fi',
-    'export HERMES_MCP_SERVER_NAME',
-    'exec "$NODE" "$SCRIPT" "$@"',
-    '',
-  ].join('\n')
-}
-
-export function createMcpPowerShellShimContent(
-  nodePath: string,
-  scriptPath: string,
-  webUiUrl = 'http://127.0.0.1:8748',
-): string {
-  return [
-    `# ${MCP_SHIM_MARKER}`,
-    `$Node = ${powershellUtf8Value(nodePath)}`,
-    `$Script = ${powershellUtf8Value(scriptPath)}`,
-    `$DefaultWebUiUrl = ${powershellUtf8Value(webUiUrl)}`,
-    'if (!(Test-Path -LiteralPath $Node -PathType Leaf)) {',
-    "  [Console]::Error.WriteLine('Hermes Studio Node runtime not found at ' + $Node)",
-    "  [Console]::Error.WriteLine('Open Hermes Studio once to finish runtime setup, then retry hermes-studio-mcp.')",
-    '  exit 127',
-    '}',
-    'if (!(Test-Path -LiteralPath $Script -PathType Leaf)) {',
-    "  [Console]::Error.WriteLine('Hermes Studio MCP script not found at ' + $Script)",
-    '  exit 127',
-    '}',
-    "if ([string]::IsNullOrWhiteSpace($env:HERMES_WEB_UI_URL)) {",
-    "  if ([string]::IsNullOrWhiteSpace($env:HERMES_DESKTOP_PORT)) {",
-    '    $env:HERMES_WEB_UI_URL = $DefaultWebUiUrl',
-    '  } else {',
-    "    $env:HERMES_WEB_UI_URL = 'http://127.0.0.1:' + $env:HERMES_DESKTOP_PORT",
-    '  }',
-    '}',
-    "if ([string]::IsNullOrWhiteSpace($env:HERMES_MCP_SERVER_NAME)) {",
-    "  $env:HERMES_MCP_SERVER_NAME = 'hermes-studio-mcp'",
-    '}',
-    '& $Node $Script @args',
-    'exit $LASTEXITCODE',
-    '',
-  ].join('\r\n')
 }
 
 function isManagedShim(content: string, marker: string): boolean {
@@ -551,38 +465,5 @@ export async function installHermesStudioCliShim(options: CliShimInstallOptions 
     status,
     pathUpdated,
     reason: status === 'skipped' ? 'existing hermes-studio shim is not managed by Hermes Studio' : undefined,
-  }
-}
-
-export async function installHermesStudioMcpShim(options: McpShimInstallOptions = {}): Promise<CliShimInstallResult> {
-  const platform = options.platform || process.platform
-  const env = options.env || process.env
-  const homeDir = options.homeDir || homedir()
-  const binDir = resolve(homeDir, 'bin')
-  const shimPath = mcpShimPathForPlatform(binDir, platform)
-  const nodePath = options.nodePath || process.execPath
-  const scriptPath = options.scriptPath || resolve(process.cwd(), 'bin', 'hermes-studio-mcp.mjs')
-  const webUiUrl = options.webUiUrl || 'http://127.0.0.1:8748'
-
-  mkdirSync(binDir, { recursive: true })
-  const commandContent = createMcpShimContent(nodePath, scriptPath, webUiUrl, platform)
-  const status = platform === 'win32'
-    ? writeWindowsShimPair(
-        shimPath,
-        commandContent,
-        createMcpPowerShellShimContent(nodePath, scriptPath, webUiUrl),
-        MCP_SHIM_MARKER,
-      )
-    : writeShim(shimPath, commandContent, platform, MCP_SHIM_MARKER)
-  const pathUpdated = await ensureUserBinOnPath(homeDir, binDir, platform, env).catch((err) => {
-    console.warn(`[cli-shim] failed to update PATH: ${err instanceof Error ? err.message : String(err)}`)
-    return false
-  })
-
-  return {
-    shimPath,
-    status,
-    pathUpdated,
-    reason: status === 'skipped' ? 'existing hermes-studio-mcp shim is not managed by Hermes Studio' : undefined,
   }
 }

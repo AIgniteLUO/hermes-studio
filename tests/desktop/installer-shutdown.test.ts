@@ -9,7 +9,7 @@ describe('Windows installer shutdown hook', () => {
     expect(script).toContain('HERMES_STUDIO_INSTALL_DIR')
     expect(script).toContain('Get-HermesStudioRelatedProcess')
     expect(script).toContain('desktop-runtime\\active-version.json')
-    expect(script).toContain('hermes-studio-mcp|hermes_bridge\\.py|hermes_cli\\.main gateway run')
+    expect(script).toContain('hermes_bridge\\.py|hermes_cli\\.main gateway run')
     expect(script).toContain('Stop-Process -Id')
   })
 

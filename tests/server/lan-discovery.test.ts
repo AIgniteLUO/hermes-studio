@@ -268,18 +268,4 @@ describe('LAN discovery', () => {
     expect(peerSocketSource).toContain('[lan-peer] closing idle terminal')
     expect(peerSocketSource).toContain('this.disposeTerminalSession(session, { notify: false })')
   })
-
-  it('exposes an MCP terminal list tool so agents can recover forgotten terminal ids', () => {
-    const mcpSource = readFileSync('bin/hermes-studio-mcp.mjs', 'utf8')
-
-    expect(mcpSource).toContain("name: 'hermes_studio_lan_devices_list'")
-    expect(mcpSource).toContain('online status')
-    expect(mcpSource).toContain('temporary profile token')
-    expect(mcpSource).toContain("'X-Hermes-Profile': profile")
-    expect(mcpSource).toContain('token: args.token')
-    expect(mcpSource).toContain('profile: args.profile')
-    expect(mcpSource).toContain("join(appHome(), 'profiles', segment, '.model-run-token')")
-    expect(mcpSource).toContain("name: 'hermes_studio_lan_terminal_list'")
-    expect(mcpSource).toContain('/terminals`, withAuthArgs(args))')
-  })
 })

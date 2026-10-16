@@ -25,7 +25,7 @@ import { ChatRunSocket } from '../modules/studio/sockets/chat-run'
 import { startChatWebhookDispatcher } from '../modules/studio/services/webhooks'
 import { getAgentBridgeManager, startAgentBridgeManager } from '../modules/hermes/services/bridge'
 import { HermesSkillInjector } from '../modules/hermes/services/skills/injector'
-import { injectBundledMcpServer } from '../modules/hermes/services/mcp/studio-autoinject'
+import { cleanupBundledMcpServer } from '../modules/hermes/services/mcp/studio-mcp-cleanup'
 import { ensureProfileGatewaysRunning } from '../modules/hermes/services/gateway/autostart'
 import { refreshConfiguredProviderModelCatalogsInBackground } from '../modules/hermes/services/providers/model-catalog-cache'
 import {
@@ -418,10 +418,10 @@ export async function bootstrap() {
   }
 
   try {
-    await injectBundledMcpServer()
+    await cleanupBundledMcpServer()
   } catch (err) {
-    logger.warn(err, '[bootstrap] failed to inject bundled MCP server')
-    console.warn('[bootstrap] failed to inject bundled MCP server:', err instanceof Error ? err.message : err)
+    logger.warn(err, '[bootstrap] failed to clean up bundled MCP server')
+    console.warn('[bootstrap] failed to clean up bundled MCP server:', err instanceof Error ? err.message : err)
   }
 
   try {

@@ -1865,6 +1865,12 @@ export default {
       apiServer: 'API-сервер',
       models: 'Модели',
       voice: 'Голос',
+      runtime: 'Runtime',
+    },
+    runtime: {
+      installed: 'Установлено',
+      notInstalled: 'Не установлено',
+      unknownVersion: 'Неизвестная версия',
     },
     webhooks: {
       title: 'Вебхуки',

@@ -1612,6 +1612,12 @@ export default {
       apiServer: 'API サーバー',
       models: 'モデル',
       voice: '音声',
+      runtime: 'Runtime',
+    },
+    runtime: {
+      installed: 'インストール済み',
+      notInstalled: '未インストール',
+      unknownVersion: 'バージョン不明',
     },
     webhooks: {
       title: 'Webhook',

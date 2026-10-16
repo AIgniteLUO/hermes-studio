@@ -2105,6 +2105,12 @@ export default {
       apiServer: 'خادم API',
       models: 'النماذج',
       voice: 'الصوت',
+      runtime: 'Runtime',
+    },
+    runtime: {
+      installed: 'مثبت',
+      notInstalled: 'غير مثبت',
+      unknownVersion: 'إصدار غير معروف',
     },
     webhooks: {
       title: 'خطافات الويب',

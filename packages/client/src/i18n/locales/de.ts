@@ -1612,6 +1612,12 @@ jobTriggered: 'Job ausgelost',
       apiServer: 'API-Server',
       models: 'Modelle',
       voice: 'Sprache',
+      runtime: 'Runtime',
+    },
+    runtime: {
+      installed: 'Installiert',
+      notInstalled: 'Nicht installiert',
+      unknownVersion: 'Unbekannte Version',
     },
     webhooks: {
       title: 'Webhooks',

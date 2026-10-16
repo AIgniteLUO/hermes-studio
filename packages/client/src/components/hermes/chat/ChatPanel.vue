@@ -1196,7 +1196,7 @@ async function confirmNewChat() {
       if (agentInstallationState(status, "hermes") === "not-installed") {
         showNewChatModal.value = false;
         if (isSuperAdmin.value) {
-          await router.push({ name: "hermes.agentManager", query: { runtime: "install" } });
+          await router.push({ name: "hermes.settings", query: { tab: "runtime" } });
         } else {
           message.warning(t("codingAgents.installRequired", { agent: "Hermes" }));
         }

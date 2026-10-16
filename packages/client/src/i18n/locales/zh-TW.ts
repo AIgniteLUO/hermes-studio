@@ -2053,6 +2053,12 @@ export default {
       apiServer: 'API 伺服器',
       models: '模型',
       voice: '語音',
+      runtime: 'Runtime',
+    },
+    runtime: {
+      installed: '已安裝',
+      notInstalled: '未安裝',
+      unknownVersion: '版本未知',
     },
     webhooks: {
       title: 'Webhook',

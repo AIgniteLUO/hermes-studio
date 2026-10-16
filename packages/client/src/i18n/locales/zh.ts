@@ -2124,6 +2124,12 @@ export default {
       apiServer: 'API 服务器',
       models: '模型',
       voice: '语音',
+      runtime: '运行时',
+    },
+    runtime: {
+      installed: '已安装',
+      notInstalled: '未安装',
+      unknownVersion: '版本未知',
     },
     webhooks: {
       title: 'Webhook',

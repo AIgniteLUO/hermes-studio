@@ -13,6 +13,8 @@ import ProxySettings from "@/components/hermes/settings/ProxySettings.vue";
 import CompressionSettings from "@/components/hermes/settings/CompressionSettings.vue";
 import PrivacySettings from "@/components/hermes/settings/PrivacySettings.vue";
 import ModelSettings from "@/components/hermes/settings/ModelSettings.vue";
+import RuntimeSettings from "@/components/hermes/settings/RuntimeSettings.vue";
+import HermesRuntimeSummary from "@/components/hermes/settings/HermesRuntimeSummary.vue";
 import AccountSettings from "@/components/hermes/settings/AccountSettings.vue";
 import UserManagementSettings from "@/components/hermes/settings/UserManagementSettings.vue";
 import WebhookSettings from "@/components/hermes/settings/WebhookSettings.vue";
@@ -36,6 +38,7 @@ const validTabs = computed(() => new Set([
   "compression",
   "privacy",
   "models",
+  "runtime",
 ]));
 
 function normalizeTab(value: unknown): string {
@@ -54,6 +57,10 @@ function handleTabUpdate(tab: string) {
 }
 
 watch(() => route.query.tab, (tab) => {
+  if (tab === 'runtime') {
+    activeTab.value = 'runtime'
+    return
+  }
   if (tab === "agent" || tab === "memory" || tab === "session" || tab === "gateway") {
     void router.replace({
       name: "hermes.configSettings",
@@ -125,6 +132,10 @@ onMounted(() => {
           </NTabPane>
           <NTabPane name="models" :tab="t('settings.tabs.models')">
             <ModelSettings />
+          </NTabPane>
+          <NTabPane name="runtime" :tab="t('settings.tabs.runtime')">
+            <HermesRuntimeSummary />
+            <RuntimeSettings />
           </NTabPane>
         </NTabs>
       </NSpin>

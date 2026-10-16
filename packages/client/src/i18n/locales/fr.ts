@@ -1612,6 +1612,12 @@ jobTriggered: 'Job declenche',
       apiServer: 'Serveur API',
       models: 'Modèles',
       voice: 'Voix',
+      runtime: 'Runtime',
+    },
+    runtime: {
+      installed: 'Installé',
+      notInstalled: 'Non installé',
+      unknownVersion: 'Version inconnue',
     },
     webhooks: {
       title: 'Webhooks',

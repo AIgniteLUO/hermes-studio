@@ -2086,6 +2086,12 @@ export default {
       apiServer: 'API Server',
       models: 'Models',
       voice: 'Voice',
+      runtime: 'Runtime',
+    },
+    runtime: {
+      installed: 'Installed',
+      notInstalled: 'Not installed',
+      unknownVersion: 'Unknown version',
     },
     webhooks: {
       title: 'Webhooks',

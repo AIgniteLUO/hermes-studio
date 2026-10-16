@@ -1612,6 +1612,12 @@ export default {
       apiServer: 'API 서버',
       models: '모델',
       voice: '음성',
+      runtime: 'Runtime',
+    },
+    runtime: {
+      installed: '설치됨',
+      notInstalled: '설치되지 않음',
+      unknownVersion: '알 수 없는 버전',
     },
     webhooks: {
       title: '웹훅',

@@ -106,6 +106,8 @@ vi.mock('@/components/hermes/settings/PrivacySettings.vue', () => ({ default: { 
 vi.mock('@/components/hermes/settings/ProxySettings.vue', () => ({ default: { template: '<div />' } }))
 vi.mock('@/components/hermes/settings/SessionSettings.vue', () => ({ default: { template: '<div />' } }))
 vi.mock('@/components/hermes/settings/UserManagementSettings.vue', () => ({ default: { template: '<div />' } }))
+vi.mock('@/components/hermes/settings/HermesRuntimeSummary.vue', () => ({ default: { template: '<div />' } }))
+vi.mock('@/components/hermes/settings/RuntimeSettings.vue', () => ({ default: { template: '<div />' } }))
 
 import ModelsView from '@/views/hermes/ModelsView.vue'
 import SettingsView from '@/views/hermes/SettingsView.vue'

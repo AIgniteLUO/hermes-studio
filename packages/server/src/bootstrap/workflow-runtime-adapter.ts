@@ -1,5 +1,4 @@
 import { getChatRunServer } from '../modules/studio/public/chat-run'
-import { codingAgentRunManager } from '../modules/coding-agents/services/runtime/run-manager'
 import { getExactSessionDetailFromDbWithProfile } from '../modules/hermes/services/history/sessions-db'
 import { deleteSessionForProfile } from '../modules/hermes/services/runtime/cli'
 import { listProfileNamesFromDisk } from '../modules/hermes/services/profiles/profile'
@@ -15,9 +14,6 @@ configureWorkflowRuntime({
   },
   abortSession: async (sessionId, reason) => {
     await getChatRunServer()?.abortSession?.(sessionId, reason)
-  },
-  stopAgentRun: sessionId => {
-    codingAgentRunManager.stop(sessionId, { reportClosed: false })
   },
   deletePrimaryAgentSession: async (sessionId, profile) => {
     const targetProfile = profile || 'default'

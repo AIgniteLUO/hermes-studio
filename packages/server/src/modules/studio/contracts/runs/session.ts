@@ -66,8 +66,6 @@ export interface QueuedRun {
   workspace?: string | null
   source?: ChatRunSource
   sessionSource?: 'global_agent' | 'workflow' | 'group_chat'
-  codingAgentId?: ChatCodingAgentId
-  agentId?: ChatCodingAgentId
   mode?: RunMode
   baseUrl?: string
   base_url?: string
@@ -192,8 +190,7 @@ export interface BridgeContextState {
   workspace?: string
 }
 
-export type ChatRunSource = 'api_server' | 'cli' | 'coding_agent' | 'global_agent' | 'workflow' | 'group_chat'
-export type ChatCodingAgentId = 'claude-code' | 'codex' | 'pi'
+export type ChatRunSource = 'api_server' | 'cli' | 'workflow' | 'group_chat'
 
 export interface BridgeCompressionResult {
   messages: ChatMessage[]

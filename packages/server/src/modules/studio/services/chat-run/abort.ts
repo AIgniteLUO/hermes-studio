@@ -5,7 +5,6 @@
 import type { Server, Socket } from 'socket.io'
 import { updateSession, updateSessionStats } from '../../repositories/session-store'
 import { logger } from '../../public/logging'
-import { chatCodingAgentRunManager as codingAgentRunManager } from '../../public/chat-agent-runtime'
 import { flushBridgePendingToDb } from './bridge-message'
 import { flushResponseRunToDb } from './response-stream'
 import { replaceState } from './compression'
@@ -51,15 +50,9 @@ export async function handleAbort(
   runQueuedItem: (socket: Socket, sessionId: string, next: QueuedRun, fallbackProfile?: string) => void,
 ) {
   let state = sessionMap.get(sessionId)
-  const hasCodingAgentRun = codingAgentRunManager.hasSession(sessionId)
-  if (!state && hasCodingAgentRun) {
-    state = { messages: [], isWorking: true, events: [], queue: [], source: 'coding_agent' }
-    sessionMap.set(sessionId, state)
-  }
-  const isCodingAgentRun = state?.source === 'coding_agent' || hasCodingAgentRun
   if (
-    (!state?.isWorking && !hasCodingAgentRun) ||
-    (state && !isCodingAgentRun && !state.runId && !state.abortController)
+    !state?.isWorking ||
+    (!state.runId && !state.abortController)
   ) {
     logger.info({ sessionId }, '[chat-run-socket][abort] ignored: no active run')
     if (state) {
@@ -121,12 +114,7 @@ export async function handleAbort(
   })
   logger.info({ sessionId, runId }, '[chat-run-socket][abort] started')
 
-  // Workflow sessions can be backed either by Hermes bridge runs or by scoped
-  // coding-agent runners. Prefer the coding-agent runtime when it owns the
-  // session; otherwise source='workflow' is misclassified as a bridge run and
-  // bridge.interrupt returns "unknown session" while the coding agent keeps
-  // running.
-  const shouldAbortThroughBridge = isBridgeRunSource(activeState.source) && !isCodingAgentRun
+  const shouldAbortThroughBridge = isBridgeRunSource(activeState.source)
 
   // Flush in-memory assistant text to DB before aborting the stream.
   if (shouldAbortThroughBridge) {
@@ -192,9 +180,6 @@ export async function handleAbort(
       await markAbortCompleted(nsp, socket, sessionId, runId || 'bridge_abort_timeout', sessionMap, runQueuedItem, false)
       return
     }
-  } else if (isCodingAgentRun) {
-    activeState.abortController?.abort()
-    codingAgentRunManager.stop(sessionId, { reportClosed: false })
   } else if (activeState.abortController) {
     activeState.abortController.abort()
   }

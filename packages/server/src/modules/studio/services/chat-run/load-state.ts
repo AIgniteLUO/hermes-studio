@@ -46,10 +46,12 @@ function restoreBackgroundDelegations(messages: any[]): SessionState['background
 }
 
 export function resolveRunSource(source?: string, sessionId?: string): ChatRunSource {
-  if (source === 'coding_agent' || source === 'global_agent' || source === 'workflow' || source === 'group_chat' || source === 'cli') return source
+  // Historical sessions may still store removed source values ('coding_agent',
+  // 'global_agent'); they fall through to the default Hermes path instead of erroring.
+  if (source === 'workflow' || source === 'group_chat' || source === 'cli') return source
   if (sessionId) {
     const stored = getSession(sessionId)?.source
-    if (stored === 'coding_agent' || stored === 'global_agent' || stored === 'workflow' || stored === 'group_chat' || stored === 'cli') return stored
+    if (stored === 'workflow' || stored === 'group_chat' || stored === 'cli') return stored
   }
   return 'cli'
 }

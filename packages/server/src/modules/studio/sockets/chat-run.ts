@@ -16,15 +16,11 @@ import { listWorkspaceRunChangesForAssistantMessages } from '../repositories/wor
 import { getSessionCategory } from '../repositories/session-category-store'
 import { getActiveProfileName, getProfileDir, listProfileNamesFromDisk } from '../public/profile-config'
 import {
-  chatCodingAgentRunManager as codingAgentRunManager,
   createPrimaryAgentBridge,
   getPrimaryAgentBridgeManager as getAgentBridgeManager,
-  handleChatCodingAgentSessionCommand as handleCodingAgentSessionCommand,
-  parseChatCodingAgentSessionCommand as parseCodingAgentSessionCommand,
   redactPrimaryAgentBridgeError as redactAgentBridgeError,
 } from '../public/chat-agent-runtime'
 import { handleBridgeRun, resumeBridgeRun } from '../services/chat-run/handle-bridge-run'
-import { handleCodingAgentRun } from '../services/chat-run/handle-coding-agent-run'
 import { handleAbort } from '../services/chat-run/abort'
 import { getOrCreateSession } from '../services/chat-run/compression'
 import { loadSessionStateFromDb, resolveRunSource } from '../services/chat-run/load-state'
@@ -38,7 +34,6 @@ import {
 } from '../services/chat-run/resume-payload'
 import type {
   BackgroundContinuationContext,
-  ChatCodingAgentId,
   ContentBlock,
   QueueInsertionControl,
   QueueInsertionPhase,
@@ -48,7 +43,6 @@ import type {
 } from '../services/chat-run/types'
 import { authenticateUserToken, isAuthEnabled, type AuthenticatedUser } from '../public/auth'
 import { userCanAccessProfile } from '../repositories/users-store'
-import { observeRunChatPetEvent } from '../public/pet-events'
 import { observeChatRunWebhookEvent, type ChatRunWebhookAgent } from '../services/webhooks'
 import { getAgentStatusSnapshot } from '../public/agent-status-registry'
 
@@ -195,24 +189,12 @@ export async function ensureBridgeReadyForChatRun(): Promise<ChatRunBridgeReadin
   }
 }
 
-function isCodingAgentExecution(source: string | undefined, data?: { coding_agent_id?: string; agent_id?: string }): boolean {
-  return source === 'coding_agent'
-    || ((source === 'workflow' || source === 'group_chat') && Boolean(data?.coding_agent_id || data?.agent_id))
-}
-
 function resolveSessionCategoryId(value: unknown): number | null {
   const categoryId = Number(value)
   if (!Number.isSafeInteger(categoryId) || categoryId <= 0) return null
   return getSessionCategory(categoryId) ? categoryId : null
 }
 
-function webhookAgentForRun(data?: { coding_agent_id?: string; agent_id?: string }): ChatRunWebhookAgent {
-  const agent = data?.coding_agent_id || data?.agent_id
-  if (agent === 'codex') return 'codex'
-  if (agent === 'pi') return 'pi'
-  if (agent === 'claude-code') return 'claude-code'
-  return 'bridge'
-}
 
 export interface ChatRunAndWaitResult {
   ok: boolean
@@ -373,8 +355,6 @@ export class ChatRunSocket {
       source?: string
       session_source?: 'global_agent' | 'workflow' | 'group_chat'
       memory_input?: string | ContentBlock[]
-      coding_agent_id?: ChatCodingAgentId
-      agent_id?: ChatCodingAgentId
       mode?: 'scoped' | 'global'
       baseUrl?: string
       base_url?: string
@@ -438,15 +418,6 @@ export class ChatRunSocket {
           }
           return
         }
-        if (isCodingAgentExecution(source, data)) {
-          if (typeof data.input === 'string') {
-            const codingAgentCommand = parseCodingAgentSessionCommand(data.input)
-            if (codingAgentCommand) {
-              await handleCodingAgentSessionCommand(this.nsp, socket, data, codingAgentCommand, runProfile, this.sessionMap)
-              return
-            }
-          }
-        }
         if (state.isWorking) {
           const queueId = data.queue_id || `queue_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
           state.queue.push({
@@ -468,8 +439,6 @@ export class ChatRunSocket {
             workspace: data.workspace,
             source,
             sessionSource: data.session_source,
-            codingAgentId: data.coding_agent_id,
-            agentId: data.agent_id,
             mode: data.mode,
             baseUrl: data.baseUrl,
             base_url: data.base_url,
@@ -495,7 +464,7 @@ export class ChatRunSocket {
             sessionId: data.session_id,
             profile: runProfile,
             source,
-            agent: webhookAgentForRun(data),
+            agent: 'bridge' as ChatRunWebhookAgent,
             payload: queuedPayload,
             roomId: data.group_room_id,
             workflowId: data.workflow_id,
@@ -506,7 +475,7 @@ export class ChatRunSocket {
           return
         }
         state.events = []
-        state.isWorking = !isCodingAgentExecution(source, data)
+        state.isWorking = true
         state.runStartedAt = Date.now()
         state.profile = runProfile
         state.source = source
@@ -526,7 +495,7 @@ export class ChatRunSocket {
             sessionId: data.session_id,
             profile: runProfile,
             source: resolveRunSource(data.source, data.session_id),
-            agent: webhookAgentForRun(data),
+            agent: 'bridge' as ChatRunWebhookAgent,
             payload,
             roomId: data.group_room_id,
             workflowId: data.workflow_id,
@@ -659,21 +628,6 @@ export class ChatRunSocket {
         })
         return
       }
-      const codingAgentResult = codingAgentRunManager.resolveApproval(
-        data.session_id,
-        data.approval_id,
-        data.choice,
-      )
-      if (codingAgentResult.handled) {
-        this.emitToSession(socket, data.session_id, 'approval.resolved', {
-          event: 'approval.resolved',
-          approval_id: data.approval_id,
-          choice: data.choice || 'deny',
-          resolved: codingAgentResult.resolved,
-          ...(!codingAgentResult.resolved ? { error: 'Approval could not be applied.' } : {}),
-        })
-        return
-      }
       try {
         const result = await this.bridge.approvalRespond(data.approval_id, data.choice || 'deny')
         const resolved = Boolean(result.resolved)
@@ -712,23 +666,6 @@ export class ChatRunSocket {
         })
         return
       }
-      const codingAgentResult = codingAgentRunManager.resolveClarification(
-        data.session_id,
-        data.clarify_id,
-        data.response,
-      )
-      if (codingAgentResult.handled) {
-        this.emitToSession(socket, data.session_id, 'clarify.resolved', {
-          event: 'clarify.resolved',
-          clarify_id: data.clarify_id,
-          resolved: codingAgentResult.resolved,
-          ...(!codingAgentResult.resolved ? { error: 'Clarification could not be applied.' } : {}),
-        })
-        if (codingAgentResult.resolved) {
-          this.clearClarifyEventState(data.session_id, data.clarify_id)
-        }
-        return
-      }
       try {
         const result = await this.bridge.clarifyRespond(data.clarify_id, data.response || '')
         const resolved = Boolean((result as any)?.resolved)
@@ -753,14 +690,6 @@ export class ChatRunSocket {
         })
       }
     })
-  }
-
-  respondCodingAgentApproval(sessionId: string, approvalId: string, choice: string): boolean {
-    return codingAgentRunManager.resolveApproval(sessionId, approvalId, choice).resolved
-  }
-
-  respondCodingAgentClarification(sessionId: string, clarifyId: string, response: string): boolean {
-    return codingAgentRunManager.resolveClarification(sessionId, clarifyId, response).resolved
   }
 
   // --- Run dispatcher ---
@@ -789,8 +718,6 @@ export class ChatRunSocket {
       memory_input?: string | ContentBlock[]
       queue_id?: string
       peerExcludeSocketId?: string
-      coding_agent_id?: ChatCodingAgentId
-      agent_id?: ChatCodingAgentId
       mode?: 'scoped' | 'global'
       baseUrl?: string
       base_url?: string
@@ -818,14 +745,14 @@ export class ChatRunSocket {
     const source = resolveRunSource(data.source, data.session_id)
     if (data.session_id) {
       const state = getOrCreateSession(this.sessionMap, data.session_id)
-      state.webhookAgent = webhookAgentForRun(data)
+      state.webhookAgent = 'bridge'
       state.webhookRoomId = data.group_room_id
       state.webhookWorkflowId = data.workflow_id
       state.webhookWorkflowNodeId = data.workflow_node_id
     }
     if (data.session_id && isBridgeRunSource(source) && isSessionCommand(data.input) && data.allow_command_passthrough !== true) return
 
-    if (!isCodingAgentExecution(source, data)) {
+    {
       const bridgeReady = await ensureBridgeReadyForChatRun()
       if (!bridgeReady.ok) {
         let shouldDequeueNext = false
@@ -867,7 +794,7 @@ export class ChatRunSocket {
             sessionId: data.session_id,
             profile,
             source,
-            agent: webhookAgentForRun(data),
+            agent: 'bridge' as ChatRunWebhookAgent,
             payload,
             roomId: data.group_room_id,
             workflowId: data.workflow_id,
@@ -921,69 +848,6 @@ export class ChatRunSocket {
       return
     }
 
-    const started = await handleCodingAgentRun(
-      this.nsp,
-      socket,
-      data,
-      profile,
-      this.sessionMap,
-    )
-    if (!started) return
-    if (data.session_id) {
-      const timestamp = Math.floor(Date.now() / 1000)
-      const role = data.display_role === 'command' ? 'command' : 'user'
-      const content = data.display_input === null
-        ? data.storage_message || contentBlocksToString(data.input)
-        : contentBlocksToString(data.display_input ?? data.input)
-      const messageId = data.queue_id || started.messageId
-      observeChatRunWebhookEvent({
-        event: 'message.created',
-        sessionId: data.session_id,
-        profile,
-        source,
-        agent: webhookAgentForRun(data),
-        payload: {
-          event: 'message.created',
-          queue_id: data.queue_id,
-          message_id: started.messageId,
-          role,
-          content,
-          timestamp,
-        },
-        roomId: data.group_room_id,
-        workflowId: data.workflow_id,
-        workflowNodeId: data.workflow_node_id,
-      })
-      const peerTarget = data.peerExcludeSocketId
-        ? this.nsp.to(`session:${data.session_id}`).except(data.peerExcludeSocketId)
-        : socket.to(`session:${data.session_id}`)
-      peerTarget.emit('run.peer_user_message', {
-        event: 'run.peer_user_message',
-        session_id: data.session_id,
-        message: {
-          id: messageId,
-          role,
-          content,
-          timestamp,
-          queued: false,
-        },
-      })
-      observeChatRunWebhookEvent({
-        event: 'run.started',
-        sessionId: data.session_id,
-        profile,
-        source,
-        agent: webhookAgentForRun(data),
-        payload: {
-          event: 'run.started',
-          run_id: started.runId,
-          queue_id: data.queue_id,
-        },
-        roomId: data.group_room_id,
-        workflowId: data.workflow_id,
-        workflowNodeId: data.workflow_node_id,
-      })
-    }
   }
 
   private backgroundPendingCount(state: SessionState): number {
@@ -1304,10 +1168,8 @@ export class ChatRunSocket {
       state.runId = runId
       state.activeRunMarker = undefined
       state.profile = profile
-      state.source = source === 'global_agent'
-        ? 'global_agent'
-        : source === 'group_chat'
-          ? 'group_chat'
+      state.source = source === 'group_chat'
+        ? 'group_chat'
         : source === 'workflow'
           ? 'workflow'
           : 'cli'
@@ -1385,13 +1247,7 @@ export class ChatRunSocket {
   }
 
   private queueInsertionRuntime(sessionId: string, state: SessionState): QueueInsertionRuntime | null {
-    const storedAgent = String(getSession(sessionId)?.agent || '').trim()
-    const activeAgent = state.webhookAgent
-      || (storedAgent === 'claude' ? 'claude-code' : storedAgent === 'codex' ? 'codex' : storedAgent === 'pi' ? 'pi' : 'bridge')
-    if (activeAgent === 'claude-code' || activeAgent === 'codex' || activeAgent === 'pi') return activeAgent
-    if (activeAgent !== 'bridge') return null
-    if (state.source === 'coding_agent') return null
-    return state.source === 'cli' || state.source === 'global_agent' ? 'hermes' : null
+    return state.source === 'cli' ? 'hermes' : null
   }
 
   private emitQueueInsertionUpdate(
@@ -1474,19 +1330,6 @@ export class ChatRunSocket {
     if (!state || !control || control.generation !== generation || control.phase !== 'requesting' || !control.runId) return
 
     try {
-      if (control.runtime === 'claude-code' || control.runtime === 'codex' || control.runtime === 'pi') {
-        control.phase = 'stopping_current_turn'
-        this.emitQueueInsertionUpdate(sessionId, control)
-        const result = await codingAgentRunManager.interruptForQueueInsertion(sessionId, control.runId)
-        if (result.status !== 'interrupted') {
-          const currentState = this.sessionMap.get(sessionId)
-          if (currentState?.queueInsertion?.generation === generation) {
-            this.clearQueueInsertion(sessionId, currentState, result.status)
-          }
-        }
-        return
-      }
-
       const result = await this.bridge.requestBoundaryInterrupt(sessionId, control.runId, state.profile)
 
       const current = this.sessionMap.get(sessionId)?.queueInsertion
@@ -1604,8 +1447,6 @@ export class ChatRunSocket {
       session_source: next.sessionSource,
       queue_id: next.queue_id,
       peerExcludeSocketId: next.originSocketId,
-      coding_agent_id: next.codingAgentId,
-      agent_id: next.agentId,
       mode: next.mode,
       baseUrl: next.baseUrl,
       base_url: next.base_url,
@@ -1647,8 +1488,6 @@ export class ChatRunSocket {
       session_source?: 'global_agent' | 'workflow' | 'group_chat'
       memory_input?: string | ContentBlock[]
       queue_id?: string
-      coding_agent_id?: ChatCodingAgentId
-      agent_id?: ChatCodingAgentId
       mode?: 'scoped' | 'global'
       baseUrl?: string
       base_url?: string
@@ -1679,7 +1518,7 @@ export class ChatRunSocket {
     const source = resolveRunSource(data.source, sessionId)
     const state = getOrCreateSession(this.sessionMap, sessionId)
     state.events = []
-    state.isWorking = !isCodingAgentExecution(source, data)
+    state.isWorking = true
     state.runStartedAt = Date.now()
     state.profile = profile
     state.source = source
@@ -1720,10 +1559,7 @@ export class ChatRunSocket {
           return
         }
         try {
-          const codingAgentResult = codingAgentRunManager.resolveApproval(sessionId, approvalId, choice)
-          const result = codingAgentResult.handled
-            ? codingAgentResult
-            : await this.bridge.approvalRespond(approvalId, choice)
+          const result = await this.bridge.approvalRespond(approvalId, choice)
           const resolvedPayload = {
             event: 'approval.resolved',
             session_id: sessionId,
@@ -1736,7 +1572,7 @@ export class ChatRunSocket {
             sessionId,
             profile,
             source,
-            agent: webhookAgentForRun(data),
+            agent: 'bridge' as ChatRunWebhookAgent,
             payload: resolvedPayload,
             roomId: data.group_room_id,
             workflowId: data.workflow_id,
@@ -1822,7 +1658,7 @@ export class ChatRunSocket {
             sessionId,
             profile,
             source,
-            agent: webhookAgentForRun(data),
+            agent: 'bridge' as ChatRunWebhookAgent,
             payload,
             roomId: data.group_room_id,
             workflowId: data.workflow_id,
@@ -1861,7 +1697,6 @@ export class ChatRunSocket {
   async disposeSession(sessionId: string): Promise<void> {
     const sid = String(sessionId || '').trim()
     if (!sid) return
-    codingAgentRunManager.stop(sid, { reportClosed: false })
     const state = this.sessionMap.get(sid)
     state?.abortController?.abort()
     this.sessionMap.delete(sid)
@@ -1886,7 +1721,6 @@ export class ChatRunSocket {
       workflowId: state?.webhookWorkflowId,
       workflowNodeId: state?.webhookWorkflowNodeId,
     })
-    this.observePetEvent(profile, event, tagged)
     this.emitSessionActivity(profile, event, tagged)
     if (state?.isWorking) {
       state.events.push({ event, data: tagged })
@@ -2036,7 +1870,6 @@ export class ChatRunSocket {
       workflowId: state?.webhookWorkflowId,
       workflowNodeId: state?.webhookWorkflowNodeId,
     })
-    this.observePetEvent(profile, event, tagged)
     this.emitPendingInteraction(profile, event, tagged)
     this.nsp.to(`session:${sessionId}`).emit(event, tagged)
     if (!this.nsp.adapter.rooms.get(`session:${sessionId}`)?.size && socket.connected) {
@@ -2143,11 +1976,4 @@ export class ChatRunSocket {
     return storedProfile || 'default'
   }
 
-  private observePetEvent(profile: string, event: string, payload: Record<string, unknown>): void {
-    try {
-      observeRunChatPetEvent(profile, event, payload)
-    } catch (err) {
-      logger.debug(err, '[chat-run-socket] failed to update pet state')
-    }
-  }
 }

@@ -21,11 +21,6 @@ export interface ChatAgentRuntimeDependencies {
   createPrimaryAgentBridge(options?: Record<string, unknown>): PrimaryAgentBridgeClient
   getPrimaryAgentBridgeManager(): any
   redactPrimaryAgentBridgeError(error: string | undefined, endpoint?: string, replacement?: string): string | undefined
-  codingAgentRunManager: Record<string, any>
-  sendCodingAgentRunInput(...args: any[]): any
-  startCodingAgentRun(...args: any[]): any
-  handleCodingAgentSessionCommand(...args: any[]): Promise<any>
-  parseCodingAgentSessionCommand(...args: any[]): any
 }
 
 let dependencies: ChatAgentRuntimeDependencies | null = null
@@ -49,18 +44,4 @@ export const redactPrimaryAgentBridgeError = (
   replacement?: string,
 ) => configured().redactPrimaryAgentBridgeError(error, endpoint, replacement)
 
-export const chatCodingAgentRunManager = {
-  hasSession: (...args: any[]) => configured().codingAgentRunManager.hasSession(...args),
-  stop: (...args: any[]) => configured().codingAgentRunManager.stop(...args),
-  isSessionLaunchCompatible: (...args: any[]) => configured().codingAgentRunManager.isSessionLaunchCompatible(...args),
-  isSessionProcessing: (...args: any[]) => configured().codingAgentRunManager.isSessionProcessing(...args),
-  runIdForSession: (...args: any[]) => configured().codingAgentRunManager.runIdForSession(...args),
-  interruptForQueueInsertion: (...args: any[]) => configured().codingAgentRunManager.interruptForQueueInsertion(...args),
-  resolveApproval: (...args: any[]) => configured().codingAgentRunManager.resolveApproval(...args),
-  resolveClarification: (...args: any[]) => configured().codingAgentRunManager.resolveClarification(...args),
-}
 
-export const sendChatCodingAgentRunInput = (...args: any[]) => configured().sendCodingAgentRunInput(...args)
-export const startChatCodingAgentRun = (...args: any[]) => configured().startCodingAgentRun(...args)
-export const handleChatCodingAgentSessionCommand = (...args: any[]) => configured().handleCodingAgentSessionCommand(...args)
-export const parseChatCodingAgentSessionCommand = (...args: any[]) => configured().parseCodingAgentSessionCommand(...args)

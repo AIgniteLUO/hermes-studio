@@ -40,7 +40,6 @@ import {
   deleteWorkflowPrimaryAgentSession,
   isWorkflowRunCoordinatorAvailable,
   runWorkflowAndWait,
-  stopWorkflowAgentRun,
 } from '../../public/workflow-runtime'
 import { logger } from '../../public/logging'
 import { assertAgentAvailable } from '../agent-availability'
@@ -907,10 +906,6 @@ function workflowOutputConditionContext(output: string, edges: WorkflowEdgeSnaps
   return outputJson === undefined ? { output } : { output, outputJson }
 }
 
-function isWorkflowCodingAgentSession(session?: { source?: string | null; agent?: string | null; agent_session_id?: string | null } | null): boolean {
-  const agent = String(session?.agent || '').trim()
-  return agent === 'claude' || agent === 'codex' || agent === 'pi' || Boolean(session?.agent_session_id)
-}
 
 async function deleteHermesSessionIfPresent(sessionId: string, profile: string): Promise<void> {
   const targetProfile = profile || 'default'
@@ -1200,9 +1195,7 @@ export class WorkflowManager extends EventEmitter<WorkflowManagerEvents> {
   private async deleteNodeSessionArtifacts(sessionId: string, profile: string, agent: string): Promise<void> {
     if (!sessionId) return
     const existing = getSession(sessionId)
-    if (isWorkflowCodingAgentSession(existing)) {
-      stopWorkflowAgentRun(sessionId)
-    } else if (agent === 'hermes') {
+    if (agent === 'hermes') {
       await deleteHermesSessionIfPresent(sessionId, profile || existing?.profile || 'default')
     }
     if (existing) {

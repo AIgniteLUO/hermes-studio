@@ -10,7 +10,6 @@ import {
   listHermesSessionSummaries,
   listHermesSessionSummaryGroups,
   notifyHermesSessionModelChanged,
-  stopCodingAgentSessionRun,
 } from '../public/session-agent-runtime'
 import {
   listSessions as localListSessions,
@@ -207,13 +206,6 @@ function mergeHermesHistorySessions(
   ))
 }
 
-function isCodingAgentSession(session?: { source?: string | null; agent?: string | null; agent_session_id?: string | null } | null): boolean {
-  return session?.source === 'coding_agent' ||
-    session?.agent === 'claude' ||
-    session?.agent === 'codex' ||
-    session?.agent === 'pi' ||
-    Boolean(session?.agent_session_id)
-}
 
 interface HermesDeleteResult {
   attempted: boolean
@@ -1257,11 +1249,7 @@ export async function remove(ctx: any) {
   const existing = localGetSession(sessionId)
   if (denySessionAccess(ctx, existing)) return
   const hermesProfile = requestedProfile(ctx) || existing?.profile || getActiveProfileName()
-  const codingAgentSession = isCodingAgentSession(existing)
-  if (codingAgentSession) stopCodingAgentSessionRun(sessionId, { reportClosed: false })
-  const hermes = codingAgentSession
-    ? { attempted: false, deleted: false, profile: hermesProfile }
-    : await deleteHermesSessionIfPresent(sessionId, hermesProfile)
+  const hermes = await deleteHermesSessionIfPresent(sessionId, hermesProfile)
   const localDeleted = existing ? localDeleteSession(sessionId) : true
   if (!localDeleted) {
     ctx.status = 500
@@ -1327,11 +1315,7 @@ export async function batchRemove(ctx: any) {
       continue
     }
 
-    const codingAgentSession = isCodingAgentSession(existing)
-    if (codingAgentSession) stopCodingAgentSessionRun(id, { reportClosed: false })
-    const hermes = codingAgentSession
-      ? { attempted: false, deleted: false, profile: targetProfile || 'default' }
-      : await deleteHermesSessionIfPresent(id, targetProfile)
+    const hermes = await deleteHermesSessionIfPresent(id, targetProfile)
     if (hermes.deleted) {
       results.hermesDeleted++
     } else if (hermes.attempted && hermes.error) {
@@ -1547,24 +1531,13 @@ export async function setModel(ctx: any) {
   const cleanModel = model.trim()
   const cleanProvider = (provider || '').trim()
   const cleanApiMode = normalizeSessionApiMode(apiMode ?? api_mode)
-  const codingAgentSession = isCodingAgentSession(existing)
-  const workspace = !codingAgentSession
-    ? await ensureHermesRunWorkspace(profile, existing?.workspace)
-    : undefined
+  const workspace = await ensureHermesRunWorkspace(profile, existing?.workspace)
   if (!existing) {
     createSession({ id, profile, title: '', model: cleanModel, provider: cleanProvider, api_mode: cleanApiMode || '', reasoning_effort: '', workspace })
   }
   const updates: Record<string, string> = { model: cleanModel, provider: cleanProvider, reasoning_effort: '' }
   if (cleanApiMode) updates.api_mode = cleanApiMode
-  else if (codingAgentSession && existing && existing.provider !== cleanProvider) updates.api_mode = ''
-  if (!codingAgentSession && existing && !existing.workspace && workspace) updates.workspace = workspace
-  if (
-    codingAgentSession &&
-    existing &&
-    (existing.model !== cleanModel || existing.provider !== cleanProvider || (cleanApiMode && existing.api_mode !== cleanApiMode))
-  ) {
-    updates.agent_native_session_id = ''
-  }
+  if (existing && !existing.workspace && workspace) updates.workspace = workspace
   updateSession(id, updates as any)
   getChatRunServer()?.emitSessionSettingsUpdated(id, {
     model: cleanModel,
@@ -1572,9 +1545,7 @@ export async function setModel(ctx: any) {
     api_mode: updates.api_mode ?? existing?.api_mode ?? '',
     reasoning_effort: '',
   })
-  if (!codingAgentSession) {
-    await notifyBridgeSessionModelChanged(id, cleanModel, cleanProvider, profile)
-  }
+  await notifyBridgeSessionModelChanged(id, cleanModel, cleanProvider, profile)
   ctx.body = { ok: true }
 }
 

@@ -36,14 +36,9 @@ type DeviceIdentity = {
 }
 
 let identityPromise: Promise<DeviceIdentity> | null = null
-let devAppRelayIdentityPromise: Promise<DeviceIdentity> | null = null
 
 function deviceIdentityPath(): string {
   return resolve(dependencies().getAppHome(), 'device-identity.json')
-}
-
-function devAppRelayIdentityPath(): string {
-  return resolve(dependencies().getAppHome(), 'device-identity-app-relay-dev.json')
 }
 
 function readPackageInfo(): PackageInfo | null {
@@ -124,22 +119,6 @@ export function getDeviceIdentity(): Promise<DeviceIdentity> {
   return identityPromise
 }
 
-export function getAppRelayDeviceIdentity(
-  environment: Record<string, string | undefined> = process.env,
-): Promise<DeviceIdentity> {
-  if (!shouldUseDedicatedAppRelayIdentity(environment)) return getDeviceIdentity()
-  if (!devAppRelayIdentityPromise) {
-    devAppRelayIdentityPromise = readOrCreateDeviceIdentity(devAppRelayIdentityPath())
-  }
-  return devAppRelayIdentityPromise
-}
-
-export function shouldUseDedicatedAppRelayIdentity(
-  environment: Record<string, string | undefined> = process.env,
-): boolean {
-  return environment.NODE_ENV !== 'production'
-}
-
 export async function getDeviceId(): Promise<string> {
   return (await getDeviceIdentity()).device_id
 }
@@ -154,15 +133,6 @@ export function createDeviceSigningPayload(payload: {
 
 export async function createDeviceSignature(nonce: string, timestamp: number): Promise<string> {
   const identity = await getDeviceIdentity()
-  return createIdentitySignature(identity, nonce, timestamp)
-}
-
-export async function createAppRelayDeviceSignature(
-  nonce: string,
-  timestamp: number,
-  environment: Record<string, string | undefined> = process.env,
-): Promise<string> {
-  const identity = await getAppRelayDeviceIdentity(environment)
   return createIdentitySignature(identity, nonce, timestamp)
 }
 

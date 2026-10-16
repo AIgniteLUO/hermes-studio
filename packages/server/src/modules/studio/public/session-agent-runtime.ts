@@ -10,7 +10,6 @@ export interface SessionAgentRuntimeDependencies {
   listHermesSessionSummaries: (...args: any[]) => Promise<any[]>
   listHermesSessionSummaryGroups: (...args: any[]) => Promise<any>
   notifyHermesSessionModelChanged: (...args: any[]) => Promise<void>
-  stopCodingAgentSessionRun: (...args: any[]) => any
 }
 
 let dependencies: SessionAgentRuntimeDependencies | null = null
@@ -35,4 +34,3 @@ export const getHermesUsageStats = (...args: any[]): Promise<any> => configured(
 export const listHermesSessionSummaries = (...args: any[]): Promise<any[]> => configured().listHermesSessionSummaries(...args)
 export const listHermesSessionSummaryGroups = (...args: any[]): Promise<any> => configured().listHermesSessionSummaryGroups(...args)
 export const notifyHermesSessionModelChanged = (...args: any[]): Promise<void> => configured().notifyHermesSessionModelChanged(...args)
-export const stopCodingAgentSessionRun = (...args: any[]) => configured().stopCodingAgentSessionRun(...args)

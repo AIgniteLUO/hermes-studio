@@ -1,4 +1,3 @@
-import { codingAgentRunManager } from '../modules/coding-agents/services/runtime/run-manager'
 import { AgentBridgeClient } from '../modules/hermes/services/bridge/client'
 import { getAgentBridgeManager } from '../modules/hermes/services/bridge/manager'
 import {
@@ -40,5 +39,4 @@ configureSessionAgentRuntime({
       profile,
     )
   },
-  stopCodingAgentSessionRun: (sessionId, options) => codingAgentRunManager.stop(sessionId, options),
 })

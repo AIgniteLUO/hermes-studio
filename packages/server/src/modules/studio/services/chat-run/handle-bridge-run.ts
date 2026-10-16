@@ -48,7 +48,6 @@ import { buildOutboundRunEvent } from './resume-payload'
 import { writeModelRunProfileToken } from './model-run-prompt'
 import type { AuthenticatedUser } from '../../public/auth'
 import { ensureHermesRunWorkspace } from './workspace'
-import { observeRunChatPetEvent } from '../../public/pet-events'
 import { completeWorkspaceRunCheckpoint, startWorkspaceRunCheckpoint } from './workspace-diff-tracker'
 
 const BRIDGE_USAGE_FLUSH_DELAY_MS = 200
@@ -56,10 +55,9 @@ const BRIDGE_TITLE_EVENT_POLL_INTERVAL_MS = 500
 const BRIDGE_TITLE_EVENT_POLL_TIMEOUT_MS = 45_000
 const BRIDGE_GOAL_EVALUATE_TIMEOUT_MS = 120_000
 
-type BridgeRunSource = Extract<ChatRunSource, 'cli' | 'global_agent' | 'workflow' | 'group_chat'>
+type BridgeRunSource = Extract<ChatRunSource, 'cli' | 'workflow' | 'group_chat'>
 
 function normalizeBridgeRunSource(source?: string | null, sessionSource?: string | null): BridgeRunSource {
-  if (sessionSource === 'global_agent' || source === 'global_agent') return 'global_agent'
   if (sessionSource === 'group_chat' || source === 'group_chat') return 'group_chat'
   if (sessionSource === 'workflow' || source === 'workflow') return 'workflow'
   return 'cli'
@@ -606,7 +604,6 @@ export async function handleBridgeRun(
   }
   const emit = (event: string, payload: any) => {
     const tagged = { ...payload, session_id }
-    observePetEvent(profile, event, tagged)
     data.onEvent?.(event, tagged)
     const outbound = buildOutboundRunEvent(event, tagged)
     nsp.to(`session:${session_id}`).emit(event, outbound)
@@ -988,7 +985,6 @@ export async function resumeBridgeRun(
 
   const emit = (event: string, payload: any) => {
     const tagged = { ...payload, session_id: sessionId }
-    observePetEvent(profile, event, tagged)
     args.onEvent?.(event, tagged)
     const outbound = buildOutboundRunEvent(event, tagged)
     nsp.to(`session:${sessionId}`).emit(event, outbound)
@@ -1105,14 +1101,6 @@ export async function resumeBridgeRun(
         bridgeLogger.warn(endErr, '[chat-run-socket] failed to write ended_at for session %s', sessionId)
       }
     }
-  }
-}
-
-function observePetEvent(profile: string, event: string, payload: Record<string, unknown>): void {
-  try {
-    observeRunChatPetEvent(profile, event, payload)
-  } catch (err) {
-    logger.debug(err, '[chat-run-socket] failed to update pet state')
   }
 }
 
@@ -1985,7 +1973,7 @@ async function maybeEnqueueGoalContinuation(args: {
     model_groups: args.modelGroups,
     instructions: undefined,
     profile: args.profile,
-    source: args.runSource === 'global_agent' ? 'global_agent' : 'cli',
+    source: 'cli',
     goalContinuation: true,
   }
   args.state.queue.push(next)

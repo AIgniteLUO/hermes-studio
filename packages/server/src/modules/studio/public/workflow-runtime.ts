@@ -2,7 +2,6 @@ export interface WorkflowRuntimeDependencies {
   isRunCoordinatorAvailable(): boolean
   runAndWait(input: Record<string, unknown>, options: Record<string, unknown>): Promise<any>
   abortSession(sessionId: string, reason: string): Promise<void>
-  stopAgentRun(sessionId: string): void
   deletePrimaryAgentSession(sessionId: string, profile: string): Promise<boolean>
   getAvailableModelGroups(profile: string): Promise<any[]>
 }
@@ -25,7 +24,6 @@ export const runWorkflowAndWait = (input: Record<string, unknown>, options: Reco
 export const abortWorkflowSession = (sessionId: string, reason: string) => (
   configured().abortSession(sessionId, reason)
 )
-export const stopWorkflowAgentRun = (sessionId: string) => configured().stopAgentRun(sessionId)
 export const deleteWorkflowPrimaryAgentSession = (sessionId: string, profile: string) => (
   configured().deletePrimaryAgentSession(sessionId, profile)
 )

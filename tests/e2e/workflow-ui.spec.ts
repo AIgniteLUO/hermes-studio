@@ -50,7 +50,7 @@ test('workflow Run sends the selected total time budget', async ({ page }) => {
   expect(api.unexpectedRequests).toEqual([])
 })
 
-test('workflow Coding Agent nodes hide auth providers and reset auth selections', async ({ page }) => {
+test('workflow nodes are fixed to Hermes and keep provider/model selection', async ({ page }) => {
   await authenticate(page, TEST_ACCESS_KEY, 'research')
   const authGroup = {
     provider: 'openai-codex',
@@ -80,16 +80,16 @@ test('workflow Coding Agent nodes hide auth providers and reset auth selections'
 
   await page.goto('/#/hermes/workflow')
   const node = page.locator('.vue-flow__node[data-id="agent"]')
+  // The agent selector is gone: every node renders as Hermes.
+  await expect(node.locator('.workflow-node-agent-label')).toContainText('Hermes')
+  await expect(node.locator('.n-select')).toHaveCount(0)
   await expect(node.locator('.model-trigger')).toContainText('gpt-5-codex')
-
-  await node.locator('.n-select').first().click()
-  await page.getByText('Codex', { exact: true }).last().click()
-  await expect(node.locator('.model-trigger')).toContainText('test-model')
 
   await node.locator('.model-trigger').click()
   const modelDialog = page.getByRole('dialog')
   await expect(modelDialog.getByText('Test Provider', { exact: true })).toBeVisible()
-  await expect(modelDialog.getByText('OpenAI Codex Subscription', { exact: true })).toHaveCount(0)
+  await modelDialog.getByText('test-model', { exact: true }).first().click()
+  await expect(node.locator('.model-trigger')).toContainText('test-model')
   expect(api.unexpectedRequests).toEqual([])
 })
 

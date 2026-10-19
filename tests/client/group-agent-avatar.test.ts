@@ -14,13 +14,13 @@ describe('group agent avatars', () => {
   })
 
   it('falls back to the Hermes icon for every room agent', () => {
-    expect(defaultGroupAgentAvatar('hermes').dataUrl).toBe('/coding-agents/hermes.png')
+    expect(defaultGroupAgentAvatar('hermes').dataUrl).toBe('/agents/hermes.png')
     // Historical room agents from removed runtimes render the Hermes icon.
-    expect(defaultGroupAgentAvatar('codex').dataUrl).toBe('/coding-agents/hermes.png')
-    expect(defaultGroupAgentAvatar('claude').dataUrl).toBe('/coding-agents/hermes.png')
-    expect(defaultGroupAgentAvatar('pi').dataUrl).toBe('/coding-agents/hermes.png')
-    expect(defaultGroupAgentAvatar(undefined).dataUrl).toBe('/coding-agents/hermes.png')
-    expect(groupAgentAvatar({ agent: 'codex', avatar: '' }).dataUrl).toBe('/coding-agents/hermes.png')
+    expect(defaultGroupAgentAvatar('codex').dataUrl).toBe('/agents/hermes.png')
+    expect(defaultGroupAgentAvatar('claude').dataUrl).toBe('/agents/hermes.png')
+    expect(defaultGroupAgentAvatar('pi').dataUrl).toBe('/agents/hermes.png')
+    expect(defaultGroupAgentAvatar(undefined).dataUrl).toBe('/agents/hermes.png')
+    expect(groupAgentAvatar({ agent: 'codex', avatar: '' }).dataUrl).toBe('/agents/hermes.png')
   })
 
   it('reconstructs a removed Agent from message display metadata', () => {

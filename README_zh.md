@@ -4,9 +4,9 @@
 </p>
 
 <p align="center">
-  面向 <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>、Claude Code、Codex 和 Pi 的<br/>
-  多 Agent 桌面应用、本地运行时和 Web 控制台。<br/>
-  在一个本地优先的工作区中完成聊天、群聊、工作流、编码任务、语音、文件和设备管理。
+  面向 <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a> 的<br/>
+  本地优先 Web 控制台。<br/>
+  在一个工作区中完成聊天、群聊、工作流、语音和文件管理。
 </p>
 
 <p align="center">
@@ -38,26 +38,23 @@
 
 | 模块 | Hermes Studio 能做什么 |
 |---|---|
-| 多 Agent 运行时 | 运行 Hermes、Claude Code、Codex 和 Pi，支持流式回复、工具调用轨迹、生成文件预览、持久化会话和桌面独立聊天窗口。 |
-| Studio 工作区 | 为不同 Agent 运行时提供统一的单聊、群聊、工作流、文件、语音、媒体、设备、主题、日志、用量和 App 连接能力。 |
-| Agent 控制面 | 将 Hermes 的 Profile、Provider、模型、记忆、技能、插件、任务、Kanban、渠道和运行时管理保留在对应的 Agent 模块内。 |
-| 自动化 | 构建可执行的可视化工作流，通过定时任务、审批节点、群聊房间、平台渠道和 MCP Server 连接四种运行时。 |
-| 工作区工具 | 提供文件浏览器、Web 终端、桌面 Agent 浏览器、语音输入输出、Coding Agent、设备发现、学习轨迹和性能视图。 |
+| Agent 运行时 | 运行 Hermes Agent，支持流式回复、工具调用轨迹、生成文件预览、持久化会话和桌面独立聊天窗口。 |
+| Studio 工作区 | 围绕 Agent 提供单聊、群聊、工作流、文件、语音、媒体、主题、日志和用量能力。 |
+| Agent 控制面 | 将 Hermes 的 Profile、Provider、模型、记忆、技能、插件、任务、Kanban、渠道和运行时管理保留在对应模块内。 |
+| 自动化 | 构建可执行的可视化工作流，通过定时任务、审批节点、群聊房间和平台渠道串联执行。 |
+| 工作区工具 | 提供文件浏览器、Web 终端、桌面 Agent 浏览器、语音输入输出、学习轨迹和性能视图。 |
 | 分发形态 | 支持 Windows/macOS/Linux 桌面应用、从本仓库源码构建的 CLI 和 Docker 镜像。 |
 
 ## Agent 与平台边界
 
-Hermes Studio 是所有 Agent 共用的产品平台，不是第五种 Agent。当前四种
-具体运行时归入两个 Agent Family：
+Hermes Studio 是围绕单一运行时构建的产品平台：Hermes Agent。
 
-| Agent Family | 运行时 | 负责的能力 |
-|---|---|---|
-| Hermes | Hermes | Profile、Provider、模型、技能、插件、记忆、任务、Kanban、渠道、MCP、终端和 Hermes Runtime 集成。 |
-| Coding | Claude Code、Codex、Pi | Coding Agent 的安装、配置、代理、会话和进程执行。 |
+| 运行时 | 负责的能力 |
+|---|---|
+| Hermes Agent | Profile、Provider、模型、技能、插件、记忆、任务、Kanban、渠道、MCP、终端和 Hermes Runtime 集成。 |
 
-Studio 负责两个 Family 共用的能力：单聊、群聊、工作流、
-Webhook、会话、文件与上传、TTS/STT、媒体、宠物、主题、设备、网络、日志、
-用量、认证和 App 连接。Studio 所有的 HTTP API 使用 `/api/studio/*`，
+Studio 围绕它提供：单聊、群聊、工作流、Webhook、会话、文件与上传、TTS/STT、
+媒体、主题、日志、用量和认证。Studio 所有的 HTTP API 使用 `/api/studio/*`，
 Hermes 控制面 API 使用 `/api/hermes/*`。已经发布的旧版移动 App 路径由
 一个集中兼容层处理，不再保留重复的旧 Controller。
 
@@ -180,16 +177,9 @@ Hermes 控制面 API 使用 `/api/hermes/*`。已经发布的旧版移动 App �
 - SQLite 消息持久化
 - 移动端响应式布局，可折叠侧边栏
 
-### Coding Agents
-
-- 在仪表盘中安装、配置、启动和监控 Claude Code、Codex 与 Pi
-- 内置 Coding Agent 终端、会话历史、工作区选择、图片输入和文件 Diff
-- 提供独立代理路由和 API 模式，适配不同 Provider/模型
-- 支持桌面独立聊天窗口，并持久化输出和 reasoning 元数据
-
 ### 桌面 Agent 浏览器
 
-- 桌面端多标签浏览器，Agent 可通过托管 MCP Server 进行导航和交互
+- 桌面端多标签浏览器，Agent 可通过其浏览器工具进行导航和交互
 - 支持隔离浏览器 Profile、标签控制租约、代理、下载、Cookie 和权限管理
 - 支持可访问性快照、截图、控制台日志和页面标注
 
@@ -214,9 +204,8 @@ Hermes 控制面 API 使用 `/api/hermes/*`。已经发布的旧版移动 App �
 
 ### 管理与运行时
 
-- 设备和局域网 Peer 页面，用于本地网络发现和 Peer 工具能力
-- MCP 管理器，用于托管的 `hermes-studio` Server、Profile 自动注入和 `api` / `browser` / `devices` / `use` 工具集
-- Runtime Version 和 Version Preview 工具，用于隔离测试新版本
+- MCP 管理器，用于管理你为 Hermes Agent 配置的 MCP Server
+- 系统设置中的 Hermes 运行时版本管理
 - 面向超级管理员的性能监控视图
 
 ### 认证
@@ -475,14 +464,14 @@ npm run build   # 构建输出到 dist/
 Koa Bootstrap（仅负责组装）
           │
           ├─ Studio 平台 ── 单聊、群聊、工作流、
-          │                 会话、文件、语音、设备、Webhook
+          │                 会话、文件、语音、Webhook
           ├─ Hermes Family ─ Profile、模型、技能、记忆、任务、
           │                  Kanban、渠道、终端、Hermes Bridge
           └─ Coding Family ─ Claude Code、Codex、Pi 适配器
 ```
 
 服务端按业务归属组织在
-`packages/server/src/modules/{studio,hermes,coding-agents}`。Route 保持轻量，
+`packages/server/src/modules/{studio,hermes}`。Route 保持轻量，
 Controller 处理 HTTP 关注点，Service 负责可复用业务行为，只有
 `packages/server/src/bootstrap` 可以组装具体模块和 Adapter。跨 Agent 的能力归
 Studio；不能因为某项公共功能当前使用 Hermes，就把它放进 Hermes 模块。

@@ -51,7 +51,7 @@ async function handleNotifyOnApprovalChange(value: boolean) {
     const shown = await showSystemNotification({
       title: 'Hermes',
       body: t('settings.display.notifyOnApprovalTest'),
-      icon: '/coding-agents/hermes.png',
+      icon: '/agents/hermes.png',
       tag: `hermes-approval-test-${Date.now()}`,
     }, { requireBackground: false, deduplicate: false })
     if (!shown) {
@@ -71,7 +71,7 @@ async function testApprovalNotification() {
   const shown = await showSystemNotification({
     title: 'Hermes',
     body: t('settings.display.notifyOnApprovalTest'),
-    icon: '/coding-agents/hermes.png',
+    icon: '/agents/hermes.png',
     tag: `hermes-approval-test-${Date.now()}`,
   }, { requireBackground: false, deduplicate: false })
   if (!shown) {
@@ -94,7 +94,7 @@ async function handleNotifyOnCompleteChange(value: boolean) {
     void showCompletionNotification({
       title: 'Hermes',
       body: t('settings.display.notifyOnCompleteTest'),
-      icon: '/coding-agents/hermes.png',
+      icon: '/agents/hermes.png',
       tag: `hermes-complete-test-${Date.now()}`,
     })
   }
@@ -109,7 +109,7 @@ async function testCompletionNotification() {
   const shown = await showCompletionNotification({
     title: 'Hermes',
     body: t('settings.display.notifyOnCompleteTest'),
-    icon: '/coding-agents/hermes.png',
+    icon: '/agents/hermes.png',
     tag: `hermes-complete-test-${Date.now()}`,
   })
   if (!shown) {

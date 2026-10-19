@@ -2,15 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const handleBridgeRunMock = vi.hoisted(() => vi.fn(async () => {}))
 const resumeBridgeRunMock = vi.hoisted(() => vi.fn(async () => {}))
-const handleCodingAgentRunMock = vi.hoisted(() => vi.fn(async () => {}))
 const loadSessionStateFromDbMock = vi.hoisted(() => vi.fn())
 const ensureReadyMock = vi.hoisted(() => vi.fn())
-const codingAgentRunManagerMock = vi.hoisted(() => ({
-  interruptForQueueInsertion: vi.fn(),
-  resolveApproval: vi.fn(() => ({ handled: false, resolved: false })),
-  resolveClarification: vi.fn(() => ({ handled: false, resolved: false })),
-  stop: vi.fn(),
-}))
 const sessionCommandMocks = vi.hoisted(() => ({
   handleSessionCommand: vi.fn(),
   isSessionCommand: vi.fn(() => false),
@@ -38,10 +31,6 @@ vi.mock('../../packages/server/src/modules/studio/services/chat-run/load-state',
   resolveRunSource: vi.fn((source?: string) => source || 'cli'),
 }))
 
-vi.mock('../../packages/server/src/modules/studio/services/chat-run/handle-coding-agent-run', () => ({
-  handleCodingAgentRun: handleCodingAgentRunMock,
-}))
-
 vi.mock('../../packages/server/src/modules/studio/services/chat-run/session-command', () => sessionCommandMocks)
 
 vi.mock('../../packages/server/src/modules/hermes/services/bridge/index', () => ({
@@ -54,17 +43,10 @@ vi.mock('../../packages/server/src/modules/hermes/services/bridge/manager', () =
   })),
 }))
 
-vi.mock('../../packages/server/src/modules/coding-agents/services/runtime/run-manager', () => ({
-  codingAgentRunManager: codingAgentRunManagerMock,
-}))
-
 vi.mock('../../packages/server/src/modules/studio/public/chat-agent-runtime', () => ({
   createPrimaryAgentBridge: vi.fn(() => bridgeMock),
   getPrimaryAgentBridgeManager: vi.fn(() => ({ start: vi.fn(async () => {}), ensureReady: ensureReadyMock })),
   redactPrimaryAgentBridgeError: (error?: string) => error,
-  chatCodingAgentRunManager: codingAgentRunManagerMock,
-  handleChatCodingAgentSessionCommand: sessionCommandMocks.handleSessionCommand,
-  parseChatCodingAgentSessionCommand: sessionCommandMocks.parseSessionCommand,
 }))
 
 vi.mock('../../packages/server/src/modules/studio/public/logging', () => ({
@@ -158,9 +140,6 @@ describe('ChatRunSocket queued bridge runs', () => {
       run_id: 'run-1',
       phase: 'tool_batch',
       guarantee: 'strict',
-    })
-    codingAgentRunManagerMock.interruptForQueueInsertion.mockReturnValue({
-      status: 'interrupted', runId: 'run-codex', responseId: 'response-codex',
     })
     bridgeMock.approvalRespond.mockResolvedValue({ resolved: true })
     sessionStoreMocks.clearSessionMessages.mockReturnValue(2)

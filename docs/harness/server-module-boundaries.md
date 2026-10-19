@@ -86,29 +86,23 @@ packages/server/src/
         auth.ts
         update.ts
         health.ts
-        devices.ts
         upload.ts                   # /api/studio/uploads
         app-upload.ts               # /api/studio/app-uploads/*
         files.ts                    # /api/studio/files/*
         download.ts                 # /api/studio/files/download
         theme.ts
         api-docs.ts
-        app-connections.ts
-        app-relay.ts
-        social-messages.ts
         sessions.ts                 # cross-agent single-chat session management; /api/studio/sessions/*
         chat-run.ts
         chat-webhooks.ts            # cross-agent event delivery; /api/studio/webhooks/*
         workflows.ts
         group-chat.ts
-        pets.ts
         logs.ts
         voice.ts
       controllers/
         auth.ts
         update.ts
         health.ts
-        devices.ts
         upload.ts
         app-upload.ts
         files.ts
@@ -116,15 +110,11 @@ packages/server/src/
         download.ts
         theme.ts
         api-docs.ts
-        app-connections.ts
-        app-relay.ts
-        social-messages.ts
         sessions.ts                 # Studio session/history orchestration through injected Agent adapters
         chat-run.ts
         chat-webhooks.ts
         workflows.ts
         group-chat.ts
-        pets.ts
         logs.ts
         voice.ts
       services/
@@ -148,29 +138,23 @@ packages/server/src/
         notifications/
         providers/
         sessions/
-        social-messages/
         chat-run/                    # shared single-chat lifecycle and persistence
         context-compressor/
         webhooks/                    # aggregates events from every AgentFamily and RunSurface
         update/
           studio-updater.ts        # upgrades hermes-web-ui
           studio-restarter.ts
-          version-preview-manager.ts
         workflow/
         group-chat/
-        pets/
         voice/
           stt/
           tts/
       repositories/                # Studio-owned application state
         users/
-        devices/
         sessions/
         usage/
         workflows/
         group-chat/
-        app-connections/
-        social-messages/
         settings/
       infrastructure/
         database/
@@ -180,7 +164,6 @@ packages/server/src/
       sockets/
         chat-run.ts
         group-chat.ts
-        pets.ts
 
     hermes/                        # Hermes Agent-owned API and behavior
       index.ts                     # exposes factory/registration to bootstrap
@@ -249,36 +232,6 @@ packages/server/src/
         terminal.ts
         kanban-events.ts
 
-    coding-agents/                 # Claude Code, Codex, and Pi family
-      index.ts
-      public/
-        runner.ts
-      contracts/
-      protocol/                    # shared only inside the Coding family
-        events.ts
-        messages.ts
-        sse.ts
-        tool-calls.ts
-      routes/
-        agents.ts
-        runs.ts
-        claude-code-proxy.ts
-        codex-proxy.ts
-      controllers/
-        agents.ts
-        runs.ts
-        claude-code-proxy.ts
-        codex-proxy.ts
-      services/
-        registry/
-        credentials/
-        sessions/
-        run-manager/
-        claude-code/
-        codex/
-        pi/
-      sockets/
-        runs.ts
 ```
 
 `public/` does not mean a public HTTP API. It is the stable in-process facade
@@ -290,10 +243,10 @@ registry. Studio orchestration never imports a concrete agent module.
 
 | Capability | Owner | Reason |
 | --- | --- | --- |
-| Studio update and Version Preview | Studio | Upgrades/restarts `hermes-web-ui`, not Hermes Agent. |
-| Auth, users, devices, files, app connections, relay, social messages | Studio | Product/platform capabilities shared across agents. |
+| Studio update | Studio | Upgrades/restarts `hermes-web-ui`, not Hermes Agent. |
+| Auth, users, files | Studio | Product/platform capabilities shared across agents. |
 | Single Chat (Chat Run), Workflow, Group Chat | Studio | Cross-agent run and orchestration surfaces; dispatch through agent contracts. |
-| Pets/Petdex and aggregate logs | Studio | Stored or presented as Studio product state. |
+| Aggregate logs | Studio | Presented as Studio product state. |
 | Common config, credentials, provider contracts, voice, run/session/usage helpers | Studio | Shared capabilities exposed through `studio/public` or `studio/contracts`. |
 | Studio SQLite tables and repositories | Studio | Application state owned by the Web UI. |
 | Hermes profiles, bridge, gateway, skills, plugins, memory, terminal, cron | Hermes | Direct Hermes Agent behavior or state. |
@@ -303,7 +256,6 @@ registry. Studio orchestration never imports a concrete agent module.
 | Weixin channel configuration | Hermes | Mutates Hermes profile environment and restarts the Hermes gateway. |
 | Hermes Agent history adapters | Hermes | Read `~/.hermes/.../state.db`; they are separate from Studio repositories. |
 | Hermes runtime download/activation/version | Hermes | Manages the Hermes runtime; split it from Studio Web UI updating. |
-| Claude Code, Codex, Pi and their shared protocol | Coding Agents | Shared by runtimes in one family, not by all Studio agents. |
 
 If a feature can dispatch multiple agents, that alone does not make its data
 and business rules common. Ownership follows the state, command, and rules that
@@ -315,12 +267,11 @@ still exposed through a Hermes adapter, but Studio owns the chat-run lifecycle.
 
 An arrow means the row may import the column.
 
-| From / To | Studio | Hermes | Coding Agents |
-| --- | ---: | ---: | ---: |
-| `bootstrap` | yes | yes | yes |
-| Studio | yes | no | no |
-| Hermes | contracts/public | yes | no |
-| Coding Agents | contracts/public | no | yes |
+| From / To | Studio | Hermes |
+| --- | ---: | ---: |
+| `bootstrap` | yes | yes |
+| Studio | yes | no |
+| Hermes | contracts/public | yes |
 
 Additional layer rules:
 

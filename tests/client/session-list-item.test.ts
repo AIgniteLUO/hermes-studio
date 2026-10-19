@@ -177,7 +177,7 @@ describe('SessionListItem', () => {
     })
 
     const logo = wrapper.get('.session-item-agent-logo')
-    expect(logo.attributes('src')).toBe('/coding-agents/hermes.png')
+    expect(logo.attributes('src')).toBe('/agents/hermes.png')
     expect(logo.attributes('alt')).toBe('Hermes')
     expect(wrapper.find('.session-item-agent-name').exists()).toBe(false)
   })
@@ -198,7 +198,7 @@ describe('SessionListItem', () => {
     })
 
     const logo = wrapper.get('.session-item-agent-logo')
-    expect(logo.attributes('src')).toBe('/coding-agents/hermes.png')
+    expect(logo.attributes('src')).toBe('/agents/hermes.png')
     expect(logo.attributes('alt')).toBe('Hermes')
   })
 
@@ -222,7 +222,7 @@ describe('SessionListItem', () => {
     })
 
     const logo = wrapper.get('.session-item-agent-logo')
-    expect(logo.attributes('src')).toBe('/coding-agents/hermes.png')
+    expect(logo.attributes('src')).toBe('/agents/hermes.png')
     expect(logo.attributes('alt')).toBe('Hermes')
   })
 
@@ -242,7 +242,7 @@ describe('SessionListItem', () => {
     })
 
     const logo = wrapper.get('.session-item-agent-logo')
-    expect(logo.attributes('src')).toBe('/coding-agents/hermes.png')
+    expect(logo.attributes('src')).toBe('/agents/hermes.png')
     expect(logo.attributes('alt')).toBe('Hermes')
     expect(wrapper.find('.session-item-agent-name').exists()).toBe(false)
   })
@@ -263,7 +263,7 @@ describe('SessionListItem', () => {
     })
 
     const logo = wrapper.get('.session-item-agent-logo')
-    expect(logo.attributes('src')).toBe('/coding-agents/hermes.png')
+    expect(logo.attributes('src')).toBe('/agents/hermes.png')
     expect(logo.attributes('alt')).toBe('Hermes')
     expect(wrapper.find('.session-item-agent-name').exists()).toBe(false)
   })

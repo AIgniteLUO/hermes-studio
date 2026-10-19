@@ -24,9 +24,9 @@ test('renders authenticated shell and navigates between key product routes', asy
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
 
   const returnLink = configSidebar.getByRole('link', { name: /^Back$/ })
-  await expect(returnLink).toHaveAttribute('href', '#/studio/agents')
+  await expect(returnLink).toHaveAttribute('href', '#/hermes/chat')
   await returnLink.click()
-  await expect(page).toHaveURL(/#\/studio\/agents$/)
+  await expect(page).toHaveURL(/#\/hermes\/chat$/)
 
   const modelsButton = page.locator('.page-sidebar-nav').getByRole('button', { name: /^Models$/ })
   await modelsButton.click()

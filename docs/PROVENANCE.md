@@ -356,3 +356,75 @@ MCU 命中均为 0**，是原始字节恰好拼出 `mcu`/`McU`；三者自上游
 **未做的检查（如实记录）**：无 GUI 环境，**未做浏览器验证**。因此以下依赖真实
 麦克风 / 浏览器 / 手机的能力**未获确认**：输入框麦克风输入、实时语音对话台、
 消息与群聊朗读、语音设置页、手机 App 连接、局域网设备发现。
+
+## 第三次精简：纯 Hermes Agent UI 客户端（2026-10-15 ～ 2026-10-16）
+
+目标：把 Studio 收敛为**一台 Hermes Agent 的纯 UI 客户端**。本轮删除六族能力：
+
+1. **设备互联** — 客户端连接页（App / 设备两个 tab）、`app-connections`、`app-relay`、
+   `social-messages`、局域网发现（UDP 广播）、LAN peer socket/tools、`devices` 路由与
+   `app_access` JWT 面、`app_login` 控制器、MCP 的 `devices` toolset。
+2. **饲料** — 侧栏指向 `https://apikey.fun/register?aff=LIBAPI` 的推广外链。
+3. **Agent 管理 + Coding Agents 全链** — `AgentManagerView`、服务端
+   `modules/coding-agents/**`（27 文件 / 10811 行）、`/api/coding-agents*`、
+   `/api/claude-code-proxy/*`、`/api/codex-proxy/*`、New Chat 的 agent 选择器、
+   工作流 agent 节点类型、群聊 coding-agent 成员、`codingAgentId` / `codingAgentMode`
+   会话字段、agent 状态注册表的三个 coding runtime。
+4. **Hermes 运行时管理迁移**（非删除）— `VersionManagementModal` 的抽屉内容抽成
+   `RuntimeSettings.vue`，与 `HermesRuntimeSummary.vue` 一起挂到
+   **系统设置 → 运行时** tab；`ChatPanel` 的未安装引导改指
+   `hermes.settings?tab=runtime`。
+5. **Studio 自身的 MCP 服务器** — `bin/hermes-studio-mcp.mjs`、
+   `bin/hermes-web-ui-mcp.mjs`、`studio-autoinject.ts`、桌面 MCP shim。
+   启动逻辑改为 `studio-mcp-cleanup.ts`：把旧版本写入 Hermes profile 的受管 MCP
+   条目摘除（只处理带 `HERMES_WEB_UI_MANAGED_MCP` 标记或已知 shipped command 的条目）。
+6. **宠物与版本预览** — Petdex / DesktopPet / WebPet / pets store / 服务端
+   pets+petdex 路由、`/desktop-pet` 路由、`hermes.petdex`、`hermes.versionPreview`
+   与 `GithubPreviewSettings`。
+
+### 实测数字
+
+| 项 | 数值 |
+| --- | --- |
+| 本轮提交区间 | `122c547..`（规划提交之后共 12 个实现提交） |
+| 改动文件 | 321 files changed, **4064 insertions(+), 65503 deletions(-)** |
+| 删除文件 | 173（其中测试 64） |
+| 服务端模块 | `modules/coding-agents/**` 整包、`services/{app-relay,devices,network,social-messages,pets}` |
+| OpenAPI | 380 paths → **318 paths / 39 tags** |
+| 全量测试 | **473 文件 / 3737 用例：3732 passed, 2 skipped, 3 failed** |
+
+3 个失败全部是 `Error: Test timed out in 5000ms.`，分布在会拉起真实 CLI 子进程 /
+做 PATH 隔离的四个文件：`tests/server/hermes-cli-discovery.test.ts`、
+`tests/server/hermes-cli-selection-live.test.ts`、
+`tests/server/hermes-runtime-selection.test.ts`、
+`tests/desktop/hermes-environment-selection.test.ts`。这些文件单独或成组运行均全绿
+（实测 4/4 文件 13/13 用例通过），属并行负载下的既有 CLI 探针抖动，非本轮回归。
+
+### 验证闸门
+
+全部通过：
+
+```bash
+npx vue-tsc -b --noEmit                                  # exit 0
+npx tsc --noEmit -p packages/server/tsconfig.json        # exit 0
+npx vite build                                           # exit 0
+npm run build                                            # exit 0（含 openapi 重生成）
+npm run harness:check                                    # passed
+npm run verify:sharp-runtime                             # verified Sharp 0.35.3 / libvips 8.18.3
+```
+
+### 历史数据与配置容错
+
+- 旧会话 `source = 'coding_agent'` / `global_agent`、`agent = 'claude'|'codex'|'pi'`、
+  `gc_room_agents.coding_agent_id`、workflow 节点的已删 runtime：**读侧归一为 Hermes**，
+  不抛错、可见、可继续操作。
+- `usage` 的历史 agent 桶保留原有标签，旧数据仍可读。
+- 不写 DB migration、不加 `DROP TABLE`：已存在的 `devices` / `app_connections` /
+  `social_message_*` / `app_authorization_codes` 表不再创建，旧库残留空表由使用者手工处理。
+- profile 配置：启动时清理旧版写入的受管 MCP 条目，避免 Hermes 反复拉起已删除的脚本。
+
+### 保留的第三方技能
+
+`packages/skills/apikey-image-gen/SKILL.md` 引用 `api.apikey.fun`，这是上游捆绑的
+第三方图像生成 provider 技能，与被删除的侧栏推广外链（`apikey.fun/register?aff=LIBAPI`）
+不是同一件事，按“不改动 `packages/skills/*/SKILL.md`”的既有口径保留。

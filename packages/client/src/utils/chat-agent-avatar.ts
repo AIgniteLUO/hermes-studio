@@ -10,7 +10,7 @@ interface ChatAgentSessionIdentity {
 
 // Every session is Hermes now; historical rows from removed runtimes render
 // the same icon rather than erroring.
-const HERMES_AVATAR: ChatAgentAvatar = { label: 'Hermes', src: '/coding-agents/hermes.png' }
+const HERMES_AVATAR: ChatAgentAvatar = { label: 'Hermes', src: '/agents/hermes.png' }
 
 export function chatSessionAgentAvatar(_session?: ChatAgentSessionIdentity | null): ChatAgentAvatar {
   return HERMES_AVATAR

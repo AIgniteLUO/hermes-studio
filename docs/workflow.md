@@ -52,7 +52,6 @@ Workflow nodes are custom agent nodes. Each node has:
 - title
 - agent selector: `hermes`, `claude-code`, `codex`
 - provider/model selector
-- API mode selector for coding agents
 - skills tag input
 - main input textarea
 - file/image attachments
@@ -107,7 +106,6 @@ Saving a workflow is blocked on the client when any of these checks fail:
 - every node needs a title
 - every node needs a provider
 - every node needs a model
-- coding-agent nodes need an API mode
 - every node needs input text
 - every edge must reference existing nodes
 - every edge must go from `output` to `input`
@@ -227,7 +225,7 @@ when no SQLite database is active.
 
 ## Execution Design
 
-Workflow execution is implemented through the shared chat-run and coding-agent
+Workflow execution is implemented through the shared chat-run
 runtime paths.
 
 ### Implemented
@@ -244,11 +242,9 @@ runtime paths.
 - Workflow runtime status can be pushed over the `/workflow` socket through
   `workflow.status.updated`.
 - Workflow node agent mapping is defined in the server workflow manager:
-  - Hermes nodes are workflow sessions but execute through the existing
+  - Workflow nodes are workflow sessions but execute through the existing
     bridge/API-server path because the upstream Hermes bridge does not
     understand `workflow` as an execution source.
-  - Claude Code and Codex nodes are workflow sessions but execute through the
-    existing coding-agent path with the matching `coding_agent_id`.
 - `POST /api/studio/workflows/:id/run` starts a run asynchronously.
 - `packages/server/src/modules/studio/services/workflow/manager.ts` owns immediate execution,
   run status, stop/delete behavior, run snapshots, and node session cleanup.
@@ -275,10 +271,7 @@ runtime paths.
 upstream agent backend.
 
 - Persisted node sessions use `sessions.source = "workflow"`.
-- Hermes nodes still execute through the existing bridge/API-server path.
-- Claude Code and Codex nodes still execute through the existing coding-agent
-  path.
-- The executor decides the concrete run path from the node's selected agent.
+- Workflow nodes still execute through the existing bridge/API-server path.
 
 ### Node User Message Assembly
 

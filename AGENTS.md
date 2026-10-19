@@ -39,7 +39,7 @@ Use the smallest relevant check while iterating. Before a broad PR, run
 ## Hard Rules
 
 - Keep routes thin: put request handling in controllers and reusable behavior in services.
-- Put new server code under `modules/studio`, `modules/hermes`, or `modules/coding-agents`; compose modules only from `bootstrap`.
+- Put new server code under `modules/studio` or `modules/hermes`; compose modules only from `bootstrap`.
 - Keep Web UI state under `HERMES_WEB_UI_HOME` or `HERMES_WEBUI_STATE_DIR`.
 - Keep Hermes Agent state separate from Web UI state.
 - Register local API routes before proxy catch-all routes.

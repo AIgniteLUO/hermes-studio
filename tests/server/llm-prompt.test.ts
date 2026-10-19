@@ -2,17 +2,15 @@ import { describe, expect, it } from 'vitest'
 import { getSystemPrompt } from '../../packages/server/src/modules/studio/public/runs/prompt'
 
 describe('LLM prompt', () => {
-  it('includes Hermes MCP usage guidance in every system prompt without runtime profile or resource URI values', () => {
+  it('keeps the custom instructions and output-format guidance without MCP server values', () => {
     const prompt = getSystemPrompt('custom instructions')
 
     expect(prompt).toContain('custom instructions')
-    expect(prompt).toContain('hermes_studio_api_openapi_get')
-    expect(prompt).toContain('hermes_studio_api_request')
-    expect(prompt).toContain('OpenAPI requestBody')
-    expect(prompt).toContain('do not add Authorization headers')
-    expect(prompt).toContain('Do not use hermes_studio_use_chat_run')
-    expect(prompt).toContain('internal delegation mechanism')
-    expect(prompt).toContain('return the delegated result in the current task instead')
+    expect(prompt).toContain('# 输出格式规范')
+    // The bundled Studio MCP server was removed, so its usage guidance must not
+    // be injected into the system prompt any more.
+    expect(prompt).not.toContain('hermes_studio_')
+    expect(prompt).not.toContain('Hermes Studio MCP usage')
     expect(prompt).not.toContain('hermes://openapi.json')
     expect(prompt).not.toContain('[Current Hermes profile:')
   })

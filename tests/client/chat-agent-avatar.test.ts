@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { chatSessionAgentAvatar } from '@/utils/chat-agent-avatar'
 
-const HERMES_AVATAR = { label: 'Hermes', src: '/coding-agents/hermes.png' }
+const HERMES_AVATAR = { label: 'Hermes', src: '/agents/hermes.png' }
 
 describe('single chat Agent avatars', () => {
   it.each([

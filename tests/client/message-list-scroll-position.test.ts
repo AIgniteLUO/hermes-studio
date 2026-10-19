@@ -164,7 +164,7 @@ describe('MessageList session scroll position', () => {
     {
       runtime: 'Hermes',
       session: { source: 'global_agent', agent: 'hermes' },
-      logo: '/coding-agents/hermes.png',
+      logo: '/agents/hermes.png',
       alt: 'Hermes',
     },
     {
@@ -172,7 +172,7 @@ describe('MessageList session scroll position', () => {
       // must render the Hermes logo instead of an unresolvable one.
       runtime: 'legacy Hermes',
       session: { source: 'global_agent', agent: 'ekko-agent' },
-      logo: '/coding-agents/hermes.png',
+      logo: '/agents/hermes.png',
       alt: 'Hermes',
     },
   ])('renders the $runtime logo for an empty Global Agent session', async ({ session, logo, alt }) => {
@@ -194,13 +194,13 @@ describe('MessageList session scroll position', () => {
   })
 
   it.each([
-    ['Hermes', { agent: 'hermes' }, 'Hermes', '/coding-agents/hermes.png'],
+    ['Hermes', { agent: 'hermes' }, 'Hermes', '/agents/hermes.png'],
     // A session persisted before the built-in runtime was removed keeps the Hermes avatar.
-    ['legacy Hermes', { agent: 'ekko-agent' }, 'Hermes', '/coding-agents/hermes.png'],
+    ['legacy Hermes', { agent: 'ekko-agent' }, 'Hermes', '/agents/hermes.png'],
     // Historical coding-agent sessions render the Hermes avatar.
-    ['legacy Claude', { source: 'coding_agent', agent: 'claude' }, 'Hermes', '/coding-agents/hermes.png'],
-    ['legacy Codex', { source: 'coding_agent', agent: 'codex' }, 'Hermes', '/coding-agents/hermes.png'],
-    ['legacy Pi', { source: 'coding_agent', agent: 'pi' }, 'Hermes', '/coding-agents/hermes.png'],
+    ['legacy Claude', { source: 'coding_agent', agent: 'claude' }, 'Hermes', '/agents/hermes.png'],
+    ['legacy Codex', { source: 'coding_agent', agent: 'codex' }, 'Hermes', '/agents/hermes.png'],
+    ['legacy Pi', { source: 'coding_agent', agent: 'pi' }, 'Hermes', '/agents/hermes.png'],
   ])('passes the $runtime avatar to Assistant message bubbles', async (runtime, identity, label, src) => {
     const chatStore = useChatStore()
     const activeSession = { ...makeSession(`avatar-${runtime}`), ...identity } as Session

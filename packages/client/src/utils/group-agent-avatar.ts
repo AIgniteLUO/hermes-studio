@@ -3,7 +3,7 @@ import type { ProfileAvatar } from '@/api/hermes/profiles'
 
 // Historical group agents may still carry removed runtime names; they all
 // render the Hermes icon now.
-const HERMES_AGENT_ICON = '/coding-agents/hermes.png'
+const HERMES_AGENT_ICON = '/agents/hermes.png'
 
 export function parseStoredAvatar(raw: unknown): ProfileAvatar | null {
     if (!raw) return null

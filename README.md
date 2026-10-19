@@ -4,9 +4,9 @@
 </p>
 
 <p align="center">
-  A multi-agent desktop app, local runtime, and web console for<br/>
-  <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>, Claude Code, Codex, and Pi.<br/>
-  Run chats, groups, workflows, coding tasks, voice, files, and devices from one local-first workspace.
+  A local-first web console for<br/>
+  <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>.<br/>
+  Run chats, groups, workflows, voice, and files from one workspace.
 </p>
 
 <p align="center">
@@ -30,27 +30,24 @@
 
 | Area | What Hermes Studio does |
 | --- | --- |
-| Multi-agent runtime | Runs Hermes, Claude Code, Codex, and Pi with streaming responses, tool traces, generated-file previews, persistent sessions, and standalone desktop chat windows. |
-| Studio workspace | Provides shared chats, group chat, workflows, files, voice, media, devices, themes, logs, usage, and App connectivity across agent runtimes. |
-| Agent control planes | Keeps Hermes profiles, providers, models, memory, skills, plugins, jobs, Kanban, channels, and runtime management in their owning agent module. |
-| Automation | Builds executable visual workflows and connects the four runtimes through schedules, approval gates, group-chat rooms, platform channels, and MCP servers. |
-| Workspace tools | Provides a file browser, web terminal, Desktop Agent Browser, voice input/output, coding-agent runners, device discovery, Journey graph, and performance views. |
+| Agent runtime | Runs Hermes Agent with streaming responses, tool traces, generated-file previews, persistent sessions, and standalone desktop chat windows. |
+| Studio workspace | Provides shared chats, group chat, workflows, files, voice, media, themes, logs, and usage around the Agent. |
+| Agent control plane | Keeps Hermes profiles, providers, models, memory, skills, plugins, jobs, Kanban, channels, and runtime management in their owning module. |
+| Automation | Builds executable visual workflows through schedules, approval gates, group-chat rooms, and platform channels. |
+| Workspace tools | Provides a file browser, web terminal, Desktop Agent Browser, voice input/output, Journey graph, and performance views. |
 | Distribution | Ships as a desktop app for Windows/macOS/Linux, a CLI built from this repository, and a Docker image. |
 
 ## Agent and Platform Boundaries
 
-Hermes Studio is the shared product platform, not a fifth agent. It coordinates
-four concrete runtimes grouped into two agent families:
+Hermes Studio is the product platform around a single runtime: Hermes Agent.
 
-| Agent family | Runtime | Owned behavior |
-| --- | --- | --- |
-| Hermes | Hermes | Profiles, providers, models, skills, plugins, memory, jobs, Kanban, channels, MCP, terminal, and Hermes runtime integration. |
-| Coding | Claude Code, Codex, Pi | Coding-agent installation, configuration, proxies, sessions, and process execution. |
+| Runtime | Owned behavior |
+| --- | --- |
+| Hermes Agent | Profiles, providers, models, skills, plugins, memory, jobs, Kanban, channels, MCP, terminal, and Hermes runtime integration. |
 
-Studio owns capabilities shared by those families: single chat, group chat,
-workflows, webhooks, sessions, files and uploads,
-TTS/STT, media, pets, themes, devices, networking, logs, usage, authentication,
-and App connectivity. Studio-owned HTTP APIs use `/api/studio/*`; Hermes-owned
+Studio owns capabilities around it: single chat, group chat, workflows,
+webhooks, sessions, files and uploads, TTS/STT, media, themes, logs, usage, and
+authentication. Studio-owned HTTP APIs use `/api/studio/*`; Hermes-owned
 control-plane APIs use `/api/hermes/*`. Already-released mobile App paths are
 handled by one centralized compatibility layer instead of duplicate legacy
 controllers.
@@ -72,7 +69,7 @@ full change list, and the baseline and final verification records.
 
 ### AI Chat
 
-- Real-time chat streaming over Socket.IO `/chat-run`; Studio dispatches each run to Hermes, Claude Code, Codex, or Pi through runtime adapters
+- Real-time chat streaming over Socket.IO `/chat-run`; Studio dispatches each run to Hermes Agent
 - Multi-session management — create, rename, delete, switch between sessions
 - **Self-built session database** — local SQLite storage for Studio sessions; Hermes state.db remains a read-only source for Hermes history APIs
 - Session grouping by source (Telegram, Discord, Slack, etc.) with collapsible accordion
@@ -131,7 +128,7 @@ Unified configuration for **10 platforms** in one page:
 
 ### Visual Workflows
 
-- Vue Flow canvas for Hermes, Claude Code, Codex, and Pi nodes with file/image attachments
+- Vue Flow canvas for Hermes Agent nodes with file/image attachments
 - Directed edges, structured conditions, success/failure routes, loops, and approval gates
 - Import/export for portable workflow definitions and profile-aware workspaces
 - Run budgets, deadlines, stop/rerun controls, and persisted execution history
@@ -174,16 +171,9 @@ Unified configuration for **10 platforms** in one page:
 - SQLite message persistence
 - Mobile responsive with collapsible sidebar
 
-### Coding Agents
-
-- Install, configure, launch, and monitor Claude Code, Codex, and Pi from the dashboard
-- Built-in coding-agent terminal, session history, workspace selection, images, and file diffs
-- Dedicated proxy routes and API modes for provider/model compatibility
-- Standalone desktop chat windows and persisted output/reasoning metadata
-
 ### Desktop Agent Browser
 
-- Desktop-only multi-tab browser that agents can navigate through the managed MCP server
+- Desktop-only multi-tab browser that the Agent can navigate through its browser tool integration
 - Isolated browser profiles, per-tab control leases, proxy settings, downloads, cookies, and permissions
 - Accessibility snapshots, screenshots, console logs, and page annotations for agent-assisted browsing
 
@@ -208,9 +198,8 @@ Unified configuration for **10 platforms** in one page:
 
 ### Admin & Runtime Management
 
-- Device and LAN peer views for local-network discovery and peer tooling
-- MCP manager for the managed `hermes-studio` server, profile injection, and `api` / `browser` / `devices` / `use` toolsets
-- Runtime version and version-preview tooling for testing newer builds in isolation
+- MCP manager for the MCP servers you configure for Hermes Agent
+- Hermes runtime version management in Settings → Runtime
 - Performance monitor views for super administrators
 
 ### Authentication
@@ -357,12 +346,10 @@ These variables configure Hermes Studio, its local Hermes runtime integration, a
 | `PORT` | `8648` | Studio server listen port. |
 | `BIND_HOST` | `0.0.0.0` | Studio server bind host. Set `::` explicitly for IPv6. |
 | `HERMES_LAN_ADVERTISE_URL` | unset | Reachable Studio origin used in App LAN QR codes. Set this to the Docker host's LAN URL when Studio is opened through `localhost`, for example `http://192.168.1.20:6060`. |
-| `HERMES_APP_ENTITLEMENT_REQUIRED` | `false` | Require a valid RS256 App entitlement before accepting a LAN App relay connection. Set `true` to enforce entitlements issued by a self-hosted signer. |
 | `HERMES_APP_ENTITLEMENT_PUBLIC_KEY` | built in | Optional PEM public-key override for RS256 App entitlements. The expected issuer is `hermes-studio-server` and audience is `hermes-studio`. |
 | `HERMES_WEB_UI_HOME` | `~/.hermes-web-ui` | Studio data home for auth token, credentials, logs, DB, and default uploads. `HERMES_WEBUI_STATE_DIR` is also supported as a compatibility alias. |
 | `HERMES_WEBUI_STATE_DIR` | unset | Compatibility alias for `HERMES_WEB_UI_HOME`. |
-| `HERMES_WEB_UI_DISABLE_MCP_AUTOINJECT` | unset | Disable startup injection of the managed `hermes-studio` MCP server into Hermes profile configs. |
-| `HERMES_WEB_UI_ALLOW_TRANSIENT_MCP_AUTOINJECT` | unset | Allow managed MCP injection when `HERMES_WEB_UI_HOME` is under a temporary directory, such as Version Preview runtimes. |
+| `HERMES_WEB_UI_DISABLE_MCP_CLEANUP` | unset | Skip startup cleanup of legacy managed MCP entries from Hermes profiles. |
 | `UPLOAD_DIR` | `$HERMES_WEB_UI_HOME/upload` | Upload root override. Files are stored below profile-scoped subdirectories. |
 | `CORS_ORIGINS` | same host only | Comma- or space-separated cross-origin allowlist for HTTP, Socket.IO, and WebSocket requests. Set `*` only when you intentionally need legacy wildcard CORS. |
 | `AUTH_TOKEN` | auto-generated | Explicit bearer token. If unset, Studio creates one under `HERMES_WEB_UI_HOME`. |
@@ -407,9 +394,6 @@ These variables configure Hermes Studio, its local Hermes runtime integration, a
 | `HERMES_GATEWAY_URL` / `GATEWAY_URL` | unset | Explicit Hermes gateway upstream URL for proxy routes. |
 | `GATEWAY_HOST` | `127.0.0.1` | Default Hermes gateway upstream host for proxy routes. |
 | `GATEWAY_PORT` | `8642` | Default Hermes gateway upstream port for proxy routes. |
-| `HERMES_WEB_UI_PREVIEW_REPO` | package repository | GitHub repository used by Version Preview. |
-| `HERMES_WEB_UI_PREVIEW_AGENT_BRIDGE_TRANSPORT` | platform default | Version Preview broker transport. Set `tcp` to use loopback TCP for Preview on macOS/Linux; when unset, Preview follows `HERMES_AGENT_BRIDGE_WORKER_TRANSPORT=tcp`. |
-| `HERMES_WEB_UI_PREVIEW_AGENT_BRIDGE_ENDPOINT` | isolated preview endpoint | Directly overrides the Version Preview broker endpoint. |
 | `HERMES_WEB_UI_BACKEND_PORT` | `8648` | Backend port used by the Vite dev proxy. |
 | `HERMES_WEB_UI_FRONTEND_PORT` | `8649` | Frontend Vite dev server port. |
 
@@ -474,14 +458,14 @@ Browser / Desktop / App
 Koa bootstrap (composition only)
           │
           ├─ Studio platform ── chat, groups, workflows,
-          │                    sessions, files, voice, devices, webhooks
+          │                    sessions, files, voice, webhooks
           ├─ Hermes family ─── profiles, models, skills, memory, jobs,
           │                    Kanban, channels, terminal, Hermes bridge
           └─ Coding family ─── Claude Code, Codex, and Pi adapters
 ```
 
 The server is organized by business ownership under
-`packages/server/src/modules/{studio,hermes,coding-agents}`. Routes stay
+`packages/server/src/modules/{studio,hermes}`. Routes stay
 thin, controllers own HTTP concerns, services own reusable behavior, and only
 `packages/server/src/bootstrap` may compose concrete modules and adapters.
 Cross-agent code belongs to Studio; an agent module must not absorb a shared

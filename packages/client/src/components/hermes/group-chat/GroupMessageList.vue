@@ -27,7 +27,7 @@ const { toolTraceVisible } = useToolTraceVisibility()
 const listRef = ref<InstanceType<typeof VirtualMessageList> | null>(null)
 const showScrollBottomButton = ref(false)
 const emptyStateAgents = [
-    { name: 'Hermes', src: '/coding-agents/hermes.png' },
+    { name: 'Hermes', src: '/agents/hermes.png' },
 ]
 const displayMessages = computed(() => groupAgentRunMessages(store.sortedMessages.filter(msg =>
     msg.role !== 'tool' ||

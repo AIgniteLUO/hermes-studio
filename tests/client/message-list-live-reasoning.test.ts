@@ -138,7 +138,7 @@ describe('MessageList live reasoning', () => {
     expect(wrapper.get('.live-reasoning-body').text().startsWith('…')).toBe(false)
   })
 
-  it('shows the insert arrow for Hermes and one-shot coding agents', async () => {
+  it('shows the insert arrow for Hermes and historical coding-agent sessions', async () => {
     const chatStore = useChatStore()
     const session = makeSession([])
     session.source = 'cli'
@@ -159,7 +159,6 @@ describe('MessageList live reasoning', () => {
       ...session,
       source: 'coding_agent',
       agent: 'codex',
-      codingAgentId: 'codex',
     }
     await nextTick()
     expect(wrapper.get('.queue-insert').attributes('title')).toBe('chat.insertQueuedMessage')

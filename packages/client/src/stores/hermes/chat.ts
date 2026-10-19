@@ -3253,7 +3253,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   function completionNotificationAgent(_session: Session): { icon: string } {
-    return { icon: '/coding-agents/hermes.png' }
+    return { icon: '/agents/hermes.png' }
   }
 
   function completionNotificationBody(session: Session, message?: Message): string {

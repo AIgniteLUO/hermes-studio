@@ -72,13 +72,6 @@ interface MockHermesApiOptions {
     [key: string]: unknown
   }>
   theme?: Partial<MockThemePayload>
-  socialMessagePlatforms?: unknown[]
-  socialMessageResult?: Record<string, unknown>
-  socialMessageFeishuQrCode?: Record<string, unknown>
-  socialMessageFeishuQrStatus?: Record<string, unknown>
-  socialMessageFeishuRecipients?: Record<string, unknown>
-  socialMessageTelegramRecipients?: Record<string, unknown>
-  socialMessageWeixinRecipients?: Record<string, unknown>
 }
 
 export const TEST_MODEL_GROUP = {
@@ -214,9 +207,6 @@ export async function mockHermesApi(page: Page, options: MockHermesApiOptions = 
         updatedAt: '2026-01-01T00:00:00.000Z',
         agents: [
           { id: 'hermes', name: 'Hermes', provider: 'Nous Research', kind: 'hermes', installed: true, version: '0.19.1', source: 'user-cli', path: '/usr/local/bin/hermes', error: '', installations: [] },
-          { id: 'claude-code', name: 'Claude', provider: 'Anthropic', kind: 'coding-agent', installed: true, version: '1.0.0', source: 'user-cli', path: '/usr/local/bin/claude', error: '', installations: [] },
-          { id: 'codex', name: 'Codex', provider: 'OpenAI', kind: 'coding-agent', installed: true, version: '1.0.0', source: 'user-cli', path: '/usr/local/bin/codex', error: '', installations: [] },
-          { id: 'pi', name: 'Pi', provider: 'Pi', kind: 'coding-agent', installed: true, version: '1.0.0', source: 'user-cli', path: '/usr/local/bin/pi', error: '', installations: [] },
         ],
       }))
       return
@@ -698,15 +688,7 @@ export async function mockHermesApi(page: Page, options: MockHermesApiOptions = 
       return
     }
 
-    if (pathname === '/api/studio/petdex/manifest') {
-      await route.fulfill(jsonResponse({
-        generatedAt: '2026-07-28T00:00:00.000Z',
-        total: 0,
-        pets: [],
-      }))
-      return
-    }
-
+    
     if (pathname === '/api/hermes/profiles') {
       await route.fulfill(jsonResponse({
         profiles: [
@@ -791,71 +773,14 @@ export async function mockHermesApi(page: Page, options: MockHermesApiOptions = 
       return
     }
 
-    if (pathname === '/api/social-messages/platforms' && request.method() === 'GET') {
-      await route.fulfill(jsonResponse({
-        platforms: options.socialMessagePlatforms ?? [],
-      }))
-      return
-    }
-
-    if (pathname === '/api/social-messages/feishu/qrcode' && request.method() === 'GET') {
-      await route.fulfill(jsonResponse(options.socialMessageFeishuQrCode ?? {
-        session_id: 'feishu-session',
-        qrcode_url: 'https://accounts.feishu.cn/device?code=playwright',
-        poll_interval_ms: 1_000,
-        expires_in_ms: 600_000,
-      }))
-      return
-    }
-
-    if (pathname === '/api/social-messages/feishu/qrcode/status' && request.method() === 'GET') {
-      await route.fulfill(jsonResponse(options.socialMessageFeishuQrStatus ?? { status: 'pending' }))
-      return
-    }
-
-    if (pathname === '/api/social-messages/feishu/recipients' && request.method() === 'GET') {
-      await route.fulfill(jsonResponse(options.socialMessageFeishuRecipients ?? {
-        recipients: [],
-        runtimeStatus: 'running',
-      }))
-      return
-    }
-
-    if (pathname === '/api/social-messages/telegram/recipients' && request.method() === 'GET') {
-      await route.fulfill(jsonResponse(options.socialMessageTelegramRecipients ?? {
-        recipients: [],
-        runtimeStatus: 'running',
-      }))
-      return
-    }
-
-    if (pathname === '/api/social-messages/weixin/recipients' && request.method() === 'GET') {
-      await route.fulfill(jsonResponse(options.socialMessageWeixinRecipients ?? {
-        recipients: [],
-        runtimeStatus: 'running',
-      }))
-      return
-    }
-
-    if (pathname === '/api/app-connections' && request.method() === 'GET') {
-      await route.fulfill(jsonResponse({ connections: [], access_failure: null }))
-      return
-    }
-
-    if (pathname === '/api/app-relay/status' && request.method() === 'GET') {
-      await route.fulfill(jsonResponse({
-        relay: {
-          connected: false,
-          machineId: 'playwright-machine',
-          pairingCode: '',
-          pairingExpiresAt: 0,
-          route: 'official',
-          relayUrl: '',
-        },
-      }))
-      return
-    }
-
+    
+    
+    
+    
+    
+    
+    
+    
     if (pathname === '/api/studio/versions' && request.method() === 'GET') {
       await route.fulfill(jsonResponse({
         schema: 1,
@@ -873,47 +798,13 @@ export async function mockHermesApi(page: Page, options: MockHermesApiOptions = 
       return
     }
 
-    if (pathname === '/api/social-messages/send' && request.method() === 'POST') {
-      await route.fulfill(jsonResponse({
-        result: options.socialMessageResult ?? {
-          platform: 'telegram',
-          recipient: '1234',
-          messageId: '42',
-          sentAt: '2026-08-23T00:00:00.000Z',
-        },
-      }, 201))
-      return
-    }
-
+    
     if (pathname === '/api/hermes/jobs') {
       await route.fulfill(jsonResponse({ jobs: [sampleJob] }))
       return
     }
 
-    if (pathname === '/api/coding-agents' && request.method() === 'GET') {
-      await route.fulfill(jsonResponse({ tools: [] }))
-      return
-    }
-
-    if (
-      request.method() === 'GET' &&
-      /^\/api\/coding-agents\/(?:claude-code|codex|pi)\/config-files\/[^/]+$/.test(pathname)
-    ) {
-      const key = pathname.split('/').at(-1) || 'config'
-      await route.fulfill(jsonResponse({
-        key,
-        path: key,
-        absolutePath: `/tmp/${key}`,
-        language: 'text',
-        content: '',
-        exists: false,
-        size: 0,
-        profile: 'research',
-        provider: '',
-        rootDir: '/tmp',
-      }))
-      return
-    }
+    
 
     if (pathname === '/api/studio/group-chat/rooms' && request.method() === 'GET') {
       await route.fulfill(jsonResponse({ rooms: [] }))

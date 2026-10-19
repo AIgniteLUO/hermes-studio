@@ -1,26 +1,17 @@
 export interface ChatAgentAvatar {
-  label: 'Hermes' | 'Claude' | 'Codex' | 'Pi'
+  label: 'Hermes'
   src: string
 }
 
 interface ChatAgentSessionIdentity {
   source?: string
   agent?: string
-  codingAgentId?: string
 }
 
-const AGENT_AVATARS = {
-  hermes: { label: 'Hermes', src: '/coding-agents/hermes.png' },
-  'claude-code': { label: 'Claude', src: '/coding-agents/claude-code.svg' },
-  codex: { label: 'Codex', src: '/coding-agents/codex-openai.png' },
-  pi: { label: 'Pi', src: '/coding-agents/pi.svg' },
-} as const satisfies Record<string, ChatAgentAvatar>
+// Every session is Hermes now; historical rows from removed runtimes render
+// the same icon rather than erroring.
+const HERMES_AVATAR: ChatAgentAvatar = { label: 'Hermes', src: '/coding-agents/hermes.png' }
 
-export function chatSessionAgentAvatar(session?: ChatAgentSessionIdentity | null): ChatAgentAvatar {
-  const runtime = String(session?.codingAgentId || session?.agent || '').trim().toLowerCase()
-  if (runtime === 'claude' || runtime === 'claude-code') return AGENT_AVATARS['claude-code']
-  if (runtime === 'codex') return AGENT_AVATARS.codex
-  if (runtime === 'pi') return AGENT_AVATARS.pi
-  if (session?.source === 'coding_agent') return AGENT_AVATARS['claude-code']
-  return AGENT_AVATARS.hermes
+export function chatSessionAgentAvatar(_session?: ChatAgentSessionIdentity | null): ChatAgentAvatar {
+  return HERMES_AVATAR
 }

@@ -147,16 +147,7 @@ const isOutputPlaying = computed(() =>
   segmentAudioPlaying.value || speech.isPlaying.value || speech.isCustomPlaying.value,
 )
 
-const agentDisplayName = computed(() => {
-  const session = chatStore.activeSession
-  const agent = session?.agent || session?.codingAgentId || 'hermes'
-  return {
-    hermes: 'Hermes',
-    claude: 'Claude',
-    'claude-code': 'Claude',
-    codex: 'Codex',
-  }[agent] || agent
-})
+const agentDisplayName = computed(() => 'Hermes')
 const statusLabel = computed(() => t(`realtimeVoice.status.${mode.value}`, {
   agent: agentDisplayName.value,
 }))

@@ -1,7 +1,6 @@
 import { startRunViaSocket, resumeSession, registerSessionHandlers, unregisterSessionHandlers, getChatRunSocket, respondToolApproval, onPeerUserMessage, onSessionCommand, onSessionTitleUpdated, onSessionWorkspaceUpdated, onSessionSettingsUpdated, respondClarify, type RunEvent, type ResumeSessionPayload, type StartRunRequest, type ContentBlock as ContentBlockImport } from '@/api/studio/chat'
 import { archiveSession as archiveSessionApi, deleteSession as deleteSessionApi, fetchSessionMessagesPage, fetchSessions, fetchWorkspaceRunChangeFile, setSessionModel, setSessionPushEnabled as persistSessionPushEnabled, setSessionReasoningEffort as persistSessionReasoningEffort, type HermesMessage, type SessionSummary, type WorkspaceRunChangeFileDetail, type WorkspaceRunChangeSummary } from '@/api/studio/sessions'
 import { getActiveProfileName } from '@/api/client'
-import { inferCodingAgentApiMode, normalizeCodingAgentApiMode, type ChatCodingAgentId } from '@/api/coding-agents'
 import { getDownloadUrl } from '@/api/studio/download'
 import type { ProviderApiMode } from '@/api/studio/provider-api-mode'
 import { defineStore } from 'pinia'
@@ -27,21 +26,7 @@ export type ContentBlock = ContentBlockImport
 export const LIVE_CHAT_MESSAGE_PAGE_SIZE = 150
 export const LIVE_CHAT_MAX_LOADED_MESSAGES = 300
 const LEGACY_WORKSPACE_RUN_CHANGE_MESSAGE_PREFIX = 'workspace-run-change:'
-type ChatAgentId = 'hermes' | 'claude' | 'codex' | 'pi'
-
-function agentToCodingAgentId(agent?: string): ChatCodingAgentId | undefined {
-  if (agent === 'codex') return 'codex'
-  if (agent === 'pi') return 'pi'
-  if (agent === 'claude') return 'claude-code'
-  return undefined
-}
-
-function codingAgentIdToAgent(id?: ChatCodingAgentId): ChatAgentId | undefined {
-  if (id === 'codex') return 'codex'
-  if (id === 'pi') return 'pi'
-  if (id === 'claude-code') return 'claude'
-  return undefined
-}
+type ChatAgentId = 'hermes'
 
 function moaReferenceLabel(evt: RunEvent): string {
   const label = typeof evt.label === 'string' && evt.label.trim()
@@ -431,7 +416,7 @@ export interface QueueInsertionState {
   generation: string
   runId?: string
   queueId: string
-  runtime: 'hermes' | 'claude-code' | 'codex' | 'pi'
+  runtime: 'hermes'
   phase: 'requesting' | 'waiting_for_tool_batch' | 'stopping_current_turn'
   guarantee: 'strict' | 'immediate'
   requestedAt: number
@@ -445,8 +430,6 @@ export interface Session {
   agent?: string
   agentSessionId?: string
   agentNativeSessionId?: string
-  codingAgentId?: ChatCodingAgentId
-  codingAgentMode?: 'global' | 'scoped'
   messages: Message[]
   createdAt: number
   updatedAt: number
@@ -1100,13 +1083,8 @@ function lastVisibleMessageRole(messages?: Message[] | null): string | null {
 }
 
 function mapHermesSession(s: SessionSummary): Session {
-  const codingAgentId = agentToCodingAgentId(s.agent)
-  const isCodingAgentSession = s.source === 'coding_agent' || Boolean(codingAgentId)
-  const codingAgentMode = isCodingAgentSession
-    ? (s.agent_mode === 'global' || s.agent_mode === 'scoped'
-        ? s.agent_mode
-        : s.provider === 'global' ? 'global' : 'scoped')
-    : undefined
+  // Historical rows from removed runtimes ('coding_agent', 'claude', 'codex',
+  // 'pi') simply read as Hermes sessions; nothing here errors on them.
   const activitySeconds = sessionActivitySeconds(s)
   return {
     id: s.id,
@@ -1116,8 +1094,6 @@ function mapHermesSession(s: SessionSummary): Session {
     agent: s.agent || undefined,
     agentSessionId: s.agent_session_id || undefined,
     agentNativeSessionId: s.agent_native_session_id || undefined,
-    codingAgentId,
-    codingAgentMode,
     messages: [],
     createdAt: Math.round(s.started_at * 1000),
     updatedAt: Math.round(activitySeconds * 1000),
@@ -1162,22 +1138,6 @@ function getProfileName(): string {
 
 function storageKey(): string { return STORAGE_KEY_PREFIX + getProfileName() }
 function legacyStorageKey(): string | null { return getProfileName() === 'default' ? LEGACY_STORAGE_KEY : null }
-
-function isCodingAgentLikeSession(session?: Pick<Session, 'source' | 'agent' | 'codingAgentId'> | null): boolean {
-  return session?.source === 'coding_agent' ||
-    Boolean(session?.codingAgentId) ||
-    Boolean(agentToCodingAgentId(session?.agent))
-}
-
-function clearCodingAgentRuntimeCredentials(session?: Session | null) {
-  if (!session || !isCodingAgentLikeSession(session)) return
-  session.baseUrl = undefined
-  session.apiKey = undefined
-}
-
-function shouldPreserveRuntimeApiMode(session?: Session | null): boolean {
-  return isCodingAgentLikeSession(session) && session?.codingAgentMode !== 'global'
-}
 
 function isQuotaExceededError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false
@@ -1791,10 +1751,8 @@ export const useChatStore = defineStore('chat', () => {
     profile?: string
     model?: string
     provider?: string
-    source?: 'api_server' | 'cli' | 'coding_agent' | 'workflow' | 'group_chat'
+    source?: 'api_server' | 'cli' | 'workflow' | 'group_chat'
     agent?: ChatAgentId
-    codingAgentId?: ChatCodingAgentId
-    codingAgentMode?: 'global' | 'scoped'
     workspace?: string | null
     categoryId?: number | null
     baseUrl?: string
@@ -1802,16 +1760,12 @@ export const useChatStore = defineStore('chat', () => {
     apiMode?: ProviderApiMode
   } = {}): Session {
     const source = options.source || 'cli'
-    const codingAgentId = options.codingAgentId || agentToCodingAgentId(options.agent)
-    const codingAgentMode = codingAgentId ? (options.codingAgentMode || 'scoped') : undefined
     const session: Session = {
       id: uid(),
       profile: options.profile || useProfilesStore().activeProfileName || 'default',
       title: '',
       source,
-      agent: options.agent || codingAgentIdToAgent(codingAgentId) || 'hermes',
-      codingAgentId,
-      codingAgentMode,
+      agent: options.agent || 'hermes',
       messages: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -2073,10 +2027,8 @@ export const useChatStore = defineStore('chat', () => {
     profile?: string
     model?: string
     provider?: string
-    source?: 'api_server' | 'cli' | 'coding_agent' | 'workflow' | 'group_chat'
+    source?: 'api_server' | 'cli' | 'workflow' | 'group_chat'
     agent?: ChatAgentId
-    codingAgentId?: ChatCodingAgentId
-    codingAgentMode?: 'global' | 'scoped'
     workspace?: string | null
     categoryId?: number | null
     baseUrl?: string
@@ -2085,16 +2037,12 @@ export const useChatStore = defineStore('chat', () => {
   } = {}): Session {
     const appStore = useAppStore()
     const storageSource = options.source || 'cli'
-    const codingAgentId = options.codingAgentId || agentToCodingAgentId(options.agent)
-    const isGlobalCodingAgent = Boolean(codingAgentId) && options.codingAgentMode === 'global'
     const session = createSession({
       profile: options.profile,
-      model: isGlobalCodingAgent ? undefined : options.model || appStore.selectedModel || undefined,
-      provider: isGlobalCodingAgent ? '' : options.provider || appStore.selectedProvider || '',
+      model: options.model || appStore.selectedModel || undefined,
+      provider: options.provider || appStore.selectedProvider || '',
       source: storageSource,
       agent: options.agent,
-      codingAgentId,
-      codingAgentMode: options.codingAgentMode,
       workspace: options.workspace,
       categoryId: options.categoryId,
       baseUrl: options.baseUrl,
@@ -2110,16 +2058,10 @@ export const useChatStore = defineStore('chat', () => {
     if (!targetId) return false
     const target = sessions.value.find(s => s.id === targetId)
     const activeTarget = activeSession.value?.id === targetId ? activeSession.value : null
-    const session = target || activeTarget
-    if (session?.codingAgentMode === 'global' && isCodingAgentLikeSession(session)) return false
     const previousProvider = String(target?.provider ?? activeTarget?.provider ?? '')
     const nextProvider = provider || ''
-    const shouldClearRuntimeCredentials = previousProvider !== nextProvider && (
-      isCodingAgentLikeSession(target) || isCodingAgentLikeSession(activeTarget)
-    )
     const preservedApiMode = apiMode || (previousProvider === nextProvider
-      ? (shouldPreserveRuntimeApiMode(target) ? target?.apiMode : undefined) ||
-        (shouldPreserveRuntimeApiMode(activeTarget) ? activeTarget?.apiMode : undefined)
+      ? target?.apiMode || activeTarget?.apiMode
       : undefined)
     const isLocalOnly = target?.isLocalOnly === true || activeTarget?.isLocalOnly === true
     if (!isLocalOnly) {
@@ -2132,14 +2074,12 @@ export const useChatStore = defineStore('chat', () => {
       target.provider = provider || ''
       target.apiMode = preservedApiMode
       target.reasoningEffort = undefined
-      if (shouldClearRuntimeCredentials) clearCodingAgentRuntimeCredentials(target)
     }
     if (activeTarget) {
       activeTarget.model = modelId
       activeTarget.provider = provider || ''
       activeTarget.apiMode = preservedApiMode
       activeTarget.reasoningEffort = undefined
-      if (shouldClearRuntimeCredentials) clearCodingAgentRuntimeCredentials(activeTarget)
     }
     return true
   }
@@ -2811,7 +2751,6 @@ export const useChatStore = defineStore('chat', () => {
   function handleAgentEvent(evt: RunEvent) {
     const sid = evt.session_id
     if (!sid) return
-    if ((evt as any).source === 'coding_agent' && (evt as any).kind === 'status') return
     const text = String((evt as any).text || (evt as any).message || '').trim()
     if (!text) return
 
@@ -2905,11 +2844,7 @@ export const useChatStore = defineStore('chat', () => {
       generation,
       runId: typeof raw.run_id === 'string' ? raw.run_id : undefined,
       queueId,
-      runtime: raw.runtime === 'claude-code'
-        || raw.runtime === 'codex'
-        || raw.runtime === 'pi'
-        ? raw.runtime
-        : 'hermes',
+      runtime: 'hermes',
       phase,
       guarantee: raw.guarantee === 'immediate' ? 'immediate' : 'strict',
       requestedAt: typeof raw.requested_at === 'number' ? raw.requested_at : Date.now(),
@@ -3317,17 +3252,7 @@ export const useChatStore = defineStore('chat', () => {
     return `${normalized.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`
   }
 
-  function completionNotificationAgent(session: Session): { icon: string } {
-    const codingAgentId = session.codingAgentId || agentToCodingAgentId(session.agent)
-    if (codingAgentId === 'codex') {
-      return { icon: '/coding-agents/codex-openai.png' }
-    }
-    if (codingAgentId === 'claude-code') {
-      return { icon: '/coding-agents/claude-code.svg' }
-    }
-    if (codingAgentId === 'pi') {
-      return { icon: '/coding-agents/pi.svg' }
-    }
+  function completionNotificationAgent(_session: Session): { icon: string } {
     return { icon: '/coding-agents/hermes.png' }
   }
 
@@ -3372,8 +3297,7 @@ export const useChatStore = defineStore('chat', () => {
     const shouldSendInitialSessionConfig = activeSession.value
       ? activeSession.value.messageCount == null || activeSession.value.messageCount === 0
       : false
-    const isCodingAgentSession = isCodingAgentLikeSession(activeSession.value)
-    const isBridgeSlashCommand = !isCodingAgentSession && isKnownBridgeSessionCommand(trimmedContent)
+    const isBridgeSlashCommand = isKnownBridgeSessionCommand(trimmedContent)
     const isBridgeCompressCommand = isBridgeSlashCommand && /^\/compress(?:\s|$)/i.test(trimmedContent)
     const isBridgePlanCommand = isBridgeSlashCommand && /^\/plan(?:\s|$)/i.test(trimmedContent)
     const isBridgeSkillCommand = isBridgeSlashCommand && /^\/skill(?:\s|$)/i.test(trimmedContent)
@@ -3385,7 +3309,7 @@ export const useChatStore = defineStore('chat', () => {
     const submittedContent = messageReference
       ? formatMessageWithReference(messageReference, trimmedContent)
       : trimmedContent
-    const shouldOptimisticallyShowRunStatus = !isCodingAgentSession && !isBridgeForkCommand
+    const shouldOptimisticallyShowRunStatus = !isBridgeForkCommand
     const wasLiveBeforeSend = isSessionLive(sid)
     if (isBridgeForkCommand) {
       if (pendingForkCommands.value.has(sid)) return
@@ -3475,41 +3399,20 @@ export const useChatStore = defineStore('chat', () => {
         ? appStore.profileModelGroups.find(entry => entry.profile === sessionProfile)?.groups
         : undefined
       const runModelGroups = profileModelGroups?.length ? profileModelGroups : appStore.modelGroups
-      const providerGroup = runModelGroups.find(group => group.provider === sessionProvider)
       const storedSource = activeSession.value?.source
+      // Historical 'coding_agent' rows are Hermes sessions now and take the cli path.
       const sessionSource: StartRunRequest['source'] = storedSource === 'workflow'
         ? 'workflow'
-        : isCodingAgentSession
-          ? 'coding_agent'
-          : storedSource === 'api_server'
-            ? 'api_server'
-            : 'cli'
-      const isCodingAgentExecution = sessionSource === 'coding_agent' || (sessionSource === 'workflow' && isCodingAgentSession)
-      const codingAgentId: ChatCodingAgentId =
-        activeSession.value?.codingAgentId ||
-        agentToCodingAgentId(activeSession.value?.agent) ||
-        'claude-code'
-      const codingAgentMode = activeSession.value?.codingAgentMode || 'scoped'
-      const codingAgentApiMode = isCodingAgentExecution && codingAgentMode !== 'global'
-        ? normalizeCodingAgentApiMode(
-            activeSession.value?.apiMode || providerGroup?.api_mode,
-            inferCodingAgentApiMode(
-              sessionProvider || providerGroup?.provider,
-              activeSession.value?.baseUrl || providerGroup?.base_url,
-            ),
-          )
-        : undefined
+        : storedSource === 'api_server'
+          ? 'api_server'
+          : 'cli'
       const runPayload: StartRunRequest = {
         input,
         ...(displayInput ? { display_input: displayInput } : {}),
         session_id: sid,
         profile: sessionProfile,
-        model: isCodingAgentExecution
-          ? (codingAgentMode === 'global' ? undefined : sessionModel || undefined)
-          : shouldSendInitialSessionConfig ? sessionModel || undefined : undefined,
-        provider: isCodingAgentExecution
-          ? (codingAgentMode === 'global' ? undefined : sessionProvider || undefined)
-          : shouldSendInitialSessionConfig ? sessionProvider || undefined : undefined,
+        model: shouldSendInitialSessionConfig ? sessionModel || undefined : undefined,
+        provider: shouldSendInitialSessionConfig ? sessionProvider || undefined : undefined,
         model_groups: runModelGroups.map(group => ({
           provider: group.provider,
           models: group.models,
@@ -3519,22 +3422,9 @@ export const useChatStore = defineStore('chat', () => {
         category_id: activeSession.value?.categoryId ?? null,
         source: sessionSource,
         ...(sessionSource === 'workflow' ? { session_source: 'workflow' as const } : {}),
-        ...(isCodingAgentExecution
-          ? {
-              coding_agent_id: codingAgentId,
-              mode: codingAgentMode,
-              baseUrl: codingAgentMode === 'global' ? undefined : activeSession.value?.baseUrl || providerGroup?.base_url || undefined,
-              apiKey: codingAgentMode === 'global' ? undefined : activeSession.value?.apiKey || providerGroup?.api_key || undefined,
-              apiMode: codingAgentApiMode,
-            }
-          : {}),
-        // Per-session reasoning effort override. Hermes bridge and scoped coding
-        // agents both consume this when the selected provider/API supports it.
-        // Global coding-agent mode uses the user's native CLI config, so avoid
-        // injecting a per-session override there.
-        reasoning_effort: isCodingAgentExecution && codingAgentMode === 'global'
-          ? undefined
-          : activeSession.value?.reasoningEffort || undefined,
+        // Per-session reasoning effort override. The Hermes bridge consumes
+        // this when the selected provider/API supports it.
+        reasoning_effort: activeSession.value?.reasoningEffort || undefined,
         push_enabled: Boolean(activeSession.value?.pushEnabled),
       }
       if (shouldSendInitialSessionConfig && activeSession.value) {
@@ -4283,10 +4173,7 @@ export const useChatStore = defineStore('chat', () => {
       )
       runSubmitted = true
 
-      if (isCodingAgentSession) {
-        serverWorking.value.add(sid)
-        streamStates.value.set(sid, ctrl)
-      } else if (!isBridgeSlashCommand || isBridgeCompressCommand || isBridgePlanCommand || isBridgeGoalCommand) {
+      if (!isBridgeSlashCommand || isBridgeCompressCommand || isBridgePlanCommand || isBridgeGoalCommand) {
         streamStates.value.set(sid, ctrl)
       }
     } catch (err: any) {

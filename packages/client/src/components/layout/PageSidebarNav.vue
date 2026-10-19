@@ -3,7 +3,6 @@ import { computed } from 'vue'
 import { NTooltip } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { isStoredSuperAdmin } from '@/api/client'
 import { useSessionSearch } from '@/composables/useSessionSearch'
 
 type ActiveSection = 'chat' | 'history' | 'models' | 'group' | 'workflow'

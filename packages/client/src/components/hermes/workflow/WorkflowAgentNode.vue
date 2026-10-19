@@ -7,10 +7,7 @@ import { useI18n } from 'vue-i18n'
 import WorkflowModelSelector from './WorkflowModelSelector.vue'
 import WorkflowFieldHelp from './WorkflowFieldHelp.vue'
 import type { WorkflowAgentNodeData, WorkflowAgentNodeEditableData } from './types'
-import type { ChatCodingAgentId, CodingAgentApiMode } from '@/api/coding-agents'
-import type { ProviderApiMode } from '@/api/studio/provider-api-mode'
 import { getFileDownloadUrl } from '@/api/studio/files'
-import { canScopedCodingAgentUseProvider } from '@/utils/codingAgentProviders'
 
 import '@vue-flow/node-resizer/dist/style.css'
 
@@ -29,20 +26,7 @@ const statusTip = computed(() => (
     ? props.data.statusError.trim()
     : ''
 ))
-const isCodingAgent = computed(() => props.data.agent !== 'hermes')
-const selectableModelGroups = computed(() => (
-  isCodingAgent.value
-    ? props.data.modelGroups.filter(group => canScopedCodingAgentUseProvider(
-        props.data.agent as ChatCodingAgentId,
-        group.provider,
-      ))
-    : props.data.modelGroups
-))
-const apiModeOptions = computed(() => [
-  { label: t('codingAgents.protocolOpenAiChat'), value: 'chat_completions' },
-  { label: t('codingAgents.protocolOpenAiResponses'), value: 'codex_responses' },
-  { label: t('codingAgents.protocolAnthropicMessages'), value: 'anthropic_messages' },
-])
+const selectableModelGroups = computed(() => props.data.modelGroups)
 const reasoningEffortOptions = computed(() => [
   { label: t('chat.reasoningEffort.options.default'), value: 'default' },
   { label: t('chat.reasoningEffort.options.none'), value: 'none' },
@@ -60,19 +44,11 @@ function updateField<K extends keyof WorkflowAgentNodeEditableData>(key: K, valu
   props.data.onUpdate(props.id, { [key]: value } as Partial<WorkflowAgentNodeEditableData>)
 }
 
-function handleModelSelect(selection: { provider: string; model: string; apiMode?: ProviderApiMode }) {
-  const patch: Partial<WorkflowAgentNodeEditableData> = {
+function handleModelSelect(selection: { provider: string; model: string }) {
+  props.data.onUpdate(props.id, {
     provider: selection.provider,
     model: selection.model,
-  }
-  if (
-    selection.apiMode === 'chat_completions' ||
-    selection.apiMode === 'codex_responses' ||
-    selection.apiMode === 'anthropic_messages'
-  ) {
-    patch.apiMode = selection.apiMode
-  }
-  props.data.onUpdate(props.id, patch)
+  })
 }
 
 function handleControlEvent(event: Event) {
@@ -173,29 +149,13 @@ async function uploadImages(files: File[]) {
         :placeholder="t('workflow.node.title')"
         @update:value="value => updateField('title', value)"
       />
-      <NSelect
-        :value="data.agent"
-        :options="data.agentOptions"
-        size="small"
-        :disabled="data.readonly"
-        :placeholder="t('workflow.node.agent')"
-        @update:value="value => updateField('agent', value as string)"
-      />
+      <div class="workflow-node-agent-label">{{ t('workflow.node.agent') }}: Hermes</div>
       <WorkflowModelSelector
         :provider="data.provider"
         :model="data.model"
         :groups="selectableModelGroups"
         :disabled="data.readonly"
         @select="handleModelSelect"
-      />
-      <NSelect
-        v-if="isCodingAgent"
-        :value="data.apiMode"
-        :options="apiModeOptions"
-        size="small"
-        :disabled="data.readonly"
-        :placeholder="t('workflow.node.apiMode')"
-        @update:value="value => updateField('apiMode', value as CodingAgentApiMode)"
       />
       <NSelect
         :value="data.reasoningEffort"

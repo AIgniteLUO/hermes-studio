@@ -10,12 +10,6 @@ import {
   defaultGroupAgentAvatar,
   parseStoredAvatar,
 } from '@/utils/group-agent-avatar'
-import { canScopedCodingAgentUseProvider } from '@/utils/codingAgentProviders'
-import {
-  inferCodingAgentApiMode,
-  normalizeCodingAgentApiMode,
-  type CodingAgentApiMode,
-} from '@/api/coding-agents'
 import type { ProfileAvatar as ProfileAvatarData } from '@/api/hermes/profiles'
 import {
   connectLocalGroupAgent,
@@ -44,7 +38,6 @@ const selectedAgentType = ref<GroupAgentType>('hermes')
 const selectedProfile = ref('')
 const selectedAgentProvider = ref('')
 const selectedAgentModel = ref('')
-const selectedAgentApiMode = ref<CodingAgentApiMode>('codex_responses')
 const selectedAgentReasoningEffort = ref('')
 const agentName = ref('')
 const agentDescription = ref('')
@@ -96,40 +89,13 @@ const hasServerHandoff = computed(() => (
   && !!handoffRequestSecret.value
   && !!handoffPairingTicket.value
 ))
-const groupAgentTypeDefinitions: Array<{ label: string; value: GroupAgentType }> = [
-  { label: 'Hermes', value: 'hermes' },
-  { label: 'Claude', value: 'claude' },
-  { label: 'Codex', value: 'codex' },
-  { label: 'Pi', value: 'pi' },
-]
-const groupAgentTypeOptions = computed(() => groupAgentTypeDefinitions.map((option) => {
-  const disabled = !isAgentStatusAvailable(agentStatusSnapshot.value, option.value)
-  return {
-    ...option,
-    disabled,
-    label: disabled ? `${option.label} · ${t('codingAgents.notInstalled')}` : option.label,
-  }
-}))
-const firstAvailableGroupAgentType = computed<GroupAgentType | null>(() =>
-  groupAgentTypeOptions.value.find(option => !option.disabled)?.value || null,
-)
 const profileOptions = computed(() => profileAgents.value.map(agent => ({
   label: agent.profile,
   value: agent.profile,
 })))
 
 function getAgentModelGroups(profile: string) {
-  return (appStore.profileModelGroups.find(entry => entry.profile === profile)?.groups || [])
-    .filter((group) => {
-      if (group.provider === 'moa') return selectedAgentType.value === 'hermes'
-      if (selectedAgentType.value === 'hermes') return true
-      const codingAgentId = selectedAgentType.value === 'claude'
-        ? 'claude-code'
-        : selectedAgentType.value === 'pi'
-          ? 'pi'
-          : 'codex'
-      return canScopedCodingAgentUseProvider(codingAgentId, group.provider)
-    })
+  return appStore.profileModelGroups.find(entry => entry.profile === profile)?.groups || []
 }
 
 function getDefaultAgentModel(profile: string) {
@@ -159,11 +125,6 @@ const agentModelOptions = computed(() => (selectedAgentProviderGroup.value?.mode
   label: appStore.displayModelName(model, selectedAgentProvider.value),
   value: model,
 })))
-const agentApiModeOptions = computed(() => [
-  { label: t('codingAgents.protocolOpenAiChat'), value: 'chat_completions' },
-  { label: t('codingAgents.protocolOpenAiResponses'), value: 'codex_responses' },
-  { label: t('codingAgents.protocolAnthropicMessages'), value: 'anthropic_messages' },
-])
 const agentReasoningEffortOptions = computed(() => [
   { label: t('chat.reasoningEffort.options.default'), value: '' },
   { label: t('chat.reasoningEffort.options.none'), value: 'none' },
@@ -185,7 +146,7 @@ const selectedAgent = computed<RemoteGroupAgentDescriptor | null>(() => {
     profile: selectedProfile.value,
     provider: selectedAgentProvider.value,
     model: selectedAgentModel.value,
-    apiMode: selectedAgentType.value === 'hermes' ? '' : selectedAgentApiMode.value,
+    apiMode: '',
     reasoningEffort: selectedAgentReasoningEffort.value,
     name: agentName.value.trim() || selectedProfile.value,
     description: agentDescription.value.trim(),
@@ -249,31 +210,12 @@ function closeWindow(): void {
   window.close()
 }
 
-function syncAgentApiMode(): void {
-  const group = selectedAgentProviderGroup.value
-  selectedAgentApiMode.value = normalizeCodingAgentApiMode(
-    group?.api_mode,
-    inferCodingAgentApiMode(group?.provider || selectedAgentProvider.value, group?.base_url),
-  )
-}
 
 function syncAgentModelSelection(profile: string): void {
   const defaults = getDefaultAgentModel(profile)
   selectedAgentProvider.value = defaults.provider
   selectedAgentModel.value = defaults.model
   selectedAgentReasoningEffort.value = ''
-  syncAgentApiMode()
-}
-
-function handleAgentTypeChange(agent: GroupAgentType): void {
-  if (!isAgentStatusAvailable(agentStatusSnapshot.value, agent)) {
-    const name = groupAgentTypeDefinitions.find(option => option.value === agent)?.label || agent
-    error.value = t('codingAgents.installRequired', { agent: name })
-    return
-  }
-  error.value = ''
-  selectedAgentType.value = agent
-  syncAgentModelSelection(selectedProfile.value)
 }
 
 function handleAgentProfileChange(profile: string): void {
@@ -285,7 +227,6 @@ function handleAgentProviderChange(provider: string): void {
   selectedAgentProvider.value = provider
   selectedAgentModel.value = agentModelOptions.value[0]?.value || ''
   selectedAgentReasoningEffort.value = ''
-  syncAgentApiMode()
 }
 
 function handleAgentModelChange(model: string): void {
@@ -294,14 +235,10 @@ function handleAgentModelChange(model: string): void {
 }
 
 function applyAgentConfiguration(agent: RemoteGroupAgentDescriptor): void {
-  selectedAgentType.value = agent.agent
+  selectedAgentType.value = 'hermes'
   selectedProfile.value = agent.profile
   selectedAgentProvider.value = agent.provider
   selectedAgentModel.value = agent.model
-  selectedAgentApiMode.value = normalizeCodingAgentApiMode(
-    agent.apiMode,
-    inferCodingAgentApiMode(agent.provider),
-  )
   selectedAgentReasoningEffort.value = agent.reasoningEffort
   agentName.value = agent.name
   agentDescription.value = agent.description
@@ -560,7 +497,7 @@ onMounted(async () => {
         applyAgentConfiguration(connection.agent)
       }
     } else {
-      selectedAgentType.value = firstAvailableGroupAgentType.value || 'hermes'
+      selectedAgentType.value = 'hermes'
       selectedProfile.value =
         profilesStore.activeProfileName
         || profilesStore.profiles.find(profile => profile.active)?.name
@@ -637,15 +574,6 @@ onUnmounted(() => {
             >
           </div>
           <div class="field">
-            <label>{{ t('groupChat.agentType') }}</label>
-            <NSelect
-              :value="selectedAgentType"
-              :options="groupAgentTypeOptions"
-              :disabled="waitingForApproval"
-              @update:value="handleAgentTypeChange"
-            />
-          </div>
-          <div class="field">
             <label>{{ t('sidebar.profiles') }}</label>
             <NSelect
               :value="selectedProfile"
@@ -676,14 +604,6 @@ onUnmounted(() => {
               :disabled="waitingForApproval || !selectedAgentProvider"
               filterable
               @update:value="handleAgentModelChange"
-            />
-          </div>
-          <div v-if="selectedAgentType !== 'hermes'" class="field">
-            <label>{{ t('codingAgents.protocolScope') }}</label>
-            <NSelect
-              v-model:value="selectedAgentApiMode"
-              :options="agentApiModeOptions"
-              :disabled="waitingForApproval"
             />
           </div>
           <div class="field">

@@ -11,8 +11,6 @@ import {
   setSessionWorkspace,
   type SessionCategory,
 } from "@/api/studio/sessions";
-import type { AvailableModelGroup } from "@/api/hermes/system";
-import { fetchCodingAgentsStatus, inferCodingAgentApiMode, normalizeCodingAgentApiMode, type ChatCodingAgentId, type CodingAgentApiMode, type CodingAgentId } from "@/api/coding-agents";
 import { agentInstallationState, fetchAgentAvailabilitySnapshot } from "@/api/agent-status";
 import { useChatStore, type Session } from "@/stores/hermes/chat";
 import { useAppStore } from "@/stores/hermes/app";
@@ -56,7 +54,6 @@ import PageSidebarNav from "@/components/layout/PageSidebarNav.vue";
 import { isStoredSuperAdmin } from "@/api/client";
 import { useDefaultWorkspace } from "@/composables/useDefaultWorkspace";
 import { useCollapsedProviderGroups } from "@/composables/useCollapsedProviderGroups";
-import { canScopedCodingAgentUseProvider } from "@/utils/codingAgentProviders";
 import { OPEN_SUBAGENT_STREAM_EVENT, type OpenSubagentStreamDetail } from "@/utils/hermes/subagent-stream";
 import { desktopBridge, hasDesktopBrowserBridge } from "@/utils/desktop-bridge";
 import { OPEN_DESKTOP_BROWSER_PANEL_EVENT } from "@/utils/desktop-browser";
@@ -745,14 +742,8 @@ const activeSessionTitle = computed(
   () => chatStore.activeSession?.title || t("chat.newChat"),
 );
 
-const activeSessionUsesGlobalCodingAgentConfig = computed(() => {
-  const session = chatStore.activeSession;
-  return session?.codingAgentMode === "global" && Boolean(session.codingAgentId || session.source === "coding_agent");
-});
-
 const activeSessionModelLabel = computed(() => {
   const session = chatStore.activeSession;
-  if (activeSessionUsesGlobalCodingAgentConfig.value) return t("codingAgents.launchModeGlobal");
   if (!session?.model) return t("models.selectModel");
   if (session.provider === "moa") return `MoA · ${session.model}`;
   return appStore.displayModelName(session.model, session.provider);
@@ -765,15 +756,13 @@ const headerTitle = computed(() =>
 );
 
 const showNewChatModal = ref(false);
-const newChatAgent = ref<"hermes" | ChatCodingAgentId>("hermes");
-const newChatAgentMode = ref<"global" | "scoped">("scoped");
+const newChatAgent = ref<"hermes">("hermes");
 const newChatProfile = ref<string>("default");
 const newChatProvider = ref<string>("");
 const newChatModel = ref<string>("");
 const newChatModelKind = ref<"model" | "moa">("model");
 const newChatBaseUrl = ref<string>("");
 const newChatApiKey = ref<string>("");
-const newChatApiMode = ref<CodingAgentApiMode>("codex_responses");
 const newChatWorkspace = ref("");
 const newChatCategoryId = ref<number | null>(null);
 const newChatCategoryCreating = ref(false);
@@ -917,31 +906,6 @@ const hiddenDefaultWorkspaces = computed(() => {
   return defaultWorkspaces.value.filter(ws => !visible.has(ws));
 });
 
-const newChatAgentOptions = computed(() => [
-  { label: "Hermes", value: "hermes" },
-  { label: "Claude", value: "claude-code" },
-  { label: "Codex", value: "codex" },
-  { label: "Pi", value: "pi" },
-]);
-
-const newChatApiModeOptions = computed(() => [
-  { label: t("codingAgents.protocolOpenAiChat"), value: "chat_completions" },
-  { label: t("codingAgents.protocolOpenAiResponses"), value: "codex_responses" },
-  { label: t("codingAgents.protocolAnthropicMessages"), value: "anthropic_messages" },
-]);
-
-const newChatAgentModeOptions = computed(() => [
-  { label: t("codingAgents.launchModeGlobal"), value: "global" },
-  { label: t("codingAgents.launchModeScoped"), value: "scoped" },
-]);
-
-function effectiveNewChatMode(
-  _agent: typeof newChatAgent.value,
-  requestedMode: typeof newChatAgentMode.value,
-) {
-  return requestedMode;
-}
-
 function getModelGroupsForProfile(profile: string) {
   const profileModels = appStore.profileModelGroups.find(
     (entry) => entry.profile === profile,
@@ -949,15 +913,8 @@ function getModelGroupsForProfile(profile: string) {
   return profileModels?.groups || [];
 }
 
-function isNewChatProviderAllowed(group: AvailableModelGroup) {
-  if (group.provider === "moa") return newChatAgent.value === "hermes";
-  const mode = effectiveNewChatMode(newChatAgent.value, newChatAgentMode.value);
-  if (!(newChatAgent.value !== "hermes" && mode === "scoped")) return true;
-  return canScopedCodingAgentUseProvider(newChatAgent.value as ChatCodingAgentId, group.provider);
-}
-
 function getSelectableModelGroupsForProfile(profile: string) {
-  return getModelGroupsForProfile(profile).filter(isNewChatProviderAllowed);
+  return getModelGroupsForProfile(profile);
 }
 
 function getDefaultModelForProfile(profile: string) {
@@ -1012,9 +969,7 @@ const newChatMoaGroup = computed(() =>
   getSelectableModelGroupsForProfile(newChatProfile.value).find((group) => group.provider === "moa"),
 );
 
-const newChatCanUseMoa = computed(() =>
-  newChatAgent.value === "hermes" && Boolean(newChatMoaGroup.value?.models.length),
-);
+const newChatCanUseMoa = computed(() => Boolean(newChatMoaGroup.value?.models.length));
 
 const newChatProviderOptions = computed(() =>
   newChatModelGroups.value.map((group) => ({
@@ -1037,58 +992,20 @@ const selectedNewChatProviderGroup = computed(() =>
   newChatModelGroups.value.find((item) => item.provider === newChatProvider.value),
 );
 
-const isNewChatCodingAgent = computed(() => newChatAgent.value !== "hermes");
-const isNewChatExternalCodingAgent = computed(() => newChatAgent.value === "claude-code" || newChatAgent.value === "codex" || newChatAgent.value === "pi");
-const effectiveNewChatAgentMode = computed(() =>
-  effectiveNewChatMode(newChatAgent.value, newChatAgentMode.value),
-);
-const isNewChatGlobalCodingAgent = computed(() =>
-  isNewChatCodingAgent.value && effectiveNewChatAgentMode.value === "global",
-);
-const newChatUsesProviderModel = computed(() => !isNewChatGlobalCodingAgent.value);
-const newChatNeedsBaseUrl = computed(() =>
-  isNewChatCodingAgent.value && effectiveNewChatAgentMode.value === "scoped" && !selectedNewChatProviderGroup.value?.base_url,
-);
-const newChatNeedsApiKey = computed(() =>
-  isNewChatCodingAgent.value &&
-  effectiveNewChatAgentMode.value === "scoped" &&
-  !selectedNewChatProviderGroup.value?.api_key,
-);
 const canConfirmNewChat = computed(() => {
   if (newChatCategoryCreating.value) return false;
   if (!newChatProfile.value) return false;
-  if (!newChatUsesProviderModel.value) return true;
   if (!newChatProvider.value || !newChatModel.value) return false;
-  if (!isNewChatCodingAgent.value) return true;
-  if (isNewChatCodingAgent.value && effectiveNewChatAgentMode.value === "scoped" && !newChatApiMode.value) return false;
-  if (newChatNeedsBaseUrl.value && !newChatBaseUrl.value.trim()) return false;
-  if (newChatNeedsApiKey.value && !newChatApiKey.value.trim()) return false;
   return true;
 });
 
-function defaultNewChatApiMode(group?: AvailableModelGroup): CodingAgentApiMode {
-  const providerKey = String(group?.provider || newChatProvider.value || "").toLowerCase();
-  const baseUrl = String(group?.base_url || newChatBaseUrl.value || "").toLowerCase();
-  return normalizeCodingAgentApiMode(
-    group?.api_mode,
-    inferCodingAgentApiMode(providerKey, baseUrl),
-  );
-}
-
-function syncNewChatApiMode() {
-  newChatApiMode.value = defaultNewChatApiMode(selectedNewChatProviderGroup.value);
-}
-
 function syncNewChatModelSelection() {
   const defaults = getDefaultModelForProfile(newChatProfile.value);
-  newChatModelKind.value = defaults.provider === "moa" && newChatAgent.value === "hermes"
-    ? "moa"
-    : "model";
+  newChatModelKind.value = defaults.provider === "moa" ? "moa" : "model";
   newChatProvider.value = defaults.provider;
   newChatModel.value = defaults.model;
   newChatBaseUrl.value = "";
   newChatApiKey.value = "";
-  syncNewChatApiMode();
 }
 
 function handleNewChatModelKindChange(value: "model" | "moa") {
@@ -1114,21 +1031,16 @@ function handleNewChatModelKindChange(value: "model" | "moa") {
   }
   newChatBaseUrl.value = "";
   newChatApiKey.value = "";
-  syncNewChatApiMode();
 }
 
 function ensureNewChatProviderSelection() {
-  if (!newChatUsesProviderModel.value) return;
   const currentGroup = selectedNewChatProviderGroup.value;
-  if (currentGroup && currentGroup.models.includes(newChatModel.value)) {
-    syncNewChatApiMode();
-    return;
-  }
+  if (currentGroup && currentGroup.models.includes(newChatModel.value)) return;
   syncNewChatModelSelection();
 }
 
 watch(
-  () => [newChatAgent.value, newChatAgentMode.value, newChatProfile.value],
+  () => [newChatAgent.value, newChatProfile.value],
   () => {
     ensureNewChatProviderSelection();
     // Reload workspace data when profile changes
@@ -1183,7 +1095,6 @@ function handleNewChatProviderChange(value: string) {
   newChatModel.value = newChatModelOptions.value[0]?.value || "";
   newChatBaseUrl.value = "";
   newChatApiKey.value = "";
-  syncNewChatApiMode();
 }
 
 async function confirmNewChat() {
@@ -1207,30 +1118,14 @@ async function confirmNewChat() {
     }
   }
 
-  const group = selectedNewChatProviderGroup.value;
-  const source = newChatAgent.value === "hermes" ? "cli" : "coding_agent";
-  const codingAgentMode = effectiveNewChatAgentMode.value;
-  const isGlobalCodingAgent = source === "coding_agent" && codingAgentMode === "global";
-  const agent = newChatAgent.value === "codex"
-    ? "codex"
-    : newChatAgent.value === "claude-code"
-      ? "claude"
-      : newChatAgent.value === "pi"
-        ? "pi"
-      : "hermes";
   const session = chatStore.newChat({
     profile: newChatProfile.value,
-    provider: isGlobalCodingAgent ? undefined : newChatProvider.value,
-    model: isGlobalCodingAgent ? undefined : newChatModel.value,
-    source,
-    agent,
-    codingAgentId: newChatAgent.value === "hermes" ? undefined : newChatAgent.value,
-    codingAgentMode: source === "coding_agent" ? codingAgentMode : undefined,
+    provider: newChatProvider.value,
+    model: newChatModel.value,
+    source: "cli",
+    agent: "hermes",
     workspace: newChatWorkspace.value || null,
     categoryId: newChatCategoryId.value,
-    baseUrl: source === "coding_agent" && !isGlobalCodingAgent ? group?.base_url || newChatBaseUrl.value.trim() || undefined : undefined,
-    apiKey: source === "coding_agent" && !isGlobalCodingAgent ? group?.api_key || newChatApiKey.value.trim() || undefined : undefined,
-    apiMode: isNewChatCodingAgent.value && !isGlobalCodingAgent ? newChatApiMode.value : undefined,
   });
   // Record workspace to recent list
   if (newChatWorkspace.value && workspaceComposable) {
@@ -1480,10 +1375,7 @@ const contextMenuOptions = computed(() => {
 
   options.push({ label: t("chat.setWorkspace"), key: "workspace" })
 
-  if (
-    contextSession.value?.source === "cli" ||
-    (contextSession.value?.source === "coding_agent" && contextSession.value?.codingAgentMode !== "global")
-  ) {
+  if (contextSession.value?.source === "cli" || !contextSession.value?.source) {
     options.push({ label: t("chat.setModel"), key: "model" })
   }
 
@@ -1703,7 +1595,6 @@ async function handleWorkspaceConfirm() {
 }
 
 const showSessionModelModal = ref(false);
-const showSessionModelModeModal = ref(false);
 const sessionModelSessionId = ref<string | null>(null);
 const sessionModelSearch = ref("");
 const sessionModelKind = ref<"model" | "moa">("model");
@@ -1715,8 +1606,6 @@ const sessionModelValue = ref("");
 const sessionModelProvider = ref("");
 const sessionModelCustomInput = ref("");
 const sessionModelCustomProvider = ref("");
-const sessionModelApiMode = ref<CodingAgentApiMode>("codex_responses");
-const pendingSessionModelSwitch = ref<{ model: string; provider: string } | null>(null);
 const sessionModelSwitching = ref(false);
 
 const sessionModelProfile = computed<string | null>(() => {
@@ -1724,36 +1613,9 @@ const sessionModelProfile = computed<string | null>(() => {
   return session?.profile || null;
 });
 
-const sessionModelSession = computed(() =>
-  chatStore.sessions.find((s) => s.id === sessionModelSessionId.value) ||
-  (chatStore.activeSession?.id === sessionModelSessionId.value ? chatStore.activeSession : undefined),
-);
-
-const isSessionModelScopedCodingAgent = computed(() =>
-  sessionModelSession.value?.source === "coding_agent" &&
-  sessionModelSession.value?.codingAgentMode !== "global",
-);
-const sessionModelCodingAgentId = computed<ChatCodingAgentId | undefined>(() =>
-  sessionModelSession.value?.codingAgentId ||
-  (sessionModelSession.value?.agent === "claude"
-    ? "claude-code"
-    : sessionModelSession.value?.agent === "codex"
-      ? "codex"
-      : undefined),
-);
-const isSessionModelCodingAgent = computed(() =>
-  sessionModelSession.value?.source === "coding_agent" || Boolean(sessionModelSession.value?.codingAgentId),
-);
-
 const sessionModelAllGroups = computed(() =>
   sessionModelProfile.value
-    ? getModelGroupsForProfile(sessionModelProfile.value).filter((group) => (
-        group.provider === "moa"
-          ? !isSessionModelCodingAgent.value
-          : (!isSessionModelScopedCodingAgent.value ||
-            !sessionModelCodingAgentId.value ||
-            canScopedCodingAgentUseProvider(sessionModelCodingAgentId.value, group.provider))
-      ))
+    ? getModelGroupsForProfile(sessionModelProfile.value)
     : [],
 );
 
@@ -1765,9 +1627,7 @@ const sessionMoaGroup = computed(() =>
   sessionModelAllGroups.value.find((group) => group.provider === "moa"),
 );
 
-const sessionCanUseMoa = computed(() =>
-  !isSessionModelCodingAgent.value && Boolean(sessionMoaGroup.value?.models.length),
-);
+const sessionCanUseMoa = computed(() => Boolean(sessionMoaGroup.value?.models.length));
 
 const sessionModelProviderOptions = computed(() =>
   sessionModelBaseGroups.value.map((group) => ({ label: group.label, value: group.provider })),
@@ -1809,10 +1669,7 @@ async function openSessionModelModal(sessionId: string) {
   const requestedSession =
     chatStore.sessions.find((s) => s.id === sessionId) ||
     (chatStore.activeSession?.id === sessionId ? chatStore.activeSession : undefined);
-  if (
-    requestedSession?.codingAgentMode === "global" &&
-    Boolean(requestedSession.codingAgentId || requestedSession.source === "coding_agent")
-  ) return;
+  if (!requestedSession) return;
   if (appStore.modelGroups.length === 0 && appStore.profileModelGroups.length === 0) {
     await appStore.loadModels();
   }
@@ -1852,7 +1709,6 @@ function handleSessionModelKindChange(value: "model" | "moa") {
 }
 
 function handleHeaderModelClick() {
-  if (activeSessionUsesGlobalCodingAgentConfig.value) return;
   const sessionId = chatStore.activeSession?.id;
   if (!sessionId) {
     openNewChatModal();
@@ -1878,27 +1734,14 @@ function sessionModelAlias(model: string, provider: string) {
   return appStore.getModelAlias(model, provider);
 }
 
-function defaultSessionModelApiMode(provider: string): CodingAgentApiMode {
-  const group = sessionModelBaseGroups.value.find((item) => item.provider === provider);
-  const providerKey = String(group?.provider || provider || "").toLowerCase();
-  const baseUrl = String(group?.base_url || "").toLowerCase();
-  return normalizeCodingAgentApiMode(
-    group?.api_mode,
-    inferCodingAgentApiMode(providerKey, baseUrl),
-  );
-}
-
-async function applySessionModelSwitch(model: string, provider: string, apiMode?: CodingAgentApiMode) {
+async function applySessionModelSwitch(model: string, provider: string) {
   if (!sessionModelSessionId.value || sessionModelSwitching.value) return;
   sessionModelSwitching.value = true;
   try {
-    const ok = await chatStore.switchSessionModel(model, provider, sessionModelSessionId.value, apiMode);
+    const ok = await chatStore.switchSessionModel(model, provider, sessionModelSessionId.value);
     if (ok) {
       sessionModelValue.value = model;
       sessionModelProvider.value = provider;
-      if (apiMode) sessionModelApiMode.value = apiMode;
-      pendingSessionModelSwitch.value = null;
-      showSessionModelModeModal.value = false;
       showSessionModelModal.value = false;
       message.success(t("chat.modelSet"));
     } else {
@@ -1912,32 +1755,12 @@ async function applySessionModelSwitch(model: string, provider: string, apiMode?
 async function selectSessionModel(model: string, provider: string) {
   const meta = sessionModelBaseGroups.value.find((group) => group.provider === provider)?.model_meta?.[model];
   if (meta?.disabled || !sessionModelSessionId.value || sessionModelSwitching.value) return;
-  if (isSessionModelScopedCodingAgent.value) {
-    pendingSessionModelSwitch.value = { model, provider };
-    sessionModelApiMode.value = sessionModelSession.value?.provider === provider && sessionModelSession.value.apiMode
-      ? normalizeCodingAgentApiMode(sessionModelSession.value.apiMode, defaultSessionModelApiMode(provider))
-      : defaultSessionModelApiMode(provider);
-    showSessionModelModeModal.value = true;
-    return;
-  }
   await applySessionModelSwitch(model, provider);
 }
 
 async function selectSessionMoaPreset(preset: string) {
   if (!preset || sessionModelSwitching.value) return;
   await applySessionModelSwitch(preset, "moa");
-}
-
-async function confirmSessionModelMode() {
-  const pending = pendingSessionModelSwitch.value;
-  if (!pending) return;
-  await applySessionModelSwitch(pending.model, pending.provider, sessionModelApiMode.value);
-}
-
-function cancelSessionModelMode() {
-  if (sessionModelSwitching.value) return;
-  pendingSessionModelSwitch.value = null;
-  showSessionModelModeModal.value = false;
 }
 
 async function handleSessionModelCustomSubmit() {
@@ -2508,30 +2331,6 @@ async function handleSessionModelCustomSubmit() {
       </NSpin>
     </NModal>
 
-    <NModal
-      v-model:show="showSessionModelModeModal"
-      preset="dialog"
-      :title="t('codingAgents.protocolScope')"
-      :mask-closable="!sessionModelSwitching"
-      :close-on-esc="!sessionModelSwitching"
-      :closable="!sessionModelSwitching"
-      style="width: min(420px, calc(100vw - 32px))"
-    >
-      <NSelect
-        v-model:value="sessionModelApiMode"
-        :options="newChatApiModeOptions"
-        :disabled="sessionModelSwitching"
-      />
-      <template #action>
-        <NButton size="small" :disabled="sessionModelSwitching" @click="cancelSessionModelMode">
-          {{ t('common.cancel') }}
-        </NButton>
-        <NButton size="small" type="primary" :loading="sessionModelSwitching" @click="confirmSessionModelMode">
-          {{ sessionModelSwitching ? t('chat.modelSwitching') : t('common.confirm') }}
-        </NButton>
-      </template>
-    </NModal>
-
     <NDrawer
       v-model:show="showNewChatModal"
       class="new-chat-drawer"
@@ -2541,26 +2340,6 @@ async function handleSessionModelCustomSubmit() {
     >
       <NDrawerContent :title="t('chat.newChat')" closable>
         <div class="new-chat-form">
-          <label class="new-chat-field">
-            <span class="new-chat-label">{{ t("chat.agent") }}</span>
-            <NSelect
-              v-model:value="newChatAgent"
-              :options="newChatAgentOptions"
-              :disabled="newChatLoading"
-            />
-          </label>
-          <label v-if="isNewChatExternalCodingAgent" class="new-chat-field">
-            <span class="new-chat-label">{{ t("codingAgents.launchModeScope") }}</span>
-            <NRadioGroup v-model:value="newChatAgentMode" name="new-chat-coding-agent-mode">
-              <NRadioButton
-                v-for="option in newChatAgentModeOptions"
-                :key="option.value"
-                :value="option.value"
-              >
-                {{ option.label }}
-              </NRadioButton>
-            </NRadioGroup>
-          </label>
           <label class="new-chat-field">
             <span class="new-chat-label">{{ t("sidebar.profiles") }}</span>
             <NSelect
@@ -2584,7 +2363,7 @@ async function handleSessionModelCustomSubmit() {
             />
             <span class="new-chat-field-hint">{{ t("chat.categoryCreateHint") }}</span>
           </label>
-          <label v-if="newChatUsesProviderModel && newChatCanUseMoa" class="new-chat-field">
+          <label v-if="newChatCanUseMoa" class="new-chat-field">
             <span class="new-chat-label">{{ t('chat.modelType') }}</span>
             <NRadioGroup
               :value="newChatModelKind"
@@ -2595,7 +2374,7 @@ async function handleSessionModelCustomSubmit() {
               <NRadioButton value="moa">{{ t('chat.moaPresets') }}</NRadioButton>
             </NRadioGroup>
           </label>
-          <label v-if="newChatUsesProviderModel && newChatModelKind === 'model'" class="new-chat-field">
+          <label v-if="newChatModelKind === 'model'" class="new-chat-field">
             <span class="new-chat-label">{{ t("models.provider") }}</span>
             <NSelect
               :value="newChatProvider"
@@ -2604,7 +2383,7 @@ async function handleSessionModelCustomSubmit() {
               @update:value="handleNewChatProviderChange"
             />
           </label>
-          <label v-if="newChatUsesProviderModel" class="new-chat-field">
+          <label class="new-chat-field">
             <span class="new-chat-label">
               {{ newChatModelKind === 'moa' ? t('chat.moaPresets') : t('models.models') }}
             </span>
@@ -2613,30 +2392,6 @@ async function handleSessionModelCustomSubmit() {
               :options="newChatModelOptions"
               :disabled="newChatLoading || !newChatProvider"
               filterable
-            />
-          </label>
-          <label v-if="isNewChatCodingAgent && effectiveNewChatAgentMode === 'scoped'" class="new-chat-field">
-            <span class="new-chat-label">{{ t("codingAgents.protocolScope") }}</span>
-            <NSelect
-              v-model:value="newChatApiMode"
-              :options="newChatApiModeOptions"
-              :disabled="newChatLoading"
-            />
-          </label>
-          <label v-if="newChatNeedsBaseUrl" class="new-chat-field">
-            <span class="new-chat-label">{{ t("models.baseUrl") }}</span>
-            <NInput
-              v-model:value="newChatBaseUrl"
-              :placeholder="t('models.baseUrlPlaceholder')"
-            />
-          </label>
-          <label v-if="newChatNeedsApiKey" class="new-chat-field">
-            <span class="new-chat-label">{{ t("models.apiKey") }}</span>
-            <NInput
-              v-model:value="newChatApiKey"
-              type="password"
-              show-password-on="click"
-              :placeholder="t('models.apiKeyPlaceholder')"
             />
           </label>
           <div class="new-chat-field">
@@ -2897,7 +2652,7 @@ async function handleSessionModelCustomSubmit() {
             <ChatInput
               ref="chatInputRef"
               :model-label="activeSessionModelLabel"
-              :model-disabled="activeSessionUsesGlobalCodingAgentConfig"
+              :model-disabled="false"
               :initial-text="initialComposerText"
               :persist-draft="composerPersistDraft"
               @model-click="handleHeaderModelClick"

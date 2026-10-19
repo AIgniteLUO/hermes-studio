@@ -61,7 +61,6 @@ import {
   workflowLoopBodyNodeIds,
 } from '@/utils/workflow-edge-authoring'
 import WorkflowAgentNode from '@/components/hermes/workflow/WorkflowAgentNode.vue'
-import { canScopedCodingAgentUseProvider } from '@/utils/codingAgentProviders'
 import WorkflowFieldHelp from '@/components/hermes/workflow/WorkflowFieldHelp.vue'
 import WorkflowConditionEdge from '@/components/hermes/workflow/WorkflowConditionEdge.vue'
 import FolderPicker from '@/components/hermes/chat/FolderPicker.vue'
@@ -111,7 +110,6 @@ import {
 } from '@/api/studio/workflow-socket'
 import { fetchSkills } from '@/api/hermes/skills'
 import { fetchSession } from '@/api/studio/sessions'
-import { inferCodingAgentApiMode, normalizeCodingAgentApiMode, type ChatCodingAgentId } from '@/api/coding-agents'
 import { buildWorkflowSkillOptions, workflowAgentToSkillTarget } from '@/utils/hermes/workflow-skills'
 import type {
   WorkflowAgentNodeData,
@@ -415,9 +413,6 @@ let workflowBudgetClock: number | null = null
 
 const workflowAgentDefinitions: WorkflowSelectOption[] = [
   { label: 'Hermes', value: 'hermes' },
-  { label: 'Claude', value: 'claude-code' },
-  { label: 'Codex', value: 'codex' },
-  { label: 'Pi', value: 'pi' },
 ]
 
 const agentOptions = computed<WorkflowSelectOption[]>(() => workflowAgentDefinitions.map((option) => {
@@ -433,8 +428,8 @@ const firstAvailableWorkflowAgent = computed(() =>
   agentOptions.value.find(option => !option.disabled)?.value || null,
 )
 
-function workflowAgentDisplayName(agent: string): string {
-  return String(workflowAgentDefinitions.find(option => option.value === agent)?.label || agent)
+function workflowAgentDisplayName(_agent: string): string {
+  return 'Hermes'
 }
 
 async function refreshAgentAvailability() {
@@ -642,7 +637,7 @@ function makeNode(
   position: { x: number; y: number },
   data: Partial<WorkflowAgentNodeEditableData> & { status?: WorkflowNodeStatus } = {},
 ): WorkflowNode {
-  const agent = data.agent || firstAvailableWorkflowAgent.value || 'hermes'
+  const agent = 'hermes'
   return {
     id,
     type: 'agent',
@@ -654,7 +649,6 @@ function makeNode(
       agent,
       provider: data.provider || defaultModelSelection.value.provider,
       model: data.model || defaultModelSelection.value.model,
-      apiMode: data.apiMode || defaultApiMode(data.provider || defaultModelSelection.value.provider),
       reasoningEffort: data.reasoningEffort || 'default',
       input: data.input || '',
       skills: data.skills || [],
@@ -1017,30 +1011,16 @@ function closeWorkflowChatPanel() {
   workflowChatPanelTitle.value = ''
 }
 
-function defaultApiMode(provider: string) {
-  const group = modelGroups.value.find(item => item.provider === provider)
-  return normalizeCodingAgentApiMode(
-    group?.api_mode,
-    inferCodingAgentApiMode(group?.provider || provider, group?.base_url),
-  )
-}
-
-function normalizeNodeModel(data: WorkflowAgentNodeData): Pick<WorkflowAgentNodeData, 'provider' | 'model' | 'apiMode'> {
-  const availableGroups = data.agent === 'hermes'
-    ? modelGroups.value
-    : modelGroups.value.filter(group => canScopedCodingAgentUseProvider(
-        data.agent as ChatCodingAgentId,
-        group.provider,
-      ))
+function normalizeNodeModel(data: WorkflowAgentNodeData): Pick<WorkflowAgentNodeData, 'provider' | 'model'> {
+  const availableGroups = modelGroups.value
   const currentGroup = availableGroups.find(group => group.provider === data.provider)
   if (currentGroup?.models.includes(data.model)) {
-    return { provider: data.provider, model: data.model, apiMode: data.apiMode || defaultApiMode(data.provider) }
+    return { provider: data.provider, model: data.model }
   }
   const fallbackGroup = availableGroups.find(group => group.models.length > 0)
   return {
     provider: fallbackGroup?.provider || '',
     model: fallbackGroup?.models[0] || '',
-    apiMode: defaultApiMode(fallbackGroup?.provider || ''),
   }
 }
 
@@ -1086,7 +1066,6 @@ function serializeWorkflowNodes(source: WorkflowNode[]): unknown[] {
       agent: node.data.agent,
       provider: node.data.provider,
       model: node.data.model,
-      apiMode: node.data.apiMode,
       reasoningEffort: node.data.reasoningEffort,
       input: node.data.input,
       skills: [...node.data.skills],
@@ -1141,10 +1120,9 @@ function normalizeStoredNode(raw: unknown, index: number): WorkflowNode {
     typeof data.title === 'string' && data.title ? data.title : t('workflow.newNodeTitle', { count: index + 1 }),
     position,
     {
-      agent: data.agent,
+      agent: 'hermes',
       provider: data.provider,
       model: data.model,
-      apiMode: data.apiMode,
       reasoningEffort: typeof data.reasoningEffort === 'string' ? data.reasoningEffort : 'default',
       input: data.input,
       skills: Array.isArray(data.skills) ? data.skills.filter(item => typeof item === 'string') : [],
@@ -2553,9 +2531,6 @@ function workflowValidationError(): string | null {
     if (!node.data.title.trim()) return t('workflow.validation.nodeNameRequired', { node: node.id })
     if (!node.data.provider.trim()) return t('workflow.validation.providerRequired', { node: label })
     if (!node.data.model.trim()) return t('workflow.validation.modelRequired', { node: label })
-    if (node.data.agent !== 'hermes' && !node.data.apiMode) {
-      return t('workflow.validation.apiModeRequired', { node: label })
-    }
     if (!node.data.input.trim()) return t('workflow.validation.inputRequired', { node: label })
   }
 

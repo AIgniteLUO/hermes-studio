@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { buildWorkflowSkillOptions, workflowAgentToSkillTarget } from '@/utils/hermes/workflow-skills'
 
 describe('workflow skill helpers', () => {
-  it('maps workflow agents to skill API targets', () => {
+  it('maps every workflow agent, including historical ones, to the Hermes skill target', () => {
     expect(workflowAgentToSkillTarget('hermes')).toBe('hermes')
-    expect(workflowAgentToSkillTarget('claude-code')).toBe('claude')
-    expect(workflowAgentToSkillTarget('codex')).toBe('codex')
-    expect(workflowAgentToSkillTarget('pi')).toBe('pi')
+    expect(workflowAgentToSkillTarget('claude-code')).toBe('hermes')
+    expect(workflowAgentToSkillTarget('codex')).toBe('hermes')
+    expect(workflowAgentToSkillTarget('pi')).toBe('hermes')
     expect(workflowAgentToSkillTarget('unknown-agent')).toBe('hermes')
   })
 

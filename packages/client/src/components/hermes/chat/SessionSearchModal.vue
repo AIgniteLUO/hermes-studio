@@ -6,7 +6,6 @@ import { useI18n } from 'vue-i18n'
 import { fetchSessions, searchSessions, type SessionSearchResult, type SessionSummary } from '@/api/studio/sessions'
 import { useChatStore } from '@/stores/hermes/chat'
 import { useSessionSearch } from '@/composables/useSessionSearch'
-import type { Session } from '@/stores/hermes/chat'
 
 const { t } = useI18n()
 const message = useMessage()
@@ -132,14 +131,6 @@ async function openItem(item: SearchItem) {
 
   await ensureChatSessionsLoaded()
   if (!chatStore.sessions.some(session => session.id === item.id) && typeof chatStore.addOrUpdateSession === 'function') {
-    const isCodingAgentSession = item.source === 'coding_agent' || item.agent === 'claude' || item.agent === 'codex' || item.agent === 'pi'
-    const codingAgentId: Session['codingAgentId'] = item.agent === 'codex'
-      ? 'codex'
-      : item.agent === 'pi'
-        ? 'pi'
-        : item.agent === 'claude'
-          ? 'claude-code'
-          : undefined
     chatStore.addOrUpdateSession({
       id: item.id,
       profile: item.profile || 'default',
@@ -157,12 +148,6 @@ async function openItem(item: SearchItem) {
       agent: item.agent || undefined,
       agentSessionId: item.agent_session_id || undefined,
       agentNativeSessionId: item.agent_native_session_id || undefined,
-      codingAgentId,
-      codingAgentMode: isCodingAgentSession
-        ? (item.agent_mode === 'global' || item.agent_mode === 'scoped'
-            ? item.agent_mode
-            : item.provider === 'global' ? 'global' : 'scoped')
-        : undefined,
     })
   }
   await chatStore.switchSession(item.id, messageId)

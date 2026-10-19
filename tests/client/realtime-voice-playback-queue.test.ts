@@ -300,7 +300,7 @@ describe('RealtimeVoiceStage prepared playback queue', () => {
     const wrapper = mount(RealtimeVoiceStage)
     expect(wrapper.find('.voice-stage__controls').exists()).toBe(false)
     expect(wrapper.find('.voice-stage__back').exists()).toBe(true)
-    expect(wrapper.get('.voice-stage__identity span').text()).toBe('Codex')
+    expect(wrapper.get('.voice-stage__identity span').text()).toBe('Hermes')
 
     await wrapper.get('[data-testid="realtime-voice-toggle"]').trigger('click')
     await settle()

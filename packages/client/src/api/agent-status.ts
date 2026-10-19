@@ -1,6 +1,6 @@
 import { request } from './client'
 
-export type AgentStatusId = 'hermes' | 'claude-code' | 'codex' | 'pi'
+export type AgentStatusId = 'hermes'
 export type AgentStatusSource = 'managed-runtime' | 'user-cli' | 'built-in' | 'not-installed'
 
 export interface AgentStatusRecord {
@@ -32,12 +32,9 @@ export interface AgentAvailabilitySnapshot {
 
 export type AgentInstallationState = 'installed' | 'not-installed' | 'unknown'
 
+// Removed runtimes resolve to null; callers treat them as unavailable.
 const AGENT_STATUS_ALIASES: Record<string, AgentStatusId> = {
   hermes: 'hermes',
-  claude: 'claude-code',
-  'claude-code': 'claude-code',
-  codex: 'codex',
-  pi: 'pi',
 }
 
 export function resolveAgentStatusId(agent: string): AgentStatusId | null {

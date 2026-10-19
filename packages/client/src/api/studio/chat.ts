@@ -1,6 +1,5 @@
 import { io, type Socket } from 'socket.io-client'
 import { getBaseUrlValue, getApiKey } from '../client'
-import type { ChatCodingAgentId } from '../coding-agents'
 import type { ProviderApiMode } from './provider-api-mode'
 
 export type ContentBlock =
@@ -24,10 +23,8 @@ export interface StartRunRequest {
   provider?: string
   model_groups?: Array<{ provider: string; models: string[] }>
   queue_id?: string
-  source?: 'api_server' | 'cli' | 'coding_agent' | 'workflow' | 'group_chat'
+  source?: 'api_server' | 'cli' | 'workflow' | 'group_chat'
   session_source?: 'workflow' | 'group_chat'
-  coding_agent_id?: ChatCodingAgentId
-  agent_id?: ChatCodingAgentId
   mode?: 'scoped' | 'global'
   workspace?: string | null
   category_id?: number | null

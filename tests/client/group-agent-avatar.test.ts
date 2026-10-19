@@ -13,14 +13,14 @@ describe('group agent avatars', () => {
     })
   })
 
-  it('falls back to the matching single-chat agent icon', () => {
+  it('falls back to the Hermes icon for every room agent', () => {
     expect(defaultGroupAgentAvatar('hermes').dataUrl).toBe('/coding-agents/hermes.png')
-    expect(defaultGroupAgentAvatar('codex').dataUrl).toBe('/coding-agents/codex-openai.png')
-    expect(defaultGroupAgentAvatar('claude').dataUrl).toBe('/coding-agents/claude-code.svg')
-    expect(defaultGroupAgentAvatar('pi').dataUrl).toBe('/coding-agents/pi.svg')
-    // A room agent without a runtime keeps the Hermes icon instead of a blank avatar.
+    // Historical room agents from removed runtimes render the Hermes icon.
+    expect(defaultGroupAgentAvatar('codex').dataUrl).toBe('/coding-agents/hermes.png')
+    expect(defaultGroupAgentAvatar('claude').dataUrl).toBe('/coding-agents/hermes.png')
+    expect(defaultGroupAgentAvatar('pi').dataUrl).toBe('/coding-agents/hermes.png')
     expect(defaultGroupAgentAvatar(undefined).dataUrl).toBe('/coding-agents/hermes.png')
-    expect(groupAgentAvatar({ agent: 'codex', avatar: '' }).dataUrl).toBe('/coding-agents/codex-openai.png')
+    expect(groupAgentAvatar({ agent: 'codex', avatar: '' }).dataUrl).toBe('/coding-agents/hermes.png')
   })
 
   it('reconstructs a removed Agent from message display metadata', () => {
@@ -42,7 +42,7 @@ describe('group agent avatars', () => {
     expect(reconstructed).toMatchObject({
       id: 'agent-row-1',
       agentId: 'agent-1',
-      agent: 'codex',
+      agent: 'hermes',
       name: 'Worker',
       avatar,
       connectionStatus: 'offline',

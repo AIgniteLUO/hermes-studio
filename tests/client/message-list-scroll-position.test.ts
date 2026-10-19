@@ -197,9 +197,10 @@ describe('MessageList session scroll position', () => {
     ['Hermes', { agent: 'hermes' }, 'Hermes', '/coding-agents/hermes.png'],
     // A session persisted before the built-in runtime was removed keeps the Hermes avatar.
     ['legacy Hermes', { agent: 'ekko-agent' }, 'Hermes', '/coding-agents/hermes.png'],
-    ['Claude', { source: 'coding_agent', agent: 'claude', codingAgentId: 'claude-code' }, 'Claude', '/coding-agents/claude-code.svg'],
-    ['Codex', { source: 'coding_agent', agent: 'codex', codingAgentId: 'codex' }, 'Codex', '/coding-agents/codex-openai.png'],
-    ['Pi', { source: 'coding_agent', agent: 'pi', codingAgentId: 'pi' }, 'Pi', '/coding-agents/pi.svg'],
+    // Historical coding-agent sessions render the Hermes avatar.
+    ['legacy Claude', { source: 'coding_agent', agent: 'claude' }, 'Hermes', '/coding-agents/hermes.png'],
+    ['legacy Codex', { source: 'coding_agent', agent: 'codex' }, 'Hermes', '/coding-agents/hermes.png'],
+    ['legacy Pi', { source: 'coding_agent', agent: 'pi' }, 'Hermes', '/coding-agents/hermes.png'],
   ])('passes the $runtime avatar to Assistant message bubbles', async (runtime, identity, label, src) => {
     const chatStore = useChatStore()
     const activeSession = { ...makeSession(`avatar-${runtime}`), ...identity } as Session

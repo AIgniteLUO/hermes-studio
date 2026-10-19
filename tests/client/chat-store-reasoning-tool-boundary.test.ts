@@ -708,25 +708,17 @@ describe('chat store reasoning/tool boundaries', () => {
     ].join('\n'))
   })
 
-  it('queues active coding agent follow-up messages without command styling', async () => {
+  it('queues active historical coding-agent follow-up messages without command styling', async () => {
     const store = useChatStore()
     const session = makeSession()
     session.source = 'coding_agent'
     session.agent = 'claude'
-    session.codingAgentId = 'claude-code'
     store.sessions = [session]
     store.activeSessionId = 'session-1'
     store.activeSession = session
 
     await store.sendMessage('first input')
     const onEvent = chatApi.startRunViaSocket.mock.calls[0][1] as (event: RunEvent) => void
-    onEvent({
-      event: 'agent.event',
-      session_id: 'session-1',
-      source: 'coding_agent',
-      kind: 'status',
-      text: 'Input sent to coding agent.',
-    })
     expect(store.messages).toHaveLength(1)
 
     onEvent({ event: 'run.started', session_id: 'session-1' })
@@ -841,100 +833,6 @@ describe('chat store reasoning/tool boundaries', () => {
     ])
   })
 
-  it('starts global coding-agent runs without provider credentials', async () => {
-    const store = useChatStore()
-    const session = makeSession()
-    session.source = 'coding_agent'
-    session.agent = 'codex'
-    session.codingAgentId = 'codex'
-    session.codingAgentMode = 'global'
-    session.provider = 'should-not-send'
-    session.model = 'should-not-send'
-    session.baseUrl = 'http://example.invalid'
-    session.apiKey = 'secret'
-    session.apiMode = 'chat_completions'
-    session.reasoningEffort = 'high'
-    store.sessions = [session]
-    store.activeSessionId = 'session-1'
-    store.activeSession = session
-
-    await store.sendMessage('use global codex auth')
-
-    const body = chatApi.startRunViaSocket.mock.calls[0][0]
-    expect(body).toEqual(expect.objectContaining({
-      source: 'coding_agent',
-      coding_agent_id: 'codex',
-      mode: 'global',
-    }))
-    expect(body.provider).toBeUndefined()
-    expect(body.model).toBeUndefined()
-    expect(body.baseUrl).toBeUndefined()
-    expect(body.apiKey).toBeUndefined()
-    expect(body.apiMode).toBeUndefined()
-    expect(body.reasoning_effort).toBeUndefined()
-  })
-
-  it('sends the hidden API mode when starting a scoped Pi run', async () => {
-    const store = useChatStore()
-    const session = makeSession()
-    session.source = 'coding_agent'
-    session.agent = 'pi'
-    session.codingAgentId = 'pi'
-    session.codingAgentMode = 'scoped'
-    session.provider = 'custom:fun-codex'
-    session.model = 'gpt-5.5'
-    session.baseUrl = 'https://api.apikey.fun/v1'
-    session.apiMode = 'codex_responses'
-    store.sessions = [session]
-    store.activeSessionId = 'session-1'
-    store.activeSession = session
-
-    await store.sendMessage('check the weather')
-
-    expect(chatApi.startRunViaSocket.mock.calls[0][0]).toEqual(expect.objectContaining({
-      source: 'coding_agent',
-      coding_agent_id: 'pi',
-      mode: 'scoped',
-      provider: 'custom:fun-codex',
-      model: 'gpt-5.5',
-      apiMode: 'codex_responses',
-    }))
-  })
-
-  it('clears stale coding-agent runtime credentials when switching providers', async () => {
-    const store = useChatStore()
-    const session = makeSession()
-    session.source = 'coding_agent'
-    session.agent = 'codex'
-    session.codingAgentId = 'codex'
-    session.codingAgentMode = 'scoped'
-    session.provider = 'xiaomi'
-    session.model = 'mimo-v2.5-pro'
-    session.baseUrl = 'https://api.xiaomimimo.com/v1'
-    session.apiKey = 'sk-xiaomi'
-    session.apiMode = 'chat_completions'
-    session.reasoningEffort = 'high'
-    store.sessions = [session]
-    store.activeSessionId = 'session-1'
-    store.activeSession = session
-
-    const ok = await store.switchSessionModel('deepseek-v4-pro', 'deepseek', 'session-1', 'chat_completions')
-
-    expect(ok).toBe(true)
-    expect(sessionsApi.setSessionModel).toHaveBeenCalledWith(
-      'session-1',
-      'deepseek-v4-pro',
-      'deepseek',
-      'chat_completions',
-    )
-    expect(session.provider).toBe('deepseek')
-    expect(session.model).toBe('deepseek-v4-pro')
-    expect(session.baseUrl).toBeUndefined()
-    expect(session.apiKey).toBeUndefined()
-    expect(session.apiMode).toBe('chat_completions')
-    expect(session.reasoningEffort).toBeUndefined()
-  })
-
   it('keeps a local-only session workspace when switching models before the first message', async () => {
     const store = useChatStore()
     const session = makeSession()
@@ -965,82 +863,6 @@ describe('chat store reasoning/tool boundaries', () => {
       provider: 'deepseek',
       workspace: 'D:\\projects\\hermes',
     }))
-  })
-
-  it('preserves a scoped coding-agent API mode when reselecting the same provider', async () => {
-    const store = useChatStore()
-    const session = makeSession()
-    session.source = 'coding_agent'
-    session.agent = 'codex'
-    session.codingAgentId = 'codex'
-    session.codingAgentMode = 'scoped'
-    session.provider = 'fun-codex'
-    session.model = 'gpt-5.4'
-    session.apiMode = 'chat_completions'
-    store.sessions = [session]
-    store.activeSessionId = 'session-1'
-    store.activeSession = session
-
-    const ok = await store.switchSessionModel('gpt-5.5', 'fun-codex', 'session-1')
-
-    expect(ok).toBe(true)
-    expect(sessionsApi.setSessionModel).toHaveBeenCalledWith(
-      'session-1',
-      'gpt-5.5',
-      'fun-codex',
-      'chat_completions',
-    )
-    expect(session.apiMode).toBe('chat_completions')
-  })
-
-  it('sends the selected workspace when starting a coding-agent run', async () => {
-    const store = useChatStore()
-    const session = makeSession()
-    session.source = 'coding_agent'
-    session.agent = 'claude'
-    session.codingAgentId = 'claude-code'
-    session.codingAgentMode = 'scoped'
-    session.provider = 'openrouter'
-    session.model = 'anthropic/claude-sonnet-4.6'
-    session.baseUrl = 'https://openrouter.ai/api/v1'
-    session.apiKey = 'sk-test'
-    session.apiMode = 'anthropic_messages'
-    session.workspace = '/workspace/project-a'
-    store.sessions = [session]
-    store.activeSessionId = 'session-1'
-    store.activeSession = session
-
-    await store.sendMessage('use this project')
-
-    expect(chatApi.startRunViaSocket.mock.calls[0][0]).toEqual(expect.objectContaining({
-      source: 'coding_agent',
-      coding_agent_id: 'claude-code',
-      mode: 'scoped',
-      workspace: '/workspace/project-a',
-    }))
-  })
-
-  it('keeps a local stream controller for active coding-agent runs', async () => {
-    const abort = vi.fn()
-    chatApi.startRunViaSocket.mockReturnValue({ abort })
-    const store = useChatStore()
-    const session = makeSession()
-    session.source = 'coding_agent'
-    session.agent = 'claude'
-    session.codingAgentId = 'claude-code'
-    store.sessions = [session]
-    store.activeSessionId = 'session-1'
-    store.activeSession = session
-
-    await store.sendMessage('long running task')
-    const onEvent = chatApi.startRunViaSocket.mock.calls[0][1] as (event: RunEvent) => void
-    onEvent({ event: 'run.started', session_id: 'session-1' })
-
-    store.stopStreaming()
-
-    expect(abort).toHaveBeenCalledTimes(1)
-    expect(chatApi.socketEmit).not.toHaveBeenCalled()
-    expect(store.abortState).toEqual(expect.objectContaining({ aborting: true }))
   })
 
   it('keeps a session in the local list when server deletion fails', async () => {

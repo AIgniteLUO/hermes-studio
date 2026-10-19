@@ -197,18 +197,11 @@ function mapHistoryMessages(messages: HermesMessage[]): Session['messages'] {
   })
 }
 
-function codingAgentFields(summary: SessionSummary): Pick<Session, 'agent' | 'agentSessionId' | 'agentNativeSessionId' | 'codingAgentId' | 'codingAgentMode'> {
-  const isCodingAgentSession = summary.source === 'coding_agent' || summary.agent === 'claude' || summary.agent === 'codex' || summary.agent === 'pi'
+function agentSessionFields(summary: SessionSummary): Pick<Session, 'agent' | 'agentSessionId' | 'agentNativeSessionId'> {
   return {
     agent: summary.agent || undefined,
     agentSessionId: summary.agent_session_id || undefined,
     agentNativeSessionId: summary.agent_native_session_id || undefined,
-    codingAgentId: summary.agent === 'codex' ? 'codex' : summary.agent === 'pi' ? 'pi' : summary.agent === 'claude' ? 'claude-code' : undefined,
-    codingAgentMode: isCodingAgentSession
-      ? (summary.agent_mode === 'global' || summary.agent_mode === 'scoped'
-          ? summary.agent_mode
-          : summary.provider === 'global' ? 'global' : 'scoped')
-      : undefined,
   }
 }
 
@@ -218,7 +211,7 @@ function sessionFromSummary(summary: SessionSummary, messages: Session['messages
     profile: summary.profile || undefined,
     title: summary.title || '',
     source: summary.source,
-    ...codingAgentFields(summary),
+    ...agentSessionFields(summary),
     createdAt: summary.started_at * 1000,
     updatedAt: (summary.last_active || summary.ended_at || summary.started_at) * 1000,
     model: summary.model,
@@ -435,7 +428,7 @@ function sessionSummaryToSession(summary: SessionSummary): Session {
     profile: summary.profile || undefined,
     title: summary.title || '',
     source: summary.source,
-    ...codingAgentFields(summary),
+    ...agentSessionFields(summary),
     createdAt: summary.started_at * 1000,
     updatedAt: (summary.last_active || summary.started_at) * 1000,
     model: summary.model,

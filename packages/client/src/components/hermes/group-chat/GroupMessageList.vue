@@ -28,8 +28,6 @@ const listRef = ref<InstanceType<typeof VirtualMessageList> | null>(null)
 const showScrollBottomButton = ref(false)
 const emptyStateAgents = [
     { name: 'Hermes', src: '/coding-agents/hermes.png' },
-    { name: 'Codex', src: '/coding-agents/codex-openai.png' },
-    { name: 'Claude', src: '/coding-agents/claude-code.svg' },
 ]
 const displayMessages = computed(() => groupAgentRunMessages(store.sortedMessages.filter(msg =>
     msg.role !== 'tool' ||

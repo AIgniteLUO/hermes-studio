@@ -294,9 +294,8 @@ const activeQueueInsertion = computed(() => {
 const canInsertQueuedMessages = computed(() => {
   const session = chatStore.activeSession;
   if (!session) return false;
-  const agent = session.codingAgentId || session.agent;
-  if (agent === "codex" || agent === "pi" || agent === "claude" || agent === "claude-code") return true;
-  return !session.source || session.source === "cli";
+  // Historical 'coding_agent' rows are Hermes sessions now.
+  return !session.source || session.source === "cli" || session.source === "coding_agent";
 });
 const visibleApproval = computed(() => chatStore.activePendingApproval);
 const visibleClarify = computed(() => chatStore.activePendingClarify);

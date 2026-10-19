@@ -1,10 +1,8 @@
 import type { SkillInfo, SkillTarget, SkillsData } from '@/api/hermes/skills'
 import type { WorkflowSelectOption } from '@/components/hermes/workflow/types'
 
-export function workflowAgentToSkillTarget(agent: string): SkillTarget {
-  if (agent === 'claude-code') return 'claude'
-  if (agent === 'codex') return 'codex'
-  if (agent === 'pi') return 'pi'
+export function workflowAgentToSkillTarget(_agent: string): SkillTarget {
+  // Only Hermes Agent nodes exist now; historical node agents resolve to it.
   return 'hermes'
 }
 

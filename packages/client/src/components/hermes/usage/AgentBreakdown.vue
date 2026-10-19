@@ -7,6 +7,8 @@ const { t } = useI18n()
 const usageStore = useUsageStore()
 const maxAgentTokens = computed(() => Math.max(...usageStore.agentUsage.map(agent => agent.visualTokens), 1))
 
+// Historical usage rows may still carry removed runtime names; they keep their
+// labels so old data stays readable.
 const agentLabels: Record<string, string> = {
   hermes: 'hermes',
   claude_code: 'claudeCode',

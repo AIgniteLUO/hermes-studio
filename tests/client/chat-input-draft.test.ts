@@ -289,11 +289,10 @@ describe('ChatInput draft persistence', () => {
     expect((wrapper.get('textarea').element as HTMLTextAreaElement).style.height).not.toBe('180px')
   })
 
-  it('shows context usage for coding-agent sessions', async () => {
+  it('shows context usage for historical coding-agent sessions', async () => {
     const wrapper = mountForSession('session-codex', {
       source: 'coding_agent',
       agent: 'codex',
-      codingAgentId: 'codex',
       inputTokens: 1200,
       outputTokens: 800,
       contextTokens: 2000,
@@ -318,19 +317,6 @@ describe('ChatInput draft persistence', () => {
     expect(wrapper.find('.n-slider-stub').exists()).toBe(true)
     expect(wrapper.get('.n-slider-stub').attributes('min')).toBe('0')
     expect(wrapper.get('.n-slider-stub').attributes('max')).toBe('7')
-  })
-
-  it('hides the reasoning effort selector for global coding-agent sessions', async () => {
-    const wrapper = mountForSession('session-global-codex', {
-      source: 'coding_agent',
-      agent: 'codex',
-      codingAgentId: 'codex',
-      codingAgentMode: 'global',
-    })
-    await nextTick()
-
-    expect(wrapper.find('.reasoning-effort-button').exists()).toBe(false)
-    expect(wrapper.find('.n-slider-stub').exists()).toBe(false)
   })
 
   it('hides the reasoning effort selector for MoA sessions', async () => {

@@ -7,7 +7,6 @@ import FolderPicker from '@/components/hermes/chat/FolderPicker.vue'
 import { useAppStore } from '@/stores/hermes/app'
 import { useProfilesStore } from '@/stores/hermes/profiles'
 import { generateGroupChatInviteCode } from '@/utils/group-chat-invite-code'
-import { inferCodingAgentApiMode, normalizeCodingAgentApiMode } from '@/api/coding-agents'
 import type { RoomAgentInput, RoomSummaryConfig } from '@/api/studio/group-chat'
 
 type InputLikeInstance = {
@@ -52,11 +51,6 @@ const summaryModelOptions = computed(() =>
         value: model,
     }))
 )
-const summaryApiModeOptions = computed(() => [
-    { label: t('codingAgents.protocolOpenAiChat'), value: 'chat_completions' },
-    { label: t('codingAgents.protocolOpenAiResponses'), value: 'codex_responses' },
-    { label: t('codingAgents.protocolAnthropicMessages'), value: 'anthropic_messages' },
-])
 function syncSummaryProvider() {
     const profileModels = appStore.profileModelGroups.find(entry => entry.profile === summaryProfile.value)
     const preferred = summaryModelGroups.value.find(group => group.provider === appStore.selectedProvider)
@@ -66,20 +60,13 @@ function syncSummaryProvider() {
     summaryModel.value = preferred?.models.includes(profileModels?.default || '')
         ? profileModels?.default || ''
         : preferred?.models[0] || ''
-    summaryApiMode.value = normalizeCodingAgentApiMode(
-        preferred?.api_mode,
-        inferCodingAgentApiMode(preferred?.provider || '', preferred?.base_url),
-    )
+
 }
 
 function handleSummaryProviderChange(provider: string) {
     summaryProvider.value = provider
     summaryModel.value = summaryModelOptions.value[0]?.value || ''
-    const group = selectedSummaryProviderGroup.value
-    summaryApiMode.value = normalizeCodingAgentApiMode(
-        group?.api_mode,
-        inferCodingAgentApiMode(group?.provider || provider, group?.base_url),
-    )
+
 }
 
 watch([summaryModelGroups, summaryProfile], () => {
@@ -184,8 +171,6 @@ onMounted(() => {
                 />
             </div>
             <div class="form-group">
-                <label class="form-label">{{ t('groupChat.summaryApiMode') }}</label>
-                <NSelect v-model:value="summaryApiMode" :options="summaryApiModeOptions" />
             </div>
             <div class="form-group">
                 <label class="form-label">{{ t('groupChat.summaryEveryTurns') }}</label>
@@ -197,7 +182,7 @@ onMounted(() => {
         <div class="modal-actions">
             <NSpace justify="end">
                 <NButton @click="emit('cancel')">{{ t('common.cancel') }}</NButton>
-                <NButton type="primary" :disabled="!roomName.trim() || !userName.trim() || !summaryProvider || !summaryModel || !summaryApiMode" @click="handleCreate">{{ t('common.create') }}</NButton>
+                <NButton type="primary" :disabled="!roomName.trim() || !userName.trim() || !summaryProvider || !summaryModel" @click="handleCreate">{{ t('common.create') }}</NButton>
             </NSpace>
         </div>
     </div>

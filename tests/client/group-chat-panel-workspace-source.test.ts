@@ -2,13 +2,14 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 describe('GroupChatPanel workspace save handling', () => {
-  it('offers Pi in ordinary and paired group chat and filters it as the Pi provider target', () => {
+  it('offers only Hermes in ordinary and paired group chat', () => {
     const panel = readFileSync('packages/client/src/components/hermes/group-chat/GroupChatPanel.vue', 'utf8')
     const linkView = readFileSync('packages/client/src/views/hermes/GroupChatLinkView.vue', 'utf8')
 
     for (const source of [panel, linkView]) {
-      expect(source).toContain("{ label: 'Pi', value: 'pi' }")
-      expect(source).toMatch(/selectedAgentType\.value === 'pi'[\s\S]*?\\? 'pi'/)
+      expect(source).not.toContain("value: 'pi'")
+      expect(source).not.toContain("value: 'codex'")
+      expect(source).not.toContain("value: 'claude'")
     }
   })
 
@@ -317,7 +318,6 @@ describe('GroupChatPanel workspace save handling', () => {
     expect(agentMessageAvatar).toContain('class="message-agent-owner-badge"')
     expect(agentRunCard).toContain('class="run-agent-icon"')
     expect(linkView).toContain("type GroupAgentType = RemoteGroupAgentDescriptor['agent']")
-    expect(linkView).toContain(':options="groupAgentTypeOptions"')
     expect(linkView).toContain(':options="profileOptions"')
     expect(linkView).toContain(':options="agentProviderOptions"')
     expect(linkView).toContain(':options="agentModelOptions"')
@@ -516,31 +516,26 @@ describe('GroupChatPanel workspace save handling', () => {
     expect(panel).toContain('@adjust-handoff-settings="handleOpenRoomSettings"')
   })
 
-  it('creates room agents with the single-chat api mode rules and keeps Hermes profile-owned', () => {
+  it('creates room agents with provider, model, and reasoning effort only', () => {
     const source = readFileSync('packages/client/src/components/hermes/group-chat/GroupChatPanel.vue', 'utf8')
     const linkView = readFileSync('packages/client/src/views/hermes/GroupChatLinkView.vue', 'utf8')
 
     expect(source).toContain("const selectedAgentProvider = ref('')")
     expect(source).toContain("const selectedAgentModel = ref('')")
-    expect(source).toContain("const selectedAgentApiMode = ref<CodingAgentApiMode>('codex_responses')")
     expect(source).toContain("const selectedAgentReasoningEffort = ref('')")
     expect(source).toContain('provider: selectedAgentProvider.value')
     expect(source).toContain('model: selectedAgentModel.value')
-    expect(source).toContain("apiMode: selectedAgentType.value === 'hermes' ? undefined : selectedAgentApiMode.value")
     expect(source).toContain('reasoningEffort: selectedAgentReasoningEffort.value')
+    expect(source).not.toContain('selectedAgentApiMode')
+    expect(linkView).not.toContain('selectedAgentApiMode')
     for (const modelSource of [source, linkView]) {
       expect(modelSource).toContain('function handleAgentModelChange(model: string)')
       expect(modelSource).toContain("selectedAgentReasoningEffort.value = ''")
       expect(modelSource).toContain('@update:value="handleAgentModelChange"')
     }
-    expect(source).toContain('inferCodingAgentApiMode(')
-    expect(source).toContain('normalizeCodingAgentApiMode(')
-    expect(source).toContain("v-if=\"selectedAgentType !== 'hermes'\"")
+    expect(source).not.toContain('inferCodingAgentApiMode(')
+    expect(source).not.toContain('normalizeCodingAgentApiMode(')
     expect(source).toContain('agent: selectedAgentType.value')
-    expect(source).toContain("{ label: 'Hermes', value: 'hermes' }")
-    expect(source).toContain("{ label: 'Claude', value: 'claude' }")
-    expect(source).toContain("{ label: 'Codex', value: 'codex' }")
-    expect(source).toContain("{ label: 'Pi', value: 'pi' }")
     expect(source).toContain('v-model:value="agentName"')
     expect(source).toContain('v-model:value="agentDescription"')
     expect(source).toContain('avatar: agentAvatar.value ? JSON.stringify(agentAvatar.value)')

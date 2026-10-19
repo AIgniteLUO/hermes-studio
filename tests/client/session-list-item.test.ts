@@ -247,10 +247,10 @@ describe('SessionListItem', () => {
     expect(wrapper.find('.session-item-agent-name').exists()).toBe(false)
   })
 
-  it('renders the Claude logo for Claude coding agent sessions', () => {
+  it('renders the Hermes logo for historical coding-agent sessions', () => {
     const wrapper = mount(SessionListItem, {
       props: {
-        session: { ...session, source: 'coding_agent', agent: 'claude', codingAgentId: 'claude-code' },
+        session: { ...session, source: 'coding_agent', agent: 'claude' },
         active: false,
         pinned: false,
         canDelete: true,
@@ -263,29 +263,8 @@ describe('SessionListItem', () => {
     })
 
     const logo = wrapper.get('.session-item-agent-logo')
-    expect(logo.attributes('src')).toBe('/coding-agents/claude-code.svg')
-    expect(logo.attributes('alt')).toBe('Claude')
-    expect(wrapper.find('.session-item-agent-name').exists()).toBe(false)
-  })
-
-  it('renders the Codex logo for Codex coding agent sessions', () => {
-    const wrapper = mount(SessionListItem, {
-      props: {
-        session: { ...session, source: 'coding_agent', agent: 'codex', codingAgentId: 'codex' },
-        active: false,
-        pinned: false,
-        canDelete: true,
-      },
-      global: {
-        stubs: {
-          ProfileAvatar: true,
-        },
-      },
-    })
-
-    const logo = wrapper.get('.session-item-agent-logo')
-    expect(logo.attributes('src')).toBe('/coding-agents/codex-openai.png')
-    expect(logo.attributes('alt')).toBe('Codex')
+    expect(logo.attributes('src')).toBe('/coding-agents/hermes.png')
+    expect(logo.attributes('alt')).toBe('Hermes')
     expect(wrapper.find('.session-item-agent-name').exists()).toBe(false)
   })
 })

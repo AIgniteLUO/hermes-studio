@@ -58,12 +58,6 @@ import {
     createBrowserAnnotationAttachment,
     type BrowserAnnotationSubmission,
 } from '@/utils/browser-annotation-submit'
-import { canScopedCodingAgentUseProvider } from '@/utils/codingAgentProviders'
-import {
-    inferCodingAgentApiMode,
-    normalizeCodingAgentApiMode,
-    type CodingAgentApiMode,
-} from '@/api/coding-agents'
 import type { ProfileAvatar as ProfileAvatarData } from '@/api/hermes/profiles'
 import {
     defaultGroupAgentAvatar,
@@ -169,7 +163,6 @@ const selectedAgentType = ref<GroupAgentType>('hermes')
 const selectedProfile = ref<string | null>(null)
 const selectedAgentProvider = ref('')
 const selectedAgentModel = ref('')
-const selectedAgentApiMode = ref<CodingAgentApiMode>('codex_responses')
 const selectedAgentReasoningEffort = ref('')
 const agentName = ref('')
 const agentDescription = ref('')
@@ -230,38 +223,14 @@ const profileOptions = computed(() =>
     profilesStore.profiles.map(p => ({ label: p.name, value: p.name }))
 )
 
-type GroupAgentType = 'hermes' | 'codex' | 'claude' | 'pi'
+type GroupAgentType = 'hermes'
 
-const groupAgentTypeDefinitions: Array<{ label: string; value: GroupAgentType }> = [
-    { label: 'Hermes', value: 'hermes' },
-    { label: 'Claude', value: 'claude' },
-    { label: 'Codex', value: 'codex' },
-    { label: 'Pi', value: 'pi' },
-]
-
-const groupAgentTypeOptions = computed(() => groupAgentTypeDefinitions.map((option) => {
-    const disabled = !isAgentStatusAvailable(agentStatusSnapshot.value, option.value)
-    return {
-        ...option,
-        disabled,
-        label: disabled ? `${option.label} · ${t('codingAgents.notInstalled')}` : option.label,
-    }
-}))
-
-const firstAvailableGroupAgentType = computed<GroupAgentType | null>(() =>
-    groupAgentTypeOptions.value.find(option => !option.disabled)?.value || null
-)
-
-function groupAgentDisplayName(agent: GroupAgentType): string {
-    return groupAgentTypeDefinitions.find(option => option.value === agent)?.label || agent
+function isGroupAgentAvailable(_agent: GroupAgentType): boolean {
+    return isAgentStatusAvailable(agentStatusSnapshot.value, 'hermes')
 }
 
-function isGroupAgentAvailable(agent: GroupAgentType): boolean {
-    return isAgentStatusAvailable(agentStatusSnapshot.value, agent)
-}
-
-function warnAgentUnavailable(agent: GroupAgentType) {
-    message.warning(t('codingAgents.installRequired', { agent: groupAgentDisplayName(agent) }))
+function warnAgentUnavailable(_agent: GroupAgentType) {
+    message.warning(t('codingAgents.installRequired', { agent: 'Hermes' }))
 }
 
 async function refreshAgentAvailability() {
@@ -273,17 +242,7 @@ async function refreshAgentAvailability() {
 }
 
 function getAgentModelGroups(profile: string) {
-    return (appStore.profileModelGroups.find(entry => entry.profile === profile)?.groups || [])
-        .filter((group) => {
-            if (group.provider === 'moa') return selectedAgentType.value === 'hermes'
-            if (selectedAgentType.value === 'hermes') return true
-            const codingAgentId = selectedAgentType.value === 'claude'
-                ? 'claude-code'
-                : selectedAgentType.value === 'pi'
-                    ? 'pi'
-                    : 'codex'
-            return canScopedCodingAgentUseProvider(codingAgentId, group.provider)
-        })
+    return appStore.profileModelGroups.find(entry => entry.profile === profile)?.groups || []
 }
 
 function getDefaultAgentModel(profile: string) {
@@ -322,16 +281,6 @@ const agentModelOptions = computed(() => {
     }))
 })
 
-const selectedAgentProviderGroup = computed(() =>
-    getAgentModelGroups(selectedProfile.value || '')
-        .find(item => item.provider === selectedAgentProvider.value)
-)
-
-const agentApiModeOptions = computed(() => [
-    { label: t('codingAgents.protocolOpenAiChat'), value: 'chat_completions' },
-    { label: t('codingAgents.protocolOpenAiResponses'), value: 'codex_responses' },
-    { label: t('codingAgents.protocolAnthropicMessages'), value: 'anthropic_messages' },
-])
 const filteredAgentPresets = computed(() => {
     const query = agentPresetSearch.value.trim().toLocaleLowerCase()
     if (!query) return agentPresets.value
@@ -379,11 +328,6 @@ const summaryModelOptions = computed(() =>
         value: model,
     }))
 )
-const summaryApiModeOptions = computed(() => [
-    { label: t('codingAgents.protocolOpenAiChat'), value: 'chat_completions' },
-    { label: t('codingAgents.protocolOpenAiResponses'), value: 'codex_responses' },
-    { label: t('codingAgents.protocolAnthropicMessages'), value: 'anthropic_messages' },
-])
 const liveRoomSummaryState = computed(() => {
     const roomId = store.currentRoomId
     return (roomId && store.roomSummaryStates.get(roomId)) || roomSummaryState.value
@@ -451,10 +395,7 @@ function handleSummaryProviderChange(provider: string) {
     summaryConfig.value.summaryProvider = provider
     const group = summaryModelGroups.value.find(item => item.provider === provider)
     summaryConfig.value.summaryModel = group?.models[0] || ''
-    summaryConfig.value.summaryApiMode = normalizeCodingAgentApiMode(
-        group?.api_mode,
-        inferCodingAgentApiMode(group?.provider || provider, group?.base_url),
-    )
+    summaryConfig.value.summaryApiMode = 'chat_completions'
 }
 
 const agentAvatarPreview = computed(() =>
@@ -466,25 +407,15 @@ const canConfirmAddAgent = computed(() =>
         isGroupAgentAvailable(selectedAgentType.value) &&
         selectedProfile.value &&
         selectedAgentProvider.value &&
-        selectedAgentModel.value &&
-        (selectedAgentType.value === 'hermes' || selectedAgentApiMode.value),
+        selectedAgentModel.value,
     )
 )
-
-function syncAgentApiMode() {
-    const group = selectedAgentProviderGroup.value
-    selectedAgentApiMode.value = normalizeCodingAgentApiMode(
-        group?.api_mode,
-        inferCodingAgentApiMode(group?.provider || selectedAgentProvider.value, group?.base_url),
-    )
-}
 
 function syncAgentModelSelection(profile: string) {
     const defaults = getDefaultAgentModel(profile)
     selectedAgentProvider.value = defaults.provider
     selectedAgentModel.value = defaults.model
     selectedAgentReasoningEffort.value = ''
-    syncAgentApiMode()
 }
 
 function handleAgentProfileChange(profile: string) {
@@ -492,20 +423,10 @@ function handleAgentProfileChange(profile: string) {
     syncAgentModelSelection(profile)
 }
 
-function handleAgentTypeChange(agent: GroupAgentType) {
-    if (!isGroupAgentAvailable(agent)) {
-        warnAgentUnavailable(agent)
-        return
-    }
-    selectedAgentType.value = agent
-    if (selectedProfile.value) syncAgentModelSelection(selectedProfile.value)
-}
-
 function handleAgentProviderChange(provider: string) {
     selectedAgentProvider.value = provider
     selectedAgentModel.value = agentModelOptions.value[0]?.value || ''
     selectedAgentReasoningEffort.value = ''
-    syncAgentApiMode()
 }
 
 function handleAgentModelChange(model: string) {
@@ -1275,10 +1196,9 @@ async function handleSummaryConfigurationRequired() {
 function resetAgentForm() {
     selectedAgentPresetId.value = null
     selectedProfile.value = null
-    selectedAgentType.value = firstAvailableGroupAgentType.value || 'hermes'
+    selectedAgentType.value = 'hermes'
     selectedAgentProvider.value = ''
     selectedAgentModel.value = ''
-    selectedAgentApiMode.value = 'codex_responses'
     selectedAgentReasoningEffort.value = ''
     agentName.value = ''
     agentDescription.value = ''
@@ -1292,7 +1212,7 @@ function currentAgentPresetInput(): GroupAgentPresetInput | null {
         profile: selectedProfile.value,
         provider: selectedAgentProvider.value,
         model: selectedAgentModel.value,
-        apiMode: selectedAgentType.value === 'hermes' ? '' : selectedAgentApiMode.value,
+        apiMode: '',
         reasoningEffort: selectedAgentReasoningEffort.value,
         name: agentName.value.trim() || selectedProfile.value,
         description: agentDescription.value.trim(),
@@ -1354,14 +1274,10 @@ function applyAgentPreset(presetId: string | null) {
         return
     }
     const input = groupAgentPresetToRoomAgentInput(preset)
-    selectedAgentType.value = input.agent
+    selectedAgentType.value = 'hermes'
     selectedProfile.value = input.profile
     selectedAgentProvider.value = input.provider || ''
     selectedAgentModel.value = input.model || ''
-    selectedAgentApiMode.value = normalizeCodingAgentApiMode(
-        input.apiMode,
-        inferCodingAgentApiMode(input.provider),
-    )
     selectedAgentReasoningEffort.value = input.reasoningEffort || ''
     agentName.value = input.name || ''
     agentDescription.value = input.description || ''
@@ -1436,7 +1352,7 @@ async function handleAddAgent() {
     ])
     editingAgent.value = null
     resetAgentForm()
-    selectedAgentType.value = firstAvailableGroupAgentType.value || 'hermes'
+    selectedAgentType.value = 'hermes'
     selectedProfile.value =
         profilesStore.activeProfileName ||
         profilesStore.profiles.find(profile => profile.active)?.name ||
@@ -1499,14 +1415,10 @@ async function handleEditAgent(agent: RoomAgent) {
     ])
     selectedAgentPresetId.value = null
     editingAgent.value = agent
-    selectedAgentType.value = agent.agent || 'hermes'
+    selectedAgentType.value = 'hermes'
     selectedProfile.value = agent.profile
     selectedAgentProvider.value = agent.provider || ''
     selectedAgentModel.value = agent.model || ''
-    selectedAgentApiMode.value = normalizeCodingAgentApiMode(
-        agent.apiMode,
-        inferCodingAgentApiMode(agent.provider),
-    )
     selectedAgentReasoningEffort.value = agent.reasoningEffort || ''
     agentName.value = agent.name || ''
     agentDescription.value = agent.description || ''
@@ -1653,7 +1565,7 @@ async function confirmAddAgent() {
             profile: selectedProfile.value,
             provider: selectedAgentProvider.value,
             model: selectedAgentModel.value,
-            apiMode: selectedAgentType.value === 'hermes' ? undefined : selectedAgentApiMode.value,
+            apiMode: undefined,
             reasoningEffort: selectedAgentReasoningEffort.value,
             name: agentName.value.trim() || undefined,
             description: agentDescription.value.trim() || undefined,
@@ -1686,7 +1598,7 @@ async function confirmUpdateAgent() {
             profile: selectedProfile.value,
             provider: selectedAgentProvider.value,
             model: selectedAgentModel.value,
-            apiMode: selectedAgentType.value === 'hermes' ? undefined : selectedAgentApiMode.value,
+            apiMode: undefined,
             reasoningEffort: selectedAgentReasoningEffort.value,
             name: agentName.value.trim() || undefined,
             description: agentDescription.value.trim() || undefined,
@@ -2751,14 +2663,6 @@ function handleClarifyKeydown(event: KeyboardEvent) {
                         >
                     </div>
                     <div class="form-group">
-                        <label class="form-label">{{ t('groupChat.agentType') }}</label>
-                        <NSelect
-                            :value="selectedAgentType"
-                            :options="groupAgentTypeOptions"
-                            @update:value="handleAgentTypeChange"
-                        />
-                    </div>
-                    <div class="form-group">
                         <label class="form-label">{{ t('sidebar.profiles') }}</label>
                         <NSelect
                             :value="selectedProfile"
@@ -2787,13 +2691,6 @@ function handleClarifyKeydown(event: KeyboardEvent) {
                             :disabled="!selectedAgentProvider"
                             filterable
                             @update:value="handleAgentModelChange"
-                        />
-                    </div>
-                    <div v-if="selectedAgentType !== 'hermes'" class="form-group">
-                        <label class="form-label">{{ t('codingAgents.protocolScope') }}</label>
-                        <NSelect
-                            v-model:value="selectedAgentApiMode"
-                            :options="agentApiModeOptions"
                         />
                     </div>
                     <div class="form-group">
@@ -3295,17 +3192,13 @@ function handleClarifyKeydown(event: KeyboardEvent) {
                                 />
                             </div>
                             <div class="form-group">
-                                <label class="form-label">{{ t('groupChat.summaryApiMode') }}</label>
-                                <NSelect v-model:value="summaryConfig.summaryApiMode" :options="summaryApiModeOptions" />
-                            </div>
-                            <div class="form-group">
                                 <label class="form-label">{{ t('groupChat.summaryEveryTurns') }}</label>
                                 <NInputNumber v-model:value="summaryConfig.summaryEveryTurns" :min="1" :max="1000" :step="1" style="width: 100%" />
                                 <p class="form-hint">{{ t('groupChat.summaryEveryTurnsDesc') }}</p>
                             </div>
                             <NButton
                                 type="primary"
-                                :disabled="!summaryConfig.summaryProvider || !summaryConfig.summaryModel || !summaryConfig.summaryApiMode"
+                                :disabled="!summaryConfig.summaryProvider || !summaryConfig.summaryModel"
                                 @click="handleSaveSummaryConfig"
                             >
                                 {{ t('groupChat.saveSummaryConfig') }}

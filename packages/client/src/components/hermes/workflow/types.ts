@@ -1,6 +1,5 @@
 import type { SelectOption } from 'naive-ui'
 import type { AvailableModelGroup } from '@/api/hermes/system'
-import type { CodingAgentApiMode } from '@/api/coding-agents'
 
 export interface WorkflowSelectOption extends SelectOption {
   label: string
@@ -14,7 +13,6 @@ export interface WorkflowAgentNodeData {
   agent: string
   provider: string
   model: string
-  apiMode: CodingAgentApiMode
   reasoningEffort: string
   input: string
   skills: string[]
@@ -32,4 +30,4 @@ export interface WorkflowAgentNodeData {
   onUploadImages: (id: string, files: File[]) => Promise<string[]>
 }
 
-export type WorkflowAgentNodeEditableData = Pick<WorkflowAgentNodeData, 'title' | 'agent' | 'provider' | 'model' | 'apiMode' | 'reasoningEffort' | 'input' | 'skills' | 'images' | 'approvalRequired' | 'orchestration'>
+export type WorkflowAgentNodeEditableData = Pick<WorkflowAgentNodeData, 'title' | 'agent' | 'provider' | 'model' | 'reasoningEffort' | 'input' | 'skills' | 'images' | 'approvalRequired' | 'orchestration'>

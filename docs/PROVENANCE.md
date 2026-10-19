@@ -387,8 +387,8 @@ MCU 命中均为 0**，是原始字节恰好拼出 `mcu`/`McU`；三者自上游
 | 项 | 数值 |
 | --- | --- |
 | 本轮提交区间 | `122c547..`（规划提交之后共 12 个实现提交） |
-| 改动文件 | 321 files changed, **4064 insertions(+), 65503 deletions(-)** |
-| 删除文件 | 173（其中测试 64） |
+| 改动文件 | 349 files changed, **4233 insertions(+), 70901 deletions(-)** |
+| 删除文件 | 183（其中测试 67） |
 | 服务端模块 | `modules/coding-agents/**` 整包、`services/{app-relay,devices,network,social-messages,pets}` |
 | OpenAPI | 380 paths → **318 paths / 39 tags** |
 | 全量测试 | **473 文件 / 3737 用例：3732 passed, 2 skipped, 3 failed** |

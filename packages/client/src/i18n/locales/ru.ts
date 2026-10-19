@@ -1,7 +1,4 @@
-import { socialMessagesRu } from '../social-messages-locales'
-
 export default {
-  socialMessages: socialMessagesRu,
   browser: {
     title: 'Браузер', settings: 'Настройки браузера', desktopOnly: 'Встроенный браузер доступен только в Hermes Studio Desktop.', newTab: 'Новая вкладка',
     back: 'Назад', forward: 'Вперёд', reload: 'Обновить', stop: 'Остановить', addressPlaceholder: 'Поиск или адрес',

@@ -117,7 +117,7 @@ describe('client style system', () => {
     expect(customBackgroundStyles).toContain(':deep(.group-chat-panel > .chat-main)')
     expect(customBackgroundStyles).toContain(':deep(.virtual-message-list)')
     expect(customBackgroundStyles).toMatch(
-      /:deep\(\.workflow-view\),[\s\S]*:deep\(\.petdex-view\)\s*\{\s*background-color: transparent;/,
+      /:deep\(\.workflow-view\)\s*\{\s*background-color: transparent;/,
     )
     expect(customBackgroundStyles).toMatch(
       /:deep\(\.chat-main-content\),[\s\S]*:deep\(\.group-chat-surface\)\s*\{[\s\S]*background-color: rgba\(var\(--bg-main-surface-rgb\), 0\.42\);[\s\S]*backdrop-filter: none;/,

@@ -1,7 +1,4 @@
-import { socialMessagesAr } from '../social-messages-locales'
-
 export default {
-  socialMessages: socialMessagesAr,
   browser: {
     title: 'المتصفح', settings: 'إعدادات المتصفح', desktopOnly: 'المتصفح المدمج متوفر فقط في Hermes Studio Desktop.', newTab: 'تبويب جديد',
     back: 'رجوع', forward: 'تقدّم', reload: 'إعادة تحميل', stop: 'إيقاف', addressPlaceholder: 'ابحث أو أدخل عنوانًا',

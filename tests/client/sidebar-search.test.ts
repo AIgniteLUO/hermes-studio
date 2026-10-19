@@ -210,9 +210,8 @@ describe("AppSidebar navigation", () => {
     expect(navigationLabels).not.toContain("sidebar.skills");
     expect(navigationLabels).not.toContain("sidebar.journey");
     expect(wrapper.text()).toContain("sidebar.theme");
-    expect(wrapper.text().indexOf("sidebar.petdex")).toBeGreaterThan(
-      wrapper.text().indexOf("sidebar.theme"),
-    );
+    expect(wrapper.text()).not.toContain("sidebar.petdex");
+    expect(wrapper.text()).not.toContain("sidebar.versionPreview");
     expect(wrapper.text()).not.toContain("sidebar.devices");
   });
 

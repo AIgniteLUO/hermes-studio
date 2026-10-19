@@ -1,7 +1,4 @@
-import { socialMessagesJa } from '../social-messages-locales'
-
 export default {
-  socialMessages: socialMessagesJa,
   browser: {
     title: 'ブラウザー', settings: 'ブラウザー設定', desktopOnly: '内蔵ブラウザーは Hermes Studio Desktop でのみ利用できます。', newTab: '新しいタブ',
     back: '戻る', forward: '進む', reload: '再読み込み', stop: '停止', addressPlaceholder: '検索またはアドレスを入力',

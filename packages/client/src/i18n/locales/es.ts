@@ -1,7 +1,4 @@
-import { socialMessagesEs } from '../social-messages-locales'
-
 export default {
-  socialMessages: socialMessagesEs,
   browser: {
     title: 'Navegador', settings: 'Ajustes del navegador', desktopOnly: 'El navegador integrado solo está disponible en Hermes Studio Desktop.', newTab: 'Nueva pestaña',
     back: 'Atrás', forward: 'Adelante', reload: 'Recargar', stop: 'Detener', addressPlaceholder: 'Buscar o escribir una dirección',

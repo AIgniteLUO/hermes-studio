@@ -1,7 +1,4 @@
-import { socialMessagesKo } from '../social-messages-locales'
-
 export default {
-  socialMessages: socialMessagesKo,
   browser: {
     title: '브라우저', settings: '브라우저 설정', desktopOnly: '내장 브라우저는 Hermes Studio Desktop에서만 사용할 수 있습니다.', newTab: '새 탭',
     back: '뒤로', forward: '앞으로', reload: '새로고침', stop: '중지', addressPlaceholder: '검색 또는 주소 입력',

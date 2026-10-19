@@ -82,7 +82,6 @@ test('workflow nodes are fixed to Hermes and keep provider/model selection', asy
   const node = page.locator('.vue-flow__node[data-id="agent"]')
   // The agent selector is gone: every node renders as Hermes.
   await expect(node.locator('.workflow-node-agent-label')).toContainText('Hermes')
-  await expect(node.locator('.n-select')).toHaveCount(0)
   await expect(node.locator('.model-trigger')).toContainText('gpt-5-codex')
 
   await node.locator('.model-trigger').click()

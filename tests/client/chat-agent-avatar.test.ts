@@ -4,16 +4,16 @@ import { chatSessionAgentAvatar } from '@/utils/chat-agent-avatar'
 const HERMES_AVATAR = { label: 'Hermes', src: '/agents/hermes.png' }
 
 describe('single chat Agent avatars', () => {
-  it.each([
-    [{ agent: 'hermes' }],
-    [{ agent: 'ekko-agent' }],
-    [{ agent: 'claude' }],
-    [{ agent: 'codex' }],
-    [{ agent: 'pi' }],
-    [{ source: 'coding_agent' }],
-    [{}],
-    [null],
-  ])('renders every session, including historical identities, as Hermes', (session) => {
-    expect(chatSessionAgentAvatar(session as any)).toEqual(HERMES_AVATAR)
+  it.each<[string, Parameters<typeof chatSessionAgentAvatar>[0]]>([
+    ['hermes', { agent: 'hermes' }],
+    ['legacy ekko', { agent: 'ekko-agent' }],
+    ['legacy claude', { agent: 'claude' }],
+    ['legacy codex', { agent: 'codex' }],
+    ['legacy pi', { agent: 'pi' }],
+    ['legacy coding source', { source: 'coding_agent' }],
+    ['empty', {}],
+    ['missing', null],
+  ])('renders the %s session as Hermes', (_name, session) => {
+    expect(chatSessionAgentAvatar(session)).toEqual(HERMES_AVATAR)
   })
 })

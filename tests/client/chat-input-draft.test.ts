@@ -304,7 +304,7 @@ describe('ChatInput draft persistence', () => {
     expect(wrapper.find('.context-bar').exists()).toBe(true)
   })
 
-  it('shows reasoning effort selector for coding-agent sessions', async () => {
+  it('shows the reasoning effort selector for historical coding-agent sessions', async () => {
     const wrapper = mountForSession('session-codex', {
       source: 'coding_agent',
       agent: 'codex',

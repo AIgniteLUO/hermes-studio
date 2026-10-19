@@ -230,7 +230,7 @@ function isGroupAgentAvailable(_agent: GroupAgentType): boolean {
 }
 
 function warnAgentUnavailable(_agent: GroupAgentType) {
-    message.warning(t('codingAgents.installRequired', { agent: 'Hermes' }))
+    message.warning(t('settings.runtime.installRequired', { agent: 'Hermes' }))
 }
 
 async function refreshAgentAvailability() {

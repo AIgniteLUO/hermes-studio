@@ -30,7 +30,7 @@ describe('api docs controller', () => {
     )
     expect(
       ctx.body.paths['/api/studio/chat-run/runs'].post.requestBody.content['application/json'].schema.properties.source.enum,
-    ).toEqual(['cli', 'coding_agent', 'global_agent'])
+    ).toEqual(['cli', 'workflow', 'group_chat'])
 
     for (const path of [
       '/api/studio/update/preview/prepare',

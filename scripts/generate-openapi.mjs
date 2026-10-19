@@ -95,7 +95,7 @@ function scanRoutes() {
     const filePath = join(serverSourceDir, routeFile)
     try {
       scanRouteFile(filePath, tagInfo, paths)
-    } catch (e) {
+    } catch {
       // File might not exist, skip
     }
   }
@@ -275,8 +275,6 @@ function findMatchingBrace(content, openBrace) {
 }
 
 function addEndpoint(paths, method, path, controllerMethod, tagInfo, content, matchIndex, controllerSource = '') {
-  if (isInternalProxyRoute(path)) return
-
   // Clean path parameters
   const openapiPath = path
     .replace(/:([^/]+)/g, '{$1}')
@@ -919,13 +917,13 @@ openapi.paths['/api/studio/chat-run/runs'] = {
               },
               source: {
                 type: 'string',
-                enum: ['cli', 'coding_agent', 'global_agent'],
-                description: 'Run backend source. Use cli for Hermes bridge runs, coding_agent for Claude Code/Codex, or global_agent for global-agent sessions. Omit source for normal Hermes chat runs; do not use the legacy api_server source.',
+                enum: ['cli', 'workflow', 'group_chat'],
+                description: 'Run backend source. Use cli for Hermes bridge runs; workflow and group_chat run inside those features. Omit source for normal Hermes chat runs.',
               },
               session_source: {
                 type: 'string',
-                enum: ['global_agent'],
-                description: 'Marks a coding-agent or bridge session as launched from the global agent.',
+                enum: ['workflow', 'group_chat'],
+                description: 'Marks a bridge session as launched from a workflow or group chat.',
               },
               instructions: {
                 type: 'string',
@@ -940,28 +938,13 @@ openapi.paths['/api/studio/chat-run/runs'] = {
                 type: 'string',
                 description: 'Optional per-run reasoning effort override.',
               },
-              coding_agent_id: {
-                type: 'string',
-                enum: ['claude-code', 'codex'],
-                description: 'Coding agent id when source is coding_agent.',
-              },
-              agent_id: {
-                type: 'string',
-                enum: ['claude-code', 'codex'],
-                description: 'Alias for coding_agent_id.',
-              },
-              mode: {
-                type: 'string',
-                enum: ['scoped', 'global'],
-                description: 'Coding-agent launch mode.',
-              },
               baseUrl: {
                 type: 'string',
-                description: 'Optional provider base URL for coding-agent runs.',
+                description: 'Optional provider base URL for the run.',
               },
               apiKey: {
                 type: 'string',
-                description: 'Optional provider API key for coding-agent runs.',
+                description: 'Optional provider API key for the run.',
               },
               apiMode: {
                 type: 'string',

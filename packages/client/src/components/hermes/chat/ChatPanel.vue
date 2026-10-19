@@ -1107,7 +1107,7 @@ async function confirmNewChat() {
         if (isSuperAdmin.value) {
           await router.push({ name: "hermes.settings", query: { tab: "runtime" } });
         } else {
-          message.warning(t("codingAgents.installRequired", { agent: "Hermes" }));
+          message.warning(t("settings.runtime.installRequired", { agent: "Hermes" }));
         }
         return;
       }

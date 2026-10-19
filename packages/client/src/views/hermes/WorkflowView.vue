@@ -420,7 +420,7 @@ const agentOptions = computed<WorkflowSelectOption[]>(() => workflowAgentDefinit
   return {
     ...option,
     disabled,
-    label: disabled ? `${option.label} · ${t('codingAgents.notInstalled')}` : option.label,
+    label: disabled ? `${option.label} · ${t('settings.runtime.notInstalled')}` : option.label,
   }
 }))
 
@@ -2635,7 +2635,7 @@ async function executeWorkflowWithBudget(timeoutMs: number | undefined): Promise
   await refreshAgentAvailability()
   const unavailableAgentNode = unavailableWorkflowAgent()
   if (unavailableAgentNode) {
-    message.warning(t('codingAgents.installRequired', {
+    message.warning(t('settings.runtime.installRequired', {
       agent: workflowAgentDisplayName(unavailableAgentNode.data.agent),
     }))
     return false
@@ -3104,7 +3104,7 @@ async function addAgentNode() {
   }
   await refreshAgentAvailability()
   if (!firstAvailableWorkflowAgent.value) {
-    message.warning(t('codingAgents.notInstalled'))
+    message.warning(t('settings.runtime.notInstalled'))
     return
   }
   const id = `agent-${nextNodeIndex.value}`

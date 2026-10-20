@@ -93,7 +93,11 @@ jobs:
         run: npm run build
 
       - name: Keep production web UI dependencies only
-        run: npm prune --omit=dev --no-audit --no-fund
+        run: |
+          npm prune --omit=dev --no-audit --no-fund
+          # `npm prune` leaves the emptied @scope/ directories behind; drop them
+          # so the bundled node_modules carries no dev-only package names.
+          find node_modules -mindepth 1 -maxdepth 1 -type d -empty -name '@*' -delete
 
       - name: Verify image processing runtime
         run: npm run verify:sharp-runtime

@@ -8,6 +8,10 @@ import {
 } from "naive-ui";
 import { useI18n } from "vue-i18n";
 import { useSettingsStore } from "@/stores/hermes/settings";
+import AgentSettings from "@/components/hermes/settings/AgentSettings.vue";
+import GatewayAutoStartSettings from "@/components/hermes/settings/GatewayAutoStartSettings.vue";
+import MemorySettings from "@/components/hermes/settings/MemorySettings.vue";
+import SessionSettings from "@/components/hermes/settings/SessionSettings.vue";
 import DisplaySettings from "@/components/hermes/settings/DisplaySettings.vue";
 import ProxySettings from "@/components/hermes/settings/ProxySettings.vue";
 import CompressionSettings from "@/components/hermes/settings/CompressionSettings.vue";
@@ -35,7 +39,10 @@ const validTabs = computed(() => new Set([
   ...(canManageUsers ? ["webhooks"] : []),
   "display",
   "proxy",
+  "agent",
+  "memory",
   "compression",
+  "session",
   "privacy",
   "models",
   "runtime",
@@ -57,18 +64,9 @@ function handleTabUpdate(tab: string) {
 }
 
 watch(() => route.query.tab, (tab) => {
-  if (tab === 'runtime') {
-    activeTab.value = 'runtime'
-    return
-  }
-  if (tab === "agent" || tab === "memory" || tab === "session" || tab === "gateway") {
-    void router.replace({
-      name: "hermes.configSettings",
-      query: {
-        ...route.query,
-        tab: tab === "agent" || tab === "gateway" ? undefined : tab,
-      },
-    });
+  // `gateway` 是 Hermes 网关设置的旧链接别名,现在与 `agent` 同 tab。
+  if (tab === "gateway") {
+    activeTab.value = "agent";
     return;
   }
   if (tab === "voice") {
@@ -124,8 +122,18 @@ onMounted(() => {
           <NTabPane name="proxy" :tab="t('settings.tabs.proxy')">
             <ProxySettings />
           </NTabPane>
+          <NTabPane name="agent" :tab="t('settings.tabs.agent')">
+            <AgentSettings />
+            <GatewayAutoStartSettings />
+          </NTabPane>
+          <NTabPane name="memory" :tab="t('settings.tabs.memory')">
+            <MemorySettings />
+          </NTabPane>
           <NTabPane name="compression" :tab="t('settings.tabs.compression')">
             <CompressionSettings />
+          </NTabPane>
+          <NTabPane name="session" :tab="t('settings.tabs.session')">
+            <SessionSettings />
           </NTabPane>
           <NTabPane name="privacy" :tab="t('settings.tabs.privacy')">
             <PrivacySettings />

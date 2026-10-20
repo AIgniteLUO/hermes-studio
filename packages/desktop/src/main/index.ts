@@ -941,7 +941,7 @@ async function bootstrap(source?: RuntimeDownloadSource) {
     }
   } catch (err) {
     console.error('Failed to prepare Hermes runtime:', err)
-    // Keep Studio available so Runtime recovery can happen from Agent Manager.
+    // Keep Studio available so Runtime recovery can happen from the runtime tab in Settings.
   }
 
   try {

@@ -23,8 +23,11 @@ test('sidebar navigation exposes native links', async ({ page }) => {
   const journey = sidebar.getByRole('link', { name: /^Journey$/ })
   await expect(journey).toHaveAttribute('href', '#/hermes/journey')
 
-  const settings = sidebar.getByRole('link', { name: /^Settings$/ })
-  await expect(settings).toHaveAttribute('href', '#/hermes/config/settings')
+  // 配置侧栏不再持有设置入口,设置只在主侧栏。
+  await expect(sidebar.getByRole('link', { name: /^Settings$/ })).toHaveCount(0)
+  await page.goto('/#/hermes/theme')
+  const settings = page.locator('aside.sidebar').getByRole('link', { name: /^Settings$/ })
+  await expect(settings).toHaveAttribute('href', '#/hermes/settings')
 })
 
 test('session rows expose native session links', async ({ page }) => {

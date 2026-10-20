@@ -17,11 +17,6 @@ test('renders authenticated shell and navigates between key product routes', asy
   expect(cronHistoryRequest?.headers['x-hermes-profile']).toBe('research')
 
   const configSidebar = page.locator('aside.hermes-config-sidebar')
-  const settingsLink = configSidebar.getByRole('link', { name: /^Settings$/ })
-  await expect(settingsLink).toHaveAttribute('href', '#/hermes/config/settings')
-  await settingsLink.click()
-  await expect(page).toHaveURL(/#\/hermes\/config\/settings$/)
-  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
 
   const returnLink = configSidebar.getByRole('link', { name: /^Back$/ })
   await expect(returnLink).toHaveAttribute('href', '#/hermes/chat')
@@ -33,5 +28,20 @@ test('renders authenticated shell and navigates between key product routes', asy
   await expect(page).toHaveURL(/#\/hermes\/models$/)
   await expect(page.getByRole('heading', { name: 'Models', exact: true })).toBeVisible()
   await expect(page.getByText('test-model').first()).toBeVisible()
+
+  // 设置入口只在主侧栏,且 Hermes 设置已并回系统设置页。
+  await page.goto('/#/hermes/theme')
+  const appSidebar = page.locator('aside.sidebar')
+  const settingsLink = appSidebar.getByRole('link', { name: /^Settings$/ })
+  await expect(settingsLink).toHaveAttribute('href', '#/hermes/settings')
+  await settingsLink.click()
+  await expect(page).toHaveURL(/#\/hermes\/settings$/)
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
+
+  // 旧的 Hermes 设置深链带 tab 重定向到同一个设置页。
+  await page.goto('/#/hermes/config/settings?tab=session')
+  await expect(page).toHaveURL(/#\/hermes\/settings\?tab=session$/)
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
+
   expect(api.unexpectedRequests).toEqual([])
 })

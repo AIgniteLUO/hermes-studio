@@ -419,8 +419,7 @@ useKeyboard();
     backdrop-filter: blur(8px) saturate(110%);
   }
 
-  :deep(.chat-input-area),
-  :deep(.agent-manager-panel) {
+  :deep(.chat-input-area) {
     background-color: transparent;
   }
 

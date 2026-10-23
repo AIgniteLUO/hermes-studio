@@ -37,6 +37,10 @@ function openModels() {
   void router.push({ name: 'hermes.models' })
 }
 
+function openHermesAgentConfig() {
+  void router.push({ name: 'hermes.configSettings' })
+}
+
 function openGroupChat() {
   if (props.active === 'group') return
   void router.push({ name: 'hermes.groupChat' })
@@ -106,6 +110,30 @@ function openWorkflow() {
           <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" />
         </svg>
         <span>{{ t('sidebar.models') }}</span>
+      </button>
+      <button
+        class="page-sidebar-tab"
+        type="button"
+        @click="openHermesAgentConfig"
+      >
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="3" y="7" width="18" height="13" rx="3" />
+          <path d="M12 3v4" />
+          <circle cx="9" cy="13" r="1" />
+          <circle cx="15" cy="13" r="1" />
+          <path d="M9.5 17h5" />
+        </svg>
+        <span>{{ t('sidebar.hermesAgentConfig') }}</span>
       </button>
     </div>
     <div class="conversation-switch conversation-switch--four" role="tablist" aria-label="Conversation type">

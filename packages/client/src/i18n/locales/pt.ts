@@ -236,6 +236,7 @@ export default {
     groupMonitoringShort: 'Mon.',
     theme: 'Tema',
     settings: 'Configurações',
+    hermesAgentConfig: 'Configuração do Hermes Agent',
     connected: 'Conectado',
     disconnected: 'Desconectado',
     updateTip: 'Esta compilação não tem canal de autoatualização via npm; atualize a partir do código-fonte',

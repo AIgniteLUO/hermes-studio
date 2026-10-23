@@ -236,6 +236,7 @@ export default {
     groupMonitoringShort: 'Suivi',
     theme: 'Thème',
     settings: 'Parametres',
+    hermesAgentConfig: 'Configuration Hermes Agent',
     connected: 'Connecte',
     disconnected: 'Deconnecte',
     updateTip: 'Cette compilation n’a pas de canal d’auto-mise à jour npm ; mettez à jour depuis les sources',

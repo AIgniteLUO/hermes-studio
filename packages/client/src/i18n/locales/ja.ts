@@ -236,6 +236,7 @@ export default {
     groupMonitoringShort: '監視',
     theme: 'テーマ',
     settings: '設定',
+    hermesAgentConfig: 'Hermes Agent 設定',
     connected: '接続済み',
     disconnected: '未接続',
     updateTip: 'このビルドには npm 自己更新チャンネルがありません。ソースから更新してください',

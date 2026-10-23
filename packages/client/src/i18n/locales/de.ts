@@ -236,6 +236,7 @@ export default {
     groupMonitoringShort: 'Überw.',
     theme: 'Design',
     settings: 'Einstellungen',
+    hermesAgentConfig: 'Hermes Agent-Konfiguration',
     connected: 'Verbunden',
     disconnected: 'Getrennt',
     updateTip: 'Dieser Build hat keinen npm-Selbstupdate-Kanal – bitte aus dem Quellcode aktualisieren',

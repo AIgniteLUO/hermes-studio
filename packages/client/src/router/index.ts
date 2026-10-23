@@ -128,13 +128,10 @@ const router = createRouter({
       meta: { hermesConfig: true },
     },
     {
-      // Hermes Agent 设置(网关/记忆/会话)已并回系统设置页,保留旧路径做带 tab 的重定向。
       path: '/hermes/config/settings',
       name: 'hermes.configSettings',
-      redirect: to => ({
-        name: 'hermes.settings',
-        query: to.query,
-      }),
+      component: () => import('@/views/hermes/HermesSettingsView.vue'),
+      meta: { hermesConfig: true },
     },
     {
       path: '/hermes/settings',

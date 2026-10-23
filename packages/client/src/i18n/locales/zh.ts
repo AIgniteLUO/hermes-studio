@@ -230,6 +230,7 @@ export default {
     groupToolsShort: "工具",
     theme: '主题',
     settings: '设置',
+    hermesAgentConfig: 'Hermes Agent 配置',
     connected: '已连接',
     disconnected: '未连接',
     collapse: '收起菜单',

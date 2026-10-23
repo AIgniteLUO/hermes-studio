@@ -154,6 +154,7 @@ export default {
     groupTools: 'Инструменты',
     theme: 'Тема',
     settings: 'Настройки',
+    hermesAgentConfig: 'Настройка Hermes Agent',
     connected: 'Подключено',
     disconnected: 'Отключено',
     collapse: 'Свернуть меню',

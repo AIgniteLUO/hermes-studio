@@ -236,6 +236,7 @@ export default {
     groupMonitoringShort: '모니터',
     theme: '테마',
     settings: '설정',
+    hermesAgentConfig: 'Hermes Agent 설정',
     connected: '연결됨',
     disconnected: '연결 끊김',
     updateTip: '이 빌드에는 npm 자체 업데이트 채널이 없습니다. 소스에서 업데이트하세요',

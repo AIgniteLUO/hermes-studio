@@ -55,15 +55,11 @@ vi.mock('@/stores/hermes/profiles', () => ({
 vi.mock('@/api/client', () => ({ isStoredSuperAdmin: () => false }))
 
 vi.mock('@/components/hermes/settings/AccountSettings.vue', () => ({ default: { template: '<div />' } }))
-vi.mock('@/components/hermes/settings/AgentSettings.vue', () => ({ default: { template: '<div />' } }))
 vi.mock('@/components/hermes/settings/CompressionSettings.vue', () => ({ default: { template: '<div />' } }))
 vi.mock('@/components/hermes/settings/DisplaySettings.vue', () => ({ default: { template: '<div />' } }))
-vi.mock('@/components/hermes/settings/GatewayAutoStartSettings.vue', () => ({ default: { template: '<div />' } }))
-vi.mock('@/components/hermes/settings/MemorySettings.vue', () => ({ default: { template: '<div />' } }))
 vi.mock('@/components/hermes/settings/ModelSettings.vue', () => ({ default: { template: '<div />' } }))
 vi.mock('@/components/hermes/settings/PrivacySettings.vue', () => ({ default: { template: '<div />' } }))
 vi.mock('@/components/hermes/settings/ProxySettings.vue', () => ({ default: { template: '<div />' } }))
-vi.mock('@/components/hermes/settings/SessionSettings.vue', () => ({ default: { template: '<div />' } }))
 vi.mock('@/components/hermes/settings/UserManagementSettings.vue', () => ({ default: { template: '<div />' } }))
 vi.mock('@/components/hermes/settings/WebhookSettings.vue', () => ({ default: { template: '<div />' } }))
 vi.mock('@/components/hermes/settings/HermesRuntimeSummary.vue', () => ({
@@ -101,18 +97,5 @@ describe('settings runtime tab', () => {
     const runtimeTab = wrapper.get('[data-tab="runtime"]')
     expect(runtimeTab.find('[data-testid="hermes-runtime-summary-stub"]').exists()).toBe(true)
     expect(runtimeTab.find('[data-testid="runtime-settings-stub"]').exists()).toBe(true)
-  })
-
-  it('keeps the Hermes agent tabs on the same page as runtime', async () => {
-    const wrapper = mount(SettingsView, {
-      global: {
-        plugins: [createI18n({ legacy: false, locale: 'en', messages: { en } })],
-      },
-    })
-    await wrapper.vm.$nextTick()
-
-    for (const tab of ['agent', 'memory', 'session']) {
-      expect(wrapper.find(`[data-tab="${tab}"]`).exists()).toBe(true)
-    }
   })
 })
